@@ -7,8 +7,12 @@ export interface Method {
   gpPerHour: number;
 }
 
-export async function fetchMethods(): Promise<Method[]> {
-  const res = await fetch(`${API_URL}/methods`);
+export async function fetchMethods(username?: string): Promise<Method[]> {
+  const url = new URL(`${API_URL}/methods`);
+  if (username) {
+    url.searchParams.set("username", username);
+  }
+  const res = await fetch(url.toString());
   if (!res.ok) {
     throw new Error(`HTTP ${res.status} – Error fetching methods`);
   }
