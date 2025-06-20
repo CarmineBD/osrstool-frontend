@@ -1,11 +1,11 @@
 // src/features/methods/hooks.ts
 import { useQuery } from "@tanstack/react-query";
-import { fetchMethods } from "./api";
-
-export function useMethods(username?: string, page = 1) {
+import { fetchMethods } from "../../lib/api";
+export function useMethods() {
   return useQuery({
-    queryKey: ["methods", username, page],
-    queryFn: () => fetchMethods({ username, page }),
-    keepPreviousData: true,
+    queryKey: ["methods"],
+    queryFn: fetchMethods,
+    refetchInterval: 60 * 1000, // 60 s
+    staleTime: 30 * 1000, // 30 s
   });
 }
