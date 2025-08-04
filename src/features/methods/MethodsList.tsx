@@ -1,5 +1,6 @@
 import React from "react";
 import { useMethods } from "./hooks";
+import { Link } from "react-router-dom"; // <-- Añade esto
 
 export function MethodsList({ username }: { username: string }) {
   const { data, error, isLoading, isFetching } = useMethods(username);
@@ -22,7 +23,12 @@ export function MethodsList({ username }: { username: string }) {
             key={method.id}
             className="flex justify-between items-center p-4 bg-white rounded shadow"
           >
-            <span className="font-medium">{method.name}</span>
+            <Link
+              to={`/moneyMkingMethod/${method.id}`}
+              className="font-medium text-blue-600 hover:underline"
+            >
+              {method.name}
+            </Link>
             <span className="text-lg font-bold">
               {method.variants.map((variant) => (
                 <span key={variant.id} className="mr-2">
