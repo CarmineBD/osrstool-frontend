@@ -1,4 +1,5 @@
 import React from "react";
+import type { Variant } from "../lib/api";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
@@ -30,7 +31,7 @@ export function MethodDetail() {
         <span className="font-semibold">Categoría:</span> {data.category}
       </div>
       <h3 className="font-semibold mb-2">Variantes:</h3>
-      {data.variants.map((variant: any) => (
+      {data.variants.map((variant: Variant) => (
         <div key={variant.id} className="mb-4 p-3 border rounded">
           <div className="font-bold">{variant.label}</div>
           <div>

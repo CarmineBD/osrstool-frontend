@@ -7,7 +7,7 @@ export interface Method {
   variants: Variant[];
 }
 
-interface Variant {
+export interface Variant {
   id: string;
   label: string;
   afkiness: number;
