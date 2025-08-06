@@ -1,33 +1,32 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import type { FormEvent } from "react";
 import { MethodsList } from "../features/methods/MethodsList";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 export function Home() {
   const [username, setUsername] = useState("");
   const [input, setInput] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     setUsername(input.trim());
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <h1 className="text-2xl font-bold mb-6">OSRS Moneymaking Methods</h1>
-      <form onSubmit={handleSubmit} className="mb-6 flex gap-2">
-        <input
-          type="text"
-          placeholder="Enter username"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          className="border px-3 py-2 rounded"
-        />
-        <button
-          type="submit"
-          className="bg-blue-600 text-white px-4 py-2 rounded"
-        >
-          Buscar
-        </button>
-      </form>
-      <MethodsList username={username} />
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto p-8 space-y-6">
+        <h1 className="text-3xl font-bold">OSRS Moneymaking Methods</h1>
+        <form onSubmit={handleSubmit} className="flex max-w-md gap-2">
+          <Input
+            type="text"
+            placeholder="Enter username"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+          />
+          <Button type="submit">Buscar</Button>
+        </form>
+        <MethodsList username={username} />
+      </div>
     </div>
   );
 }

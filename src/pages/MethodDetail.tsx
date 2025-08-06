@@ -1,4 +1,3 @@
-import React from "react";
 import type { Variant } from "../lib/api";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
