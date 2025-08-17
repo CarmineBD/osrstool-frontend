@@ -23,8 +23,19 @@ export interface Variant {
   riskLevel: string;
   xpHour: Record<string, number>;
   requirements: Requirement;
+  recommendations: Requirement;
   highProfit: number;
   lowProfit: number;
+  missingRequirements?: {
+    items: { id: number; quantity: number }[];
+    levels: Record<string, number>;
+    quests: Record<string, number>;
+    achievement_diaries: Record<string, number>;
+  };
+
+  inputs: { id: string; quantity: number }[];
+  outputs: { id: string; quantity: number }[];
+  description?: string;
 }
 
 export async function fetchMethods(username?: string): Promise<Method[]> {
