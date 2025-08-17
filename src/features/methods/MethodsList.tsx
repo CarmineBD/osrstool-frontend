@@ -27,15 +27,30 @@ export function MethodsList({ username }: { username: string }) {
 
   const rows =
     data?.flatMap((method) =>
-      method.variants.map((variant) => {
-        const levels = variant.requirements?.levels || {};
+      method.variants.map((variant, index) => {
+        const levels = Array.isArray(variant.requirements?.levels)
+          ? variant.requirements!.levels
+          : Object.entries(variant.requirements?.levels || {}).map(
+              ([skill, level]) => ({
+                skill,
+                level: Number(level),
+              })
+            );
+
+        const xpHour = Array.isArray(variant.xpHour)
+          ? variant.xpHour
+          : Object.entries(variant.xpHour || {}).map(([skill, experience]) => ({
+              skill,
+              experience: Number(experience),
+            }));
+
         return {
-          id: `${method.id}-${variant.id}`,
+          id: `${method.id}-${variant.id ?? index}`,
           methodId: method.id,
           name: method.name,
           category: method.category,
           label: variant.label,
-          xpHour: variant.xpHour || {},
+          xpHour,
           clickIntensity: variant.clickIntensity,
           afkiness: variant.afkiness,
           riskLevel: variant.riskLevel,
@@ -77,16 +92,16 @@ export function MethodsList({ username }: { username: string }) {
               <TableCell>{row.category}</TableCell>
               <TableCell>{row.label}</TableCell>
               <TableCell>
-                {Object.entries(row.xpHour).map(([skill, xp]) => (
-                  <div key={skill}>{`${skill}: ${xp}`}</div>
+                {row.xpHour.map(({ skill, experience }) => (
+                  <div key={skill}>{`${skill}: ${experience}`}</div>
                 ))}
               </TableCell>
               <TableCell>{row.clickIntensity}</TableCell>
               <TableCell>{row.afkiness}</TableCell>
               <TableCell>{row.riskLevel}</TableCell>
               <TableCell>
-                {Object.entries(row.levels).map(([skill, lvl]) => (
-                  <div key={skill}>{`${skill}: ${lvl}`}</div>
+                {row.levels.map(({ skill, level }) => (
+                  <div key={skill}>{`${skill}: ${level}`}</div>
                 ))}
               </TableCell>
             </TableRow>

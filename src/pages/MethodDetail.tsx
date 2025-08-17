@@ -53,14 +53,21 @@ export function MethodDetail() {
 
       <Tabs className="w-full">
         <TabsList>
-          {data.variants.map((variant: Variant) => (
-            <TabsTrigger key={variant.id} value={variant.id}>
+          {data.variants.map((variant: Variant, index: number) => (
+            <TabsTrigger
+              key={variant.id ?? index.toString()}
+              value={variant.id ?? index.toString()}
+            >
               {variant.label}
             </TabsTrigger>
           ))}
         </TabsList>
-        {data.variants.map((variant: Variant) => (
-          <TabsContent key={variant.id} value={variant.id} className="p-4">
+        {data.variants.map((variant: Variant, index: number) => (
+          <TabsContent
+            key={variant.id ?? index.toString()}
+            value={variant.id ?? index.toString()}
+            className="p-4"
+          >
             {/* <div className="mb-2">
               <span className="font-semibold">AFKiness:</span>{" "}
               {variant.afkiness}
@@ -251,75 +258,8 @@ export function MethodDetail() {
                                 </h3>
                                 <div className="mt-3 min-h-14 w-full rounded bg-gray-300">
                                   <div className="flex flex-col gap-2">
-                                    {Object.entries(
-                                      variant.requirements.levels
-                                    ).map(([skill, level]) => (
-                                      <Badge
-                                        size="lg"
-                                        key={skill}
-                                        variant="secondary"
-                                      >
-                                        <img
-                                          src={getUrlByType(skill) ?? ""}
-                                          alt={`${skill.toLowerCase()}_icon`}
-                                          title={`${skill}`}
-                                        />
-                                        {level}
-                                      </Badge>
-                                    ))}
-                                    {Object.entries(
-                                      variant.requirements.quests
-                                    ).map(([quest, stage]) => (
-                                      <Badge
-                                        size="lg"
-                                        key={quest}
-                                        variant="secondary"
-                                      >
-                                        <img
-                                          src={getUrlByType("quests") ?? ""}
-                                          alt={`quests_icon`}
-                                          title="quests"
-                                        />
-                                        {stage === 1
-                                          ? quest
-                                          : `${quest} (started)`}
-                                      </Badge>
-                                    ))}
-                                    {Object.entries(
-                                      variant.requirements.achievement_diaries
-                                    ).map(([achievement_diary, stage]) => (
-                                      <Badge
-                                        size="lg"
-                                        key={`${achievement_diary}_${stage}`}
-                                        variant="secondary"
-                                      >
-                                        <img
-                                          src={
-                                            getUrlByType(
-                                              "achivement_diaries"
-                                            ) ?? ""
-                                          }
-                                          alt={`achivements_diaries_icon`}
-                                          title="quests"
-                                        />
-                                        {`${achievement_diary} ${getAchivementDiaryStageByLevel(
-                                          stage
-                                        )}`}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                </div>
-                              </div>
-                              {variant.recommendations && (
-                                <div className="mt-8">
-                                  <h3 className="text-sm font-semibold">
-                                    Recommendations
-                                  </h3>
-                                  <div className="mt-3 min-h-14 w-full rounded bg-gray-300">
-                                    <div className="flex flex-col gap-2">
-                                      {Object.entries(
-                                        variant.recommendations.levels
-                                      ).map(([skill, level]) => (
+                                    {(variant.requirements?.levels || []).map(
+                                      ({ skill, level }) => (
                                         <Badge
                                           size="lg"
                                           key={skill}
@@ -332,13 +272,13 @@ export function MethodDetail() {
                                           />
                                           {level}
                                         </Badge>
-                                      ))}
-                                      {Object.entries(
-                                        variant.recommendations.quests
-                                      ).map(([quest, stage]) => (
+                                      )
+                                    )}
+                                    {(variant.requirements?.quests || []).map(
+                                      ({ name, stage }) => (
                                         <Badge
                                           size="lg"
-                                          key={quest}
+                                          key={name}
                                           variant="secondary"
                                         >
                                           <img
@@ -347,17 +287,16 @@ export function MethodDetail() {
                                             title="quests"
                                           />
                                           {stage === 1
-                                            ? quest
-                                            : `${quest} (started)`}
+                                            ? name
+                                            : `${name} (started)`}
                                         </Badge>
-                                      ))}
-                                      {Object.entries(
-                                        variant.recommendations
-                                          .achievement_diaries
-                                      ).map(([achievement_diary, stage]) => (
+                                      )
+                                    )}
+                                    {(variant.requirements?.achievement_diaries || []).map(
+                                      ({ name, stage }) => (
                                         <Badge
                                           size="lg"
-                                          key={`${achievement_diary}_${stage}`}
+                                          key={`${name}_${stage}`}
                                           variant="secondary"
                                         >
                                           <img
@@ -369,11 +308,78 @@ export function MethodDetail() {
                                             alt={`achivements_diaries_icon`}
                                             title="quests"
                                           />
-                                          {`${achievement_diary} ${getAchivementDiaryStageByLevel(
+                                          {`${name} ${getAchivementDiaryStageByLevel(
                                             stage
                                           )}`}
                                         </Badge>
-                                      ))}
+                                      )
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              {variant.recommendations && (
+                                <div className="mt-8">
+                                  <h3 className="text-sm font-semibold">
+                                    Recommendations
+                                  </h3>
+                                  <div className="mt-3 min-h-14 w-full rounded bg-gray-300">
+                                    <div className="flex flex-col gap-2">
+                                      {(variant.recommendations?.levels || []).map(
+                                        ({ skill, level }) => (
+                                          <Badge
+                                            size="lg"
+                                            key={skill}
+                                            variant="secondary"
+                                          >
+                                            <img
+                                              src={getUrlByType(skill) ?? ""}
+                                              alt={`${skill.toLowerCase()}_icon`}
+                                              title={`${skill}`}
+                                            />
+                                            {level}
+                                          </Badge>
+                                        )
+                                      )}
+                                      {(variant.recommendations?.quests || []).map(
+                                        ({ name, stage }) => (
+                                          <Badge
+                                            size="lg"
+                                            key={name}
+                                            variant="secondary"
+                                          >
+                                            <img
+                                              src={getUrlByType("quests") ?? ""}
+                                              alt={`quests_icon`}
+                                              title="quests"
+                                            />
+                                            {stage === 1
+                                              ? name
+                                              : `${name} (started)`}
+                                          </Badge>
+                                        )
+                                      )}
+                                      {(variant.recommendations?.achievement_diaries || []).map(
+                                        ({ name, stage }) => (
+                                          <Badge
+                                            size="lg"
+                                            key={`${name}_${stage}`}
+                                            variant="secondary"
+                                          >
+                                            <img
+                                              src={
+                                                getUrlByType(
+                                                  "achivement_diaries"
+                                                ) ?? ""
+                                              }
+                                              alt={`achivements_diaries_icon`}
+                                              title="quests"
+                                            />
+                                            {`${name} ${getAchivementDiaryStageByLevel(
+                                              stage
+                                            )}`}
+                                          </Badge>
+                                        )
+                                      )}
                                     </div>
                                   </div>
                                 </div>
