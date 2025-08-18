@@ -8,34 +8,52 @@ export interface Method {
   variants: Variant[];
 }
 
+type ItemRequirement = {
+  id: number;
+  quantity: number;
+  reason?: string;
+};
+
+type LevelRequirement = {
+  skill: string;
+  level: number;
+  reason?: string;
+};
+
+type QuestRequirement = {
+  name: string;
+  stage: number;
+  reason?: string;
+};
+
+type DiaryRequirement = {
+  name: string;
+  stage: number;
+  reason?: string;
+};
+
 type Requirement = {
-  items: { id: number; quantity: number }[];
-  levels: Record<string, number>;
-  quests: Record<string, number>;
-  achievement_diaries: Record<string, number>;
+  items?: ItemRequirement[];
+  levels?: LevelRequirement[];
+  quests?: QuestRequirement[];
+  achievement_diaries?: DiaryRequirement[];
 };
 
 export interface Variant {
-  id: string;
+  id?: string;
   label: string;
-  afkiness: number;
-  clickIntensity: number;
-  riskLevel: string;
-  xpHour: Record<string, number>;
-  requirements: Requirement;
-  recommendations: Requirement;
-  highProfit: number;
-  lowProfit: number;
-  missingRequirements?: {
-    items: { id: number; quantity: number }[];
-    levels: Record<string, number>;
-    quests: Record<string, number>;
-    achievement_diaries: Record<string, number>;
-  };
-
-  inputs: { id: string; quantity: number }[];
-  outputs: { id: string; quantity: number }[];
   description?: string;
+  afkiness?: number;
+  clickIntensity?: number;
+  riskLevel?: string;
+  xpHour?: { skill: string; experience: number }[];
+  requirements: Requirement;
+  recommendations?: Requirement;
+  highProfit?: number;
+  lowProfit?: number;
+  missingRequirements?: { id: number; name: string; level: number }[];
+  inputs: { id: number; quantity: number }[];
+  outputs: { id: number; quantity: number }[];
 }
 
 export async function fetchMethods(username?: string): Promise<Method[]> {
