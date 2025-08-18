@@ -12,7 +12,7 @@ export function getUrlByType(type: string): string | null {
     defence: "https://oldschool.runescape.wiki/images/Defence_icon.png?ca0cd",
     hitpoints:
       "https://oldschool.runescape.wiki/images/Hitpoints_icon.png?b4bce",
-    range: "https://oldschool.runescape.wiki/images/Range_icon.png?b4bce",
+    ranged: "https://oldschool.runescape.wiki/images/Ranged_icon.png?b4bce",
     magic: "https://oldschool.runescape.wiki/images/Magic_icon.png?b4bce",
     runecraft:
       "https://oldschool.runescape.wiki/images/Runecraft_icon.png?b4bce",
