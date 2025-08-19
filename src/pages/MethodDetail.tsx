@@ -1,6 +1,6 @@
 import type { Variant } from "../lib/api";
 import { useParams } from "react-router-dom";
-import { getUrlByType, getAchivementDiaryStageByLevel } from "@/lib/utils";
+import { getUrlByType } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -257,7 +257,7 @@ export function MethodDetail() {
                                   Requirements
                                 </h3>
                                 <div className="mt-3 min-h-14 w-full rounded bg-gray-300">
-                                  <div className="flex flex-col gap-2">
+                                  <div className="flex flex-start flex-wrap gap-2">
                                     {(variant.requirements?.levels || []).map(
                                       ({ skill, level }) => (
                                         <Badge
@@ -295,10 +295,10 @@ export function MethodDetail() {
                                     {(
                                       variant.requirements
                                         ?.achievement_diaries || []
-                                    ).map(({ name, stage }) => (
+                                    ).map(({ name, tier }) => (
                                       <Badge
                                         size="lg"
-                                        key={`${name}_${stage}`}
+                                        key={`${name}_${tier}`}
                                         variant="secondary"
                                       >
                                         <img
@@ -310,9 +310,7 @@ export function MethodDetail() {
                                           alt={`achivements_diaries_icon`}
                                           title="quests"
                                         />
-                                        {`${name} ${getAchivementDiaryStageByLevel(
-                                          stage
-                                        )}`}
+                                        {`${name} ${tier}`}
                                       </Badge>
                                     ))}
                                   </div>
@@ -324,7 +322,7 @@ export function MethodDetail() {
                                     Recommendations
                                   </h3>
                                   <div className="mt-3 min-h-14 w-full rounded bg-gray-300">
-                                    <div className="flex flex-col gap-2">
+                                    <div className="flex flex-start flex-wrap gap-2">
                                       {(
                                         variant.recommendations?.levels || []
                                       ).map(({ skill, level }) => (
@@ -362,10 +360,10 @@ export function MethodDetail() {
                                       {(
                                         variant.recommendations
                                           ?.achievement_diaries || []
-                                      ).map(({ name, stage }) => (
+                                      ).map(({ name, tier }) => (
                                         <Badge
                                           size="lg"
-                                          key={`${name}_${stage}`}
+                                          key={`${name}_${tier}`}
                                           variant="secondary"
                                         >
                                           <img
@@ -377,9 +375,7 @@ export function MethodDetail() {
                                             alt={`achivements_diaries_icon`}
                                             title="quests"
                                           />
-                                          {`${name} ${getAchivementDiaryStageByLevel(
-                                            stage
-                                          )}`}
+                                          {`${name} ${tier}`}
                                         </Badge>
                                       ))}
                                     </div>
@@ -391,7 +387,7 @@ export function MethodDetail() {
                             {/* Columna 2 — Items */}
                             <section>
                               <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
-                                Levels and quests
+                                Items
                               </h3>
 
                               <div className="mt-6">

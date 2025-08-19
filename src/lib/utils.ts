@@ -47,16 +47,16 @@ export function getUrlByType(type: string): string | null {
   return map[type.toLowerCase()] ?? null;
 }
 
-export function getAchivementDiaryStageByLevel(id: number): string | null {
-  const map: Record<number, string> = {
-    1: "Easy",
-    2: "Medium",
-    3: "Hard",
-    4: "Elite",
-  };
+// export function getAchivementDiaryStageByLevel(id: number): string | null {
+//   const map: Record<number, string> = {
+//     1: "Easy",
+//     2: "Medium",
+//     3: "Hard",
+//     4: "Elite",
+//   };
 
-  return map[id] ?? null;
-}
+//   return map[id] ?? null;
+// }
 
 export function getQuestStageByLevel(id: number): string | null {
   const map: Record<number, string> = {

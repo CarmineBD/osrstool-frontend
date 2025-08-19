@@ -28,7 +28,7 @@ type QuestRequirement = {
 
 type DiaryRequirement = {
   name: string;
-  stage: number;
+  tier: number;
   reason?: string;
 };
 
@@ -46,6 +46,7 @@ export interface Variant {
   afkiness?: number;
   clickIntensity?: number;
   riskLevel?: string;
+  wilderness?: boolean;
   xpHour?: { skill: string; experience: number }[];
   requirements: Requirement;
   recommendations?: Requirement;
