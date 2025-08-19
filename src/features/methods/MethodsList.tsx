@@ -28,14 +28,28 @@ export function MethodsList({ username }: { username: string }) {
   const rows =
     data?.flatMap((method) =>
       method.variants.map((variant, index) => {
-        const levels = variant.requirements?.levels || [];
+        const xpHour = Array.isArray(variant.xpHour)
+          ? variant.xpHour
+          : variant.xpHour
+          ? Object.entries(variant.xpHour).map(([skill, experience]) => ({
+              skill,
+              experience: Number(experience),
+            }))
+          : [];
+        const levels = Array.isArray(variant.requirements?.levels)
+          ? variant.requirements?.levels
+          : variant.requirements?.levels
+          ? Object.entries(variant.requirements.levels).map(
+              ([skill, level]) => ({ skill, level: Number(level) })
+            )
+          : [];
         return {
           id: `${method.id}-${variant.id ?? index}`,
           methodId: method.id,
           name: method.name,
           category: method.category,
           label: variant.label,
-          xpHour: variant.xpHour || [],
+          xpHour,
           clickIntensity: variant.clickIntensity,
           afkiness: variant.afkiness,
           riskLevel: variant.riskLevel,
