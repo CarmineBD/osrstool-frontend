@@ -68,3 +68,24 @@ export async function fetchMethods(username?: string): Promise<Method[]> {
   const json = await res.json();
   return json.data;
 }
+
+export interface Item {
+  name: string;
+  iconUrl: string;
+  highPrice?: number;
+  lowPrice?: number;
+}
+
+export async function fetchItems(
+  ids: number[]
+): Promise<Record<number, Item>> {
+  const url = new URL(`${API_URL}/items`);
+  url.searchParams.set("ids", ids.join(","));
+  url.searchParams.set("fields", "name,iconUrl,highPrice,lowPrice");
+  const res = await fetch(url.toString());
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status} – Error fetching items`);
+  }
+  const json = await res.json();
+  return json.data ?? json;
+}
