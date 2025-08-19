@@ -68,12 +68,13 @@ export function MethodsList({ username }: { username: string }) {
         <TableHeader>
           <TableRow>
             <TableHead>Nombre</TableHead>
-            <TableHead>Categoría</TableHead>
-            <TableHead>Variante</TableHead>
+            {/* <TableHead>Categoría</TableHead> */}
+            {/* <TableHead>Variante</TableHead> */}
             <TableHead>XP/H</TableHead>
-            <TableHead>Intensidad de clicks</TableHead>
+            <TableHead>Gp/H</TableHead>
+            {/* <TableHead>Intensidad de clicks</TableHead> */}
             <TableHead>AFKiness</TableHead>
-            <TableHead>Riesgo</TableHead>
+            {/* <TableHead>Riesgo</TableHead> */}
             <TableHead>Requisitos</TableHead>
           </TableRow>
         </TableHeader>
@@ -82,14 +83,14 @@ export function MethodsList({ username }: { username: string }) {
             <TableRow key={row.id}>
               <TableCell className="font-medium">
                 <Link
-                  to={`/moneyMkingMethod/${row.methodId}`}
+                  to={`/moneyMakingMethod/${row.methodId}`}
                   className="text-blue-600 hover:underline"
                 >
                   {row.name}
                 </Link>
               </TableCell>
-              <TableCell>{row.category}</TableCell>
-              <TableCell>{row.label}</TableCell>
+              {/* <TableCell>{row.category}</TableCell> */}
+              {/* <TableCell>{row.label}</TableCell> */}
               <TableCell>
                 {row.xpHour.map(({ skill, experience }) => (
                   <div key={skill}>{`${skill}: ${experience}`}</div>

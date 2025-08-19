@@ -1,6 +1,7 @@
-import type { Variant } from "../lib/api";
+import { useMemo } from "react";
+import { fetchItems, type Variant } from "../lib/api";
 import { useParams } from "react-router-dom";
-import { getUrlByType } from "@/lib/utils";
+import { getUrlByType, formatNumber } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -36,9 +37,29 @@ export function MethodDetail() {
     enabled: !!id,
   });
 
+  const itemIds = useMemo(() => {
+    if (!data) return [] as number[];
+    const ids = new Set<number>();
+    data.variants.forEach((variant: Variant) => {
+      variant.inputs.forEach((i) => ids.add(i.id));
+      variant.outputs.forEach((o) => ids.add(o.id));
+      variant.requirements.items?.forEach((i) => ids.add(i.id));
+      variant.recommendations?.items?.forEach((i) => ids.add(i.id));
+    });
+    return Array.from(ids);
+  }, [data]);
+
+  const { data: itemsData } = useQuery({
+    queryKey: ["items", itemIds],
+    queryFn: () => fetchItems(itemIds),
+    enabled: itemIds.length > 0,
+  });
+
   if (isLoading) return <p>Cargando método…</p>;
   if (error) return <p className="text-red-500">❌ {`${error}`}</p>;
   if (!data) return <p>No se encontró el método.</p>;
+
+  const itemsMap = itemsData || {};
 
   return (
     <div className="max-w-5xl mx-auto bg-white p-6 rounded shadow">
@@ -144,8 +165,20 @@ export function MethodDetail() {
                   <Card className="@container/card">
                     <CardHeader>
                       <CardDescription>Gp/hr</CardDescription>
-                      <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                        {variant.highProfit}
+                      <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl flex gap-3">
+                        <figure>
+                          <img
+                            src={
+                              "https://oldschool.runescape.wiki/images/Coins_10000.png"
+                            }
+                            alt={"Coins"}
+                            title={"Coins"}
+                          />
+                        </figure>
+
+                        {variant.highProfit !== undefined
+                          ? formatNumber(variant.highProfit)
+                          : "N/A"}
                       </CardTitle>
                       <CardAction>
                         <Badge variant="outline">
@@ -191,23 +224,31 @@ export function MethodDetail() {
                     <CardHeader>
                       <CardDescription>Xp/hr</CardDescription>
                       <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                        {variant.afkiness ? variant.afkiness : "N/A"}
+                        {variant.xpHour
+                          ? variant.xpHour.reduce(
+                              (total, { experience }) => total + experience,
+                              0
+                            )
+                          : "N/A"}
                       </CardTitle>
                       <CardAction>
                         {/* <Badge variant="outline">
-                          <IconTrendingDown />
-                          -20%
-                        </Badge> */}
+        <IconTrendingDown />
+        -20%
+      </Badge> */}
                       </CardAction>
                     </CardHeader>
                     <CardFooter className="flex-col items-start gap-1.5 text-sm">
-                      {/* <div className="line-clamp-1 flex gap-2 font-medium">
-                        <IconClick className="size-4" />
-                        {variant.clickIntensity} clicks/hr
-                      </div> */}
-                      {/* <div className="text-muted-foreground">
-                        Acquisition needs attention
-                      </div> */}
+                      {(variant.xpHour || []).map(({ skill, experience }) => (
+                        <Badge size="lg" key={skill} variant="secondary">
+                          <img
+                            src={getUrlByType(skill) ?? ""}
+                            alt={`${skill.toLowerCase()}_icon`}
+                            title={`${skill}`}
+                          />
+                          {experience}
+                        </Badge>
+                      ))}
                     </CardFooter>
                   </Card>
                 </div>
@@ -230,11 +271,56 @@ export function MethodDetail() {
                     <div className="min-h-12 rounded-md border border-gray-300 bg-gray-200 px-4 dark:border-gray-700 dark:bg-gray-800 flex flex-col">
                       <AccordionTrigger>Inputs & Outputs</AccordionTrigger>
                       <AccordionContent className="flex flex-col gap-4 text-balance">
-                        {variant.inputs.map((input) => (
-                          <li key={input.id}>
-                            {input.id} (x{input.quantity})
-                          </li>
-                        ))}
+                        <div>
+                          <h3 className="text-sm font-semibold">Inputs</h3>
+                          <div className="mt-3 min-h-14 w-full rounded bg-gray-300">
+                            <div className="flex flex-start flex-wrap gap-2">
+                              {variant.inputs.map((input) => {
+                                const item = itemsMap[input.id];
+                                if (!item) return null;
+                                return (
+                                  <div key={input.id} className="relative">
+                                    <img
+                                      src={item.iconUrl}
+                                      alt={item.name}
+                                      title={item.name}
+                                    />
+                                    {input.quantity > 1 && (
+                                      <span className="absolute -top-1 -right-1 rounded bg-black/70 px-1 text-xs text-white">
+                                        {input.quantity}
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-semibold">Outputs</h3>
+                          <div className="mt-3 min-h-14 w-full rounded bg-gray-300">
+                            <div className="flex flex-start flex-wrap gap-2">
+                              {variant.outputs.map((output) => {
+                                const item = itemsMap[output.id];
+                                if (!item) return null;
+                                return (
+                                  <div key={output.id} className="relative">
+                                    <img
+                                      src={item.iconUrl}
+                                      alt={item.name}
+                                      title={item.name}
+                                    />
+                                    {output.quantity > 1 && (
+                                      <span className="absolute -top-1 -right-1 rounded bg-black/70 px-1 text-xs text-white">
+                                        {output.quantity}
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
                       </AccordionContent>
                     </div>
                   </AccordionItem>
@@ -394,14 +480,60 @@ export function MethodDetail() {
                                 <h3 className="text-sm font-semibold">
                                   Requirements
                                 </h3>
-                                <div className="mt-3 min-h-14 w-full rounded bg-gray-300"></div>
+                                <div className="mt-3 min-h-14 w-full rounded bg-gray-300">
+                                  <div className="flex flex-start flex-wrap gap-2">
+                                    {(variant.requirements?.items || []).map(
+                                      ({ id, quantity }) => {
+                                        const item = itemsMap[id];
+                                        if (!item) return null;
+                                        return (
+                                          <div key={id} className="relative">
+                                            <img
+                                              src={item.iconUrl}
+                                              alt={item.name}
+                                              title={item.name}
+                                            />
+                                            {quantity > 1 && (
+                                              <span className="absolute -top-1 -right-1 rounded bg-black/70 px-1 text-xs text-white">
+                                                {quantity}
+                                              </span>
+                                            )}
+                                          </div>
+                                        );
+                                      }
+                                    )}
+                                  </div>
+                                </div>
                               </div>
 
                               <div className="mt-8">
                                 <h3 className="text-sm font-semibold">
                                   Recommendations
                                 </h3>
-                                <div className="mt-3 min-h-14 w-full rounded bg-gray-300"></div>
+                                <div className="mt-3 min-h-14 w-full rounded bg-gray-300">
+                                  <div className="flex flex-start flex-wrap gap-2">
+                                    {(variant.recommendations?.items || []).map(
+                                      ({ id, quantity }) => {
+                                        const item = itemsMap[id];
+                                        if (!item) return null;
+                                        return (
+                                          <div key={id} className="relative">
+                                            <img
+                                              src={item.iconUrl}
+                                              alt={item.name}
+                                              title={item.name}
+                                            />
+                                            {quantity > 1 && (
+                                              <span className="absolute -top-1 -right-1 rounded bg-black/70 px-1 text-xs text-white">
+                                                {quantity}
+                                              </span>
+                                            )}
+                                          </div>
+                                        );
+                                      }
+                                    )}
+                                  </div>
+                                </div>
                               </div>
                             </section>
                           </div>

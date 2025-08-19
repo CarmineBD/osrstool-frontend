@@ -67,3 +67,17 @@ export function getQuestStageByLevel(id: number): string | null {
 
   return map[id] ?? null;
 }
+
+// utils/formatNumber.ts
+
+export function formatNumber(num: number): string {
+  if (num >= 1_000_000_000) {
+    return (num / 1_000_000_000).toFixed(2).replace(/\.?0+$/, "") + "b";
+  } else if (num >= 1_000_000) {
+    return (num / 1_000_000).toFixed(2).replace(/\.?0+$/, "") + "m";
+  } else if (num >= 1_000) {
+    return (num / 1_000).toFixed(2).replace(/\.?0+$/, "") + "k";
+  } else {
+    return num.toString();
+  }
+}
