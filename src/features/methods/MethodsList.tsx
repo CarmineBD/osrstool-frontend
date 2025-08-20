@@ -68,6 +68,7 @@ export function MethodsList({ username }: { username: string }) {
   return (
     <div className="space-y-4">
       {isFetching && <p className="text-sm text-gray-500">Actualizando…</p>}
+
       <Table>
         <TableHeader>
           <TableRow>
