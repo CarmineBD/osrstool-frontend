@@ -1,5 +1,36 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@font-face {
+  font-family: "OSRS";
+  src: url("/src/assets/fonts/RuneScape_Small.woff") format("woff");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@layer utilities {
+  .osrs-num {
+    font-family: "OSRS", monospace;
+    color: #ffff00; /* amarillo sólido */
+    text-shadow: 1px 1px 0 #000; /* sombra dura 1px abajo-dcha */
+    line-height: 1;
+    -webkit-font-smoothing: antialiased; /* evita subpixel raro */
+    text-rendering: optimizeSpeed;
+  }
+
+  /* usa SOLO múltiplos enteros del tamaño base del bitmap (p.ej. 8px) */
+  .osrs-num-1x {
+    font-size: 8px;
+    line-height: 8px;
+  }
+  .osrs-num-2x {
+    font-size: 16px;
+    line-height: 16px;
+  }
+  .osrs-num-3x {
+    font-size: 24px;
+    line-height: 24px;
+  }
+}
 
 @custom-variant dark (&:is(.dark *));
 

@@ -20,6 +20,11 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 async function fetchMethodDetail(id: string) {
   const url = `${import.meta.env.VITE_API_URL}/methods/${id}`;
@@ -193,8 +198,43 @@ export function MethodDetail() {
                         <IconTrendingUp className="size-4" />
                       </div>
                       <div className="text-muted-foreground">
-                        Visitors for the last 6 months
+                        {variant.lowProfit !== undefined
+                          ? `${formatNumber(variant.lowProfit)} (lowest profit)`
+                          : "N/A"}
                       </div>
+                    </CardFooter>
+                  </Card>
+                  <Card className="@container/card">
+                    <CardHeader>
+                      <CardDescription>Xp/hr</CardDescription>
+                      <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+                        {variant.xpHour
+                          ? formatNumber(
+                              variant.xpHour.reduce(
+                                (total, { experience }) => total + experience,
+                                0
+                              )
+                            )
+                          : "N/A"}
+                      </CardTitle>
+                      <CardAction>
+                        {/* <Badge variant="outline">
+        <IconTrendingDown />
+        -20%
+      </Badge> */}
+                      </CardAction>
+                    </CardHeader>
+                    <CardFooter className="flex-col items-start gap-1.5 text-sm">
+                      {(variant.xpHour || []).map(({ skill, experience }) => (
+                        <Badge size="lg" key={skill} variant="secondary">
+                          <img
+                            src={getUrlByType(skill) ?? ""}
+                            alt={`${skill.toLowerCase()}_icon`}
+                            title={`${skill}`}
+                          />
+                          {formatNumber(experience)}
+                        </Badge>
+                      ))}
                     </CardFooter>
                   </Card>
                   <Card className="@container/card">
@@ -220,37 +260,6 @@ export function MethodDetail() {
                       </div> */}
                     </CardFooter>
                   </Card>
-                  <Card className="@container/card">
-                    <CardHeader>
-                      <CardDescription>Xp/hr</CardDescription>
-                      <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                        {variant.xpHour
-                          ? variant.xpHour.reduce(
-                              (total, { experience }) => total + experience,
-                              0
-                            )
-                          : "N/A"}
-                      </CardTitle>
-                      <CardAction>
-                        {/* <Badge variant="outline">
-        <IconTrendingDown />
-        -20%
-      </Badge> */}
-                      </CardAction>
-                    </CardHeader>
-                    <CardFooter className="flex-col items-start gap-1.5 text-sm">
-                      {(variant.xpHour || []).map(({ skill, experience }) => (
-                        <Badge size="lg" key={skill} variant="secondary">
-                          <img
-                            src={getUrlByType(skill) ?? ""}
-                            alt={`${skill.toLowerCase()}_icon`}
-                            title={`${skill}`}
-                          />
-                          {experience}
-                        </Badge>
-                      ))}
-                    </CardFooter>
-                  </Card>
                 </div>
 
                 {/* Descripción: mobile debajo, desktop a la izquierda */}
@@ -270,52 +279,78 @@ export function MethodDetail() {
                   <AccordionItem value="item-1">
                     <div className="min-h-12 rounded-md border border-gray-300 bg-gray-200 px-4 dark:border-gray-700 dark:bg-gray-800 flex flex-col">
                       <AccordionTrigger>Inputs & Outputs</AccordionTrigger>
-                      <AccordionContent className="flex flex-col gap-4 text-balance">
-                        <div>
+                      <AccordionContent className="flex gap-4 text-balance">
+                        <div className="flex-1">
                           <h3 className="text-sm font-semibold">Inputs</h3>
-                          <div className="mt-3 min-h-14 w-full rounded bg-gray-300">
-                            <div className="flex flex-start flex-wrap gap-2">
+                          <div className="mt-3 min-h-14 w-full rounded bg-[#494034] p-4 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)]">
+                            <div className="flex flex-start flex-wrap gap-1">
                               {variant.inputs.map((input) => {
                                 const item = itemsMap[input.id];
                                 if (!item) return null;
                                 return (
-                                  <div key={input.id} className="relative">
-                                    <img
-                                      src={item.iconUrl}
-                                      alt={item.name}
-                                      title={item.name}
-                                    />
-                                    {input.quantity > 1 && (
-                                      <span className="absolute -top-1 -right-1 rounded bg-black/70 px-1 text-xs text-white">
-                                        {input.quantity}
-                                      </span>
-                                    )}
-                                  </div>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <div
+                                        key={input.id}
+                                        className="relative mx-0.75 w-8 h-8 grid place-items-center" /* 32x32 */
+                                      >
+                                        <figure className="w-full h-full grid place-items-center">
+                                          <img
+                                            src={item.iconUrl}
+                                            alt={item.name}
+                                            className="max-w-full max-h-full object-contain drop-shadow-[1px_1px_0_#333333] [image-rendering:pixelated]"
+                                          />
+                                        </figure>
+
+                                        {input.quantity > 1 && (
+                                          <span className="osrs-num osrs-num-2x absolute -top-0.5 -left-0.5 px-0.5 pointer-events-none">
+                                            {input.quantity}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>{item.name}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
                                 );
                               })}
                             </div>
                           </div>
                         </div>
-                        <div>
+                        <div className="flex-1">
                           <h3 className="text-sm font-semibold">Outputs</h3>
-                          <div className="mt-3 min-h-14 w-full rounded bg-gray-300">
-                            <div className="flex flex-start flex-wrap gap-2">
+                          <div className="mt-3 min-h-14 w-full rounded bg-[#494034] p-4 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)]">
+                            <div className="flex flex-start flex-wrap gap-1">
                               {variant.outputs.map((output) => {
                                 const item = itemsMap[output.id];
                                 if (!item) return null;
                                 return (
-                                  <div key={output.id} className="relative">
-                                    <img
-                                      src={item.iconUrl}
-                                      alt={item.name}
-                                      title={item.name}
-                                    />
-                                    {output.quantity > 1 && (
-                                      <span className="absolute -top-1 -right-1 rounded bg-black/70 px-1 text-xs text-white">
-                                        {output.quantity}
-                                      </span>
-                                    )}
-                                  </div>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <div
+                                        key={output.id}
+                                        className="relative mx-0.75 w-8 h-8 grid place-items-center" /* 32x32 */
+                                      >
+                                        <figure className="w-full h-full grid place-items-center">
+                                          <img
+                                            src={item.iconUrl}
+                                            alt={item.name}
+                                            className="max-w-full max-h-full object-contain drop-shadow-[1px_1px_0_#333333] [image-rendering:pixelated]"
+                                          />
+                                        </figure>
+
+                                        {output.quantity > 1 && (
+                                          <span className="osrs-num osrs-num-2x absolute -top-0.5 -left-0.5 px-0.5 pointer-events-none">
+                                            {output.quantity}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>{item.name}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
                                 );
                               })}
                             </div>
