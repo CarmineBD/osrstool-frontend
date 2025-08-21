@@ -9,6 +9,9 @@
     "lint": "eslint .",
     "preview": "vite preview"
   },
+  "overrides": {
+    "react-is": "^19.1.0-rc-69d4b800-20241021"
+  },
   "dependencies": {
     "@radix-ui/react-accordion": "1.2.12",
     "@radix-ui/react-select": "^2.2.6",
@@ -24,6 +27,7 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.7.1",
+    "recharts": "^2.15.4",
     "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
