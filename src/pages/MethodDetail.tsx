@@ -25,7 +25,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import Mychart from "./Mychart";
+import VariantHistoryChart from "@/components/VariantHistoryChart";
 
 async function fetchMethodDetail(id: string) {
   const url = `${import.meta.env.VITE_API_URL}/methods/${id}`;
@@ -581,10 +581,7 @@ export function MethodDetail() {
               </div>
 
               {/* Gráfico */}
-              <div className="mt-4 rounded-md border border-gray-300 bg-gray-200 p-4 dark:border-gray-700 dark:bg-gray-800">
-                <div className="h-56 sm:h-64 lg:h-72" />
-                <Mychart></Mychart>
-              </div>
+              {variant.id && <VariantHistoryChart variantId={variant.id} />}
             </div>
           </TabsContent>
         ))}

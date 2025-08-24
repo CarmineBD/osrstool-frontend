@@ -89,3 +89,35 @@ export async function fetchItems(
   const json = await res.json();
   return json.data ?? json;
 }
+
+export interface VariantHistoryPoint {
+  timestamp: string;
+  lowProfit: number;
+  highProfit: number;
+}
+
+export interface VariantSnapshot {
+  timestamp: string;
+  title: string;
+}
+
+export interface VariantHistoryResponse {
+  data: VariantHistoryPoint[];
+  variant_snapshot: VariantSnapshot[];
+}
+
+export async function fetchVariantHistory(
+  variantId: string,
+  range: string,
+  granularity: string
+): Promise<VariantHistoryResponse> {
+  const url = new URL(`${API_URL}/variants/${variantId}/history`);
+  url.searchParams.set("range", range);
+  url.searchParams.set("granularity", granularity);
+  const res = await fetch(url.toString());
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status} – Error fetching variant history`);
+  }
+  const json = await res.json();
+  return json;
+}
