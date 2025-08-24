@@ -1,13 +1,12 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { MethodsList } from "../features/methods/MethodsList";
+import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useUsername } from "@/contexts/UsernameContext";
 
-export type Props = Record<string, never>;
+export type Props = { hideInput?: boolean };
 
-export function Home(_props: Props) {
-  void _props;
+export function Nav({ hideInput }: Props) {
   const { username, setUsername } = useUsername();
   const [input, setInput] = useState<string>(username);
 
@@ -21,10 +20,12 @@ export function Home(_props: Props) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto p-8 space-y-6">
-        <h1 className="text-3xl font-bold">OSRS Moneymaking Methods</h1>
-        <form onSubmit={handleSubmit} className="flex max-w-md gap-2">
+    <nav className="flex items-center justify-between p-4 bg-white shadow">
+      <Link to="/" className="flex items-center space-x-2">
+        <img src="/logo.png" alt="Logo" className="h-8 w-auto" />
+      </Link>
+      {!hideInput && (
+        <form onSubmit={handleSubmit} className="flex gap-2">
           <Input
             type="text"
             placeholder="Enter username"
@@ -33,8 +34,7 @@ export function Home(_props: Props) {
           />
           <Button type="submit">Buscar</Button>
         </form>
-        <MethodsList username={username} />
-      </div>
-    </div>
+      )}
+    </nav>
   );
 }

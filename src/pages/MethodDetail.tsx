@@ -3,6 +3,7 @@ import { fetchItems, type Variant } from "../lib/api";
 import { useParams } from "react-router-dom";
 import { getUrlByType, formatNumber } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
+import { useUsername } from "@/contexts/UsernameContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
@@ -27,19 +28,24 @@ import {
 } from "@/components/ui/tooltip";
 import VariantHistoryChart from "@/components/VariantHistoryChart";
 
-async function fetchMethodDetail(id: string) {
-  const url = `${import.meta.env.VITE_API_URL}/methods/${id}`;
-  const res = await fetch(url);
+async function fetchMethodDetail(id: string, username?: string) {
+  const url = new URL(`${import.meta.env.VITE_API_URL}/methods/${id}`);
+  if (username) url.searchParams.set("username", username);
+  const res = await fetch(url.toString());
   if (!res.ok) throw new Error(`HTTP ${res.status} – Error fetching method`);
   const json = await res.json();
   return json.data;
 }
 
-export function MethodDetail() {
+export type Props = Record<string, never>;
+
+export function MethodDetail(_props: Props) {
+  void _props;
   const { id } = useParams<{ id: string }>();
+  const { username } = useUsername();
   const { data, error, isLoading } = useQuery({
-    queryKey: ["methodDetail", id],
-    queryFn: () => fetchMethodDetail(id!),
+    queryKey: ["methodDetail", id, username],
+    queryFn: () => fetchMethodDetail(id!, username),
     enabled: !!id,
   });
 
@@ -148,14 +154,54 @@ export function MethodDetail() {
             <div className="mx-auto max-w-6xl p-4 lg:p-6">
               {/* missingRequirements */}
               <div className="mb-4 rounded-md border border-gray-300 bg-gray-200 px-4 py-3 text-sm dark:border-gray-700 dark:bg-gray-800">
-                {variant.missingRequirements?.length ? (
-                  <ul className="list-disc pl-5">
-                    {variant.missingRequirements.map((req) => (
-                      <li key={req.id}>
-                        {req.name} (Nivel: {req.level})
-                      </li>
-                    ))}
-                  </ul>
+                {variant.missingRequirements ? (
+                  <>
+                    <p className="text-red-600 mb-4">
+                      You are missing some requirements to do this method:
+                    </p>
+                    <div className="flex flex-start flex-wrap gap-2">
+                      {(variant.missingRequirements?.levels || []).map(
+                        ({ skill, level }) => (
+                          <Badge size="lg" key={skill} variant="secondary">
+                            <img
+                              src={getUrlByType(skill) ?? ""}
+                              alt={`${skill.toLowerCase()}_icon`}
+                              title={`${skill}`}
+                            />
+                            {level}
+                          </Badge>
+                        )
+                      )}
+                      {(variant.missingRequirements?.quests || []).map(
+                        ({ name, stage }) => (
+                          <Badge size="lg" key={name} variant="secondary">
+                            <img
+                              src={getUrlByType("quests") ?? ""}
+                              alt={`quests_icon`}
+                              title="quests"
+                            />
+                            {stage === 1 ? name : `${name} (started)`}
+                          </Badge>
+                        )
+                      )}
+                      {(
+                        variant.missingRequirements?.achievement_diaries || []
+                      ).map(({ name, tier }) => (
+                        <Badge
+                          size="lg"
+                          key={`${name}_${tier}`}
+                          variant="secondary"
+                        >
+                          <img
+                            src={getUrlByType("achivement_diaries") ?? ""}
+                            alt={`achivements_diaries_icon`}
+                            title="quests"
+                          />
+                          {`${name} ${tier}`}
+                        </Badge>
+                      ))}
+                    </div>
+                  </>
                 ) : (
                   <p className="text-green-600">All requirements met! 🎉</p>
                 )}
