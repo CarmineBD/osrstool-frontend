@@ -8,7 +8,7 @@ export type Props = Record<string, never>;
 
 export function Home(_props: Props) {
   void _props;
-  const { username, setUsername } = useUsername();
+  const { username, setUsername, userError, setUserError } = useUsername();
   const [input, setInput] = useState<string>(username);
 
   useEffect(() => {
@@ -17,6 +17,7 @@ export function Home(_props: Props) {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    setUserError(null);
     setUsername(input.trim());
   };
 
@@ -33,6 +34,9 @@ export function Home(_props: Props) {
           />
           <Button type="submit">Buscar</Button>
         </form>
+        {userError && (
+          <p className="text-red-500 text-sm mt-1">{userError}</p>
+        )}
         <MethodsList username={username} />
       </div>
     </div>
