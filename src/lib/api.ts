@@ -53,6 +53,10 @@ export interface Variant {
   recommendations?: Requirement;
   highProfit?: number;
   lowProfit?: number;
+  trendLastHour?: number;
+  trendLast24h?: number;
+  trendLastWeek?: number;
+  trendLastMonth?: number;
   missingRequirements?: Requirement;
   inputs: { id: number; quantity: number }[];
   outputs: { id: number; quantity: number }[];

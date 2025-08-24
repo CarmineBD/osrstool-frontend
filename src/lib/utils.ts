@@ -81,3 +81,8 @@ export function formatNumber(num: number): string {
     return num.toString();
   }
 }
+
+export function formatPercent(num: number): string {
+  const sign = num >= 0 ? "+" : "";
+  return `${sign}${num.toFixed(1)}%`;
+}
