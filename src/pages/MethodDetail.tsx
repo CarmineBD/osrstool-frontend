@@ -34,7 +34,10 @@ async function fetchMethodDetail(id: string, username?: string) {
   const res = await fetch(url.toString());
   if (!res.ok) throw new Error(`HTTP ${res.status} – Error fetching method`);
   const json = await res.json();
-  return json.data;
+  // Nuevo formato: { status, data: { method, user }, warnings, meta }
+  // Antiguo formato: { data: { ...method } }
+  // Devolvemos siempre el objeto "method" para que el resto del componente no cambie.
+  return json?.data?.method ?? json?.data;
 }
 
 export type Props = Record<string, never>;

@@ -66,7 +66,7 @@ export async function fetchMethods(username?: string): Promise<Method[]> {
     throw new Error(`HTTP ${res.status} – Error fetching methods`);
   }
   const json = await res.json();
-  return json.data;
+  return json.data.methods ?? json;
 }
 
 export interface Item {
