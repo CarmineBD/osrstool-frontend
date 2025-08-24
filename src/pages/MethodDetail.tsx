@@ -66,7 +66,8 @@ export function MethodDetail() {
   if (!data) return <p>No se encontró el método.</p>;
 
   const itemsMap = itemsData || {};
-
+  const firstTabValue = (data?.variants?.[0]?.id ?? "0").toString();
+  const hasMultiple = (data?.variants?.length ?? 0) > 1;
   return (
     <div className="max-w-5xl mx-auto bg-white p-6 rounded shadow">
       <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight text-balance">
@@ -74,25 +75,28 @@ export function MethodDetail() {
       </h1>
       <p className="mb-2">{data.description}</p>
       <div className="mb-4">
-        <span className="font-semibold">Categoría:</span> {data.category}
+        <span className="font-semibold">Category:</span> {data.category}
       </div>
-      <h3 className="font-semibold mb-2">Variantes:</h3>
+      {hasMultiple && <h3 className="font-semibold mb-2">Variants:</h3>}
 
-      <Tabs className="w-full">
-        <TabsList>
-          {data.variants.map((variant: Variant, index: number) => (
-            <TabsTrigger
-              key={variant.id ?? index.toString()}
-              value={variant.id ?? index.toString()}
-            >
-              {variant.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      <Tabs defaultValue={firstTabValue} className="w-full">
+        {hasMultiple && (
+          <TabsList>
+            {data.variants.map((variant: Variant, index: number) => (
+              <TabsTrigger
+                key={variant.id ?? index.toString()}
+                value={(variant.id ?? index.toString()).toString()}
+              >
+                {variant.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        )}
+
         {data.variants.map((variant: Variant, index: number) => (
           <TabsContent
             key={variant.id ?? index.toString()}
-            value={variant.id ?? index.toString()}
+            value={(variant.id ?? index.toString()).toString()}
             className="p-4"
           >
             {/* <div className="mb-2">
@@ -153,9 +157,7 @@ export function MethodDetail() {
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-green-600">
-                    Todos los requisitos cumplidos
-                  </p>
+                  <p className="text-green-600">All requirements met! 🎉</p>
                 )}
               </div>
 
@@ -272,10 +274,9 @@ export function MethodDetail() {
               {/* Acordeones (placeholders) */}
               <div className="mt-3 space-y-2">
                 <Accordion
-                  type="single"
-                  collapsible
+                  type="multiple"
                   className="w-full"
-                  defaultValue="item-1"
+                  defaultValue={["item-1"]} // opcional: abre varias por defecto p.ej. ["item-1","item-2"]
                 >
                   <AccordionItem value="item-1">
                     <div className="min-h-12 rounded-md border border-gray-300 bg-gray-200 px-4 dark:border-gray-700 dark:bg-gray-800 flex flex-col">
@@ -303,7 +304,7 @@ export function MethodDetail() {
                                           />
                                         </figure>
 
-                                        {input.quantity > 1 && (
+                                        {input.quantity > 0 && (
                                           <span className="osrs-num osrs-num-2x absolute -top-0.5 -left-0.5 px-0.5 pointer-events-none">
                                             {input.quantity}
                                           </span>
@@ -341,7 +342,7 @@ export function MethodDetail() {
                                           />
                                         </figure>
 
-                                        {output.quantity > 1 && (
+                                        {output.quantity > 0 && (
                                           <span className="osrs-num osrs-num-2x absolute -top-0.5 -left-0.5 px-0.5 pointer-events-none">
                                             {output.quantity}
                                           </span>
