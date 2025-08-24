@@ -1,9 +1,15 @@
 import { useMemo } from "react";
-import { fetchItems, type Variant } from "../lib/api";
+import {
+  fetchItems,
+  fetchMethodDetail,
+  type Variant,
+  type MethodDetailResponse,
+} from "../lib/api";
 import { useParams } from "react-router-dom";
 import { getUrlByType, formatNumber } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { useUsername } from "@/contexts/UsernameContext";
+import { useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
@@ -28,41 +34,43 @@ import {
 } from "@/components/ui/tooltip";
 import VariantHistoryChart from "@/components/VariantHistoryChart";
 
-async function fetchMethodDetail(id: string, username?: string) {
-  const url = new URL(`${import.meta.env.VITE_API_URL}/methods/${id}`);
-  if (username) url.searchParams.set("username", username);
-  const res = await fetch(url.toString());
-  if (!res.ok) throw new Error(`HTTP ${res.status} – Error fetching method`);
-  const json = await res.json();
-  // Nuevo formato: { status, data: { method, user }, warnings, meta }
-  // Antiguo formato: { data: { ...method } }
-  // Devolvemos siempre el objeto "method" para que el resto del componente no cambie.
-  return json?.data?.method ?? json?.data;
-}
-
 export type Props = Record<string, never>;
 
 export function MethodDetail(_props: Props) {
   void _props;
   const { id } = useParams<{ id: string }>();
-  const { username } = useUsername();
-  const { data, error, isLoading } = useQuery({
+  const { username, setUserError } = useUsername();
+  const { data, error, isLoading } = useQuery<MethodDetailResponse, Error>({
     queryKey: ["methodDetail", id, username],
     queryFn: () => fetchMethodDetail(id!, username),
     enabled: !!id,
+    retry: false,
   });
 
+  useEffect(() => {
+    const warning = data?.warnings?.[0];
+    setUserError(warning?.message ?? null);
+  }, [data, setUserError]);
+
+  useEffect(() => {
+    if (error) {
+      setUserError("Failed to fetch user");
+    }
+  }, [error, setUserError]);
+
+  const method = data?.method;
+
   const itemIds = useMemo(() => {
-    if (!data) return [] as number[];
+    if (!method) return [] as number[];
     const ids = new Set<number>();
-    data.variants.forEach((variant: Variant) => {
+    method.variants.forEach((variant: Variant) => {
       variant.inputs.forEach((i) => ids.add(i.id));
       variant.outputs.forEach((o) => ids.add(o.id));
       variant.requirements.items?.forEach((i) => ids.add(i.id));
       variant.recommendations?.items?.forEach((i) => ids.add(i.id));
     });
     return Array.from(ids);
-  }, [data]);
+  }, [method]);
 
   const { data: itemsData } = useQuery({
     queryKey: ["items", itemIds],
@@ -72,26 +80,30 @@ export function MethodDetail(_props: Props) {
 
   if (isLoading) return <p>Cargando método…</p>;
   if (error) return <p className="text-red-500">❌ {`${error}`}</p>;
-  if (!data) return <p>No se encontró el método.</p>;
-
+  if (!method) return <p>No se encontró el método.</p>;
   const itemsMap = itemsData || {};
-  const firstTabValue = (data?.variants?.[0]?.id ?? "0").toString();
-  const hasMultiple = (data?.variants?.length ?? 0) > 1;
+  const firstTabValue = (method?.variants?.[0]?.id ?? "0").toString();
+  const hasMultiple = (method?.variants?.length ?? 0) > 1;
   return (
     <div className="max-w-5xl mx-auto bg-white p-6 rounded shadow">
+      {!username && (
+        <p className="mb-4 text-sm text-gray-500">
+          Please enter your username to fetch your user data.
+        </p>
+      )}
       <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight text-balance">
-        {data.name}
+        {method.name}
       </h1>
-      <p className="mb-2">{data.description}</p>
+      <p className="mb-2">{method.description}</p>
       <div className="mb-4">
-        <span className="font-semibold">Category:</span> {data.category}
+        <span className="font-semibold">Category:</span> {method.category}
       </div>
       {hasMultiple && <h3 className="font-semibold mb-2">Variants:</h3>}
 
       <Tabs defaultValue={firstTabValue} className="w-full">
         {hasMultiple && (
           <TabsList>
-            {data.variants.map((variant: Variant, index: number) => (
+            {method.variants.map((variant: Variant, index: number) => (
               <TabsTrigger
                 key={variant.id ?? index.toString()}
                 value={(variant.id ?? index.toString()).toString()}
@@ -102,7 +114,7 @@ export function MethodDetail(_props: Props) {
           </TabsList>
         )}
 
-        {data.variants.map((variant: Variant, index: number) => (
+        {method.variants.map((variant: Variant, index: number) => (
           <TabsContent
             key={variant.id ?? index.toString()}
             value={(variant.id ?? index.toString()).toString()}

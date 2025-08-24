@@ -12,58 +12,70 @@ import {
 import { Pagination } from "@/components/ui/pagination";
 import { formatNumber, getUrlByType } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import type { Method, Variant } from "@/lib/api";
 
-export function MethodsList({ username }: { username: string }) {
+export type Props = { username: string };
+
+interface Row {
+  id: string;
+  methodId: string;
+  name: string;
+  category: string;
+  label: string;
+  xpHour: { skill: string; experience: number }[];
+  clickIntensity?: number;
+  afkiness?: number;
+  riskLevel?: string;
+  levels: { skill: string; level: number }[];
+  lowProfit?: number;
+  highProfit?: number;
+}
+
+export function MethodsList({ username }: Props) {
   const { data, error, isLoading, isFetching } = useMethods(username);
   const [page, setPage] = useState(1);
   const pageSize = 5;
 
   if (isLoading) return <p>🔄 Cargando métodos…</p>;
-  if (error) {
-    const msg =
-      error instanceof Error && error.message.includes("404")
-        ? "Usuario inexistente"
-        : `❌ ${error}`;
-    return <p className="text-red-500">{msg}</p>;
-  }
+  if (error) return <p className="text-red-500">❌ {`${error}`}</p>;
 
-  const rows =
-    data?.flatMap((method) =>
-      method.variants.map((variant, index) => {
-        const xpHour = Array.isArray(variant.xpHour)
-          ? variant.xpHour
-          : variant.xpHour
-          ? Object.entries(variant.xpHour).map(([skill, experience]) => ({
-              skill,
-              experience: Number(experience),
-            }))
-          : [];
-        const levels = Array.isArray(variant.requirements?.levels)
-          ? variant.requirements?.levels
-          : variant.requirements?.levels
-          ? Object.entries(variant.requirements.levels).map(
-              ([skill, level]) => ({ skill, level: Number(level) })
-            )
-          : [];
-        return {
-          id: `${method.id}-${variant.id ?? index}`,
-          methodId: method.id,
-          name: method.name,
-          category: method.category,
-          label: variant.label,
-          xpHour,
-          clickIntensity: variant.clickIntensity,
-          afkiness: variant.afkiness,
-          riskLevel: variant.riskLevel,
-          levels,
-          lowProfit: variant.lowProfit,
-          highProfit: variant.highProfit,
-        };
-      })
-    ) || [];
+  const rows: Row[] = (data?.methods ?? []).flatMap((method: Method) =>
+    method.variants.map((variant: Variant, index: number) => {
+      const xpHour = Array.isArray(variant.xpHour)
+        ? variant.xpHour
+        : variant.xpHour
+        ? Object.entries(variant.xpHour).map(([skill, experience]) => ({
+            skill,
+            experience: Number(experience),
+          }))
+        : [];
+      const levels = Array.isArray(variant.requirements?.levels)
+        ? variant.requirements?.levels
+        : variant.requirements?.levels
+        ? Object.entries(variant.requirements.levels).map(([skill, level]) => ({
+            skill,
+            level: Number(level),
+          }))
+        : [];
+      return {
+        id: `${method.id}-${variant.id ?? index}`,
+        methodId: method.id,
+        name: method.name,
+        category: method.category,
+        label: variant.label,
+        xpHour,
+        clickIntensity: variant.clickIntensity,
+        afkiness: variant.afkiness,
+        riskLevel: variant.riskLevel,
+        levels,
+        lowProfit: variant.lowProfit,
+        highProfit: variant.highProfit,
+      };
+    })
+  );
 
   const pageCount = Math.ceil(rows.length / pageSize);
-  const current = rows.slice((page - 1) * pageSize, page * pageSize);
+  const current: Row[] = rows.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <div className="space-y-4">
@@ -115,16 +127,24 @@ export function MethodsList({ username }: { username: string }) {
               {/* Xp/Hr */}
               <TableCell>
                 <div className="flex flex-col">
-                  {(row.xpHour || []).map(({ skill, experience }) => (
-                    <Badge size="lg" key={skill} variant="secondary">
-                      <img
-                        src={getUrlByType(skill) ?? ""}
-                        alt={`${skill.toLowerCase()}_icon`}
-                        title={`${skill}`}
-                      />
-                      {formatNumber(experience)}
-                    </Badge>
-                  ))}
+                  {(row.xpHour || []).map(
+                    ({
+                      skill,
+                      experience,
+                    }: {
+                      skill: string;
+                      experience: number;
+                    }) => (
+                      <Badge size="lg" key={skill} variant="secondary">
+                        <img
+                          src={getUrlByType(skill) ?? ""}
+                          alt={`${skill.toLowerCase()}_icon`}
+                          title={`${skill}`}
+                        />
+                        {formatNumber(experience)}
+                      </Badge>
+                    )
+                  )}
                 </div>
               </TableCell>
 
@@ -140,16 +160,18 @@ export function MethodsList({ username }: { username: string }) {
 
               {/* Requirements */}
               <TableCell>
-                {row.levels.map(({ skill, level }) => (
-                  <Badge size="lg" key={skill} variant="secondary">
-                    <img
-                      src={getUrlByType(skill) ?? ""}
-                      alt={`${skill.toLowerCase()}_icon`}
-                      title={`${skill}`}
-                    />
-                    {level}
-                  </Badge>
-                ))}
+                {row.levels.map(
+                  ({ skill, level }: { skill: string; level: number }) => (
+                    <Badge size="lg" key={skill} variant="secondary">
+                      <img
+                        src={getUrlByType(skill) ?? ""}
+                        alt={`${skill.toLowerCase()}_icon`}
+                        title={`${skill}`}
+                      />
+                      {level}
+                    </Badge>
+                  )
+                )}
               </TableCell>
             </TableRow>
           ))}

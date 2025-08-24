@@ -5,6 +5,7 @@ export interface Method {
   id: string;
   name: string;
   category: string;
+  description?: string;
   variants: Variant[];
 }
 
@@ -57,7 +58,33 @@ export interface Variant {
   outputs: { id: number; quantity: number }[];
 }
 
-export async function fetchMethods(username?: string): Promise<Method[]> {
+export interface ApiWarning {
+  code: string;
+  message: string;
+}
+
+function isApiWarning(value: unknown): value is ApiWarning {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "code" in value &&
+    typeof (value as { code: unknown }).code === "string" &&
+    "message" in value &&
+    typeof (value as { message: unknown }).message === "string"
+  );
+}
+
+function parseWarnings(value: unknown): ApiWarning[] | undefined {
+  if (!value) return undefined;
+  return Array.isArray(value) && value.every(isApiWarning) ? value : undefined;
+}
+
+export interface MethodsResponse {
+  methods: Method[];
+  warnings?: ApiWarning[];
+}
+
+export async function fetchMethods(username?: string): Promise<MethodsResponse> {
   const url = new URL(`${API_URL}/methods`);
   if (username) url.searchParams.set("username", username);
 
@@ -65,8 +92,16 @@ export async function fetchMethods(username?: string): Promise<Method[]> {
   if (!res.ok) {
     throw new Error(`HTTP ${res.status} – Error fetching methods`);
   }
-  const json = await res.json();
-  return json.data.methods ?? json;
+  const json: unknown = await res.json();
+  let methods: Method[] = [];
+  if (Array.isArray(json)) {
+    methods = json as Method[];
+  } else {
+    const data = (json as { data?: { methods?: Method[] } }).data;
+    methods = data?.methods ?? [];
+  }
+  const warnings = parseWarnings((json as { warnings?: unknown }).warnings);
+  return { methods, warnings };
 }
 
 export interface Item {
@@ -118,4 +153,30 @@ export async function fetchVariantHistory(
   }
   const json = await res.json();
   return json;
+}
+
+export interface MethodDetailResponse {
+  method: Method;
+  warnings?: ApiWarning[];
+}
+
+export async function fetchMethodDetail(
+  id: string,
+  username?: string
+): Promise<MethodDetailResponse> {
+  const url = new URL(`${API_URL}/methods/${id}`);
+  if (username) url.searchParams.set("username", username);
+  const res = await fetch(url.toString());
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status} – Error fetching method`);
+  }
+  const json: unknown = await res.json();
+  const method = (json as { data?: { method?: Method } }).data?.method ??
+    (json as { data?: Method }).data ??
+    (json as { method?: Method }).method;
+  if (!method) {
+    throw new Error("Method not found");
+  }
+  const warnings = parseWarnings((json as { warnings?: unknown }).warnings);
+  return { method, warnings };
 }
