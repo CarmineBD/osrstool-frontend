@@ -6,7 +6,7 @@ import {
   type MethodDetailResponse,
 } from "../lib/api";
 import { useParams } from "react-router-dom";
-import { getUrlByType, formatNumber } from "@/lib/utils";
+import { getUrlByType, formatNumber, formatPercent } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { useUsername } from "@/contexts/UsernameContext";
 import { useEffect } from "react";
@@ -20,7 +20,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { IconTrendingUp, IconClick } from "@tabler/icons-react";
+import { IconTrendingUp, IconTrendingDown, IconClick } from "@tabler/icons-react";
 import {
   Accordion,
   AccordionContent,
@@ -250,17 +250,31 @@ export function MethodDetail(_props: Props) {
                           : "N/A"}
                       </CardTitle>
                       <CardAction>
-                        <Badge variant="outline">
-                          <IconTrendingUp />
-                          +12.5%
-                        </Badge>
+                        {typeof variant.trendLastHour === "number" && (
+                          <Badge variant="outline">
+                            {variant.trendLastHour >= 0 ? (
+                              <IconTrendingUp />
+                            ) : (
+                              <IconTrendingDown />
+                            )}
+                            {formatPercent(variant.trendLastHour)}
+                          </Badge>
+                        )}
                       </CardAction>
                     </CardHeader>
                     <CardFooter className="flex-col items-start gap-1.5 text-sm">
-                      <div className="line-clamp-1 flex gap-2 font-medium">
-                        Trending up this month
-                        <IconTrendingUp className="size-4" />
-                      </div>
+                      {typeof variant.trendLastMonth === "number" && (
+                        <div className="line-clamp-1 flex gap-2 font-medium">
+                          {variant.trendLastMonth >= 0
+                            ? "Trending up this month"
+                            : "Trending down this month"}
+                          {variant.trendLastMonth >= 0 ? (
+                            <IconTrendingUp className="size-4" />
+                          ) : (
+                            <IconTrendingDown className="size-4" />
+                          )}
+                        </div>
+                      )}
                       <div className="text-muted-foreground">
                         {variant.lowProfit !== undefined
                           ? `${formatNumber(variant.lowProfit)} (lowest profit)`
