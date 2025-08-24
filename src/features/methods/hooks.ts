@@ -8,7 +8,6 @@ export function useMethods(username?: string): UseQueryResult<MethodsResponse, E
   const query = useQuery<MethodsResponse, Error>({
     queryKey: ["methods", username],
     queryFn: () => fetchMethods(username),
-    refetchInterval: 60 * 1000,
     staleTime: 30 * 1000,
     retry: false,
   });
