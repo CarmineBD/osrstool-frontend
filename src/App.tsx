@@ -1,17 +1,20 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { MethodDetail } from "./pages/MethodDetail";
 import { Home } from "./pages/Home";
-// import { Layout } from "./components/Layout";
+import { Layout } from "./components/Layout";
+import { UsernameProvider } from "./contexts/UsernameContext";
 
 function App() {
   return (
     <BrowserRouter>
-      {/* <Layout> */}
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/moneyMakingMethod/:id" element={<MethodDetail />} />
-      </Routes>
-      {/* </Layout> */}
+      <UsernameProvider>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/moneyMakingMethod/:id" element={<MethodDetail />} />
+          </Route>
+        </Routes>
+      </UsernameProvider>
     </BrowserRouter>
   );
 }

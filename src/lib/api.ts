@@ -52,7 +52,7 @@ export interface Variant {
   recommendations?: Requirement;
   highProfit?: number;
   lowProfit?: number;
-  missingRequirements?: { id: number; name: string; level: number }[];
+  missingRequirements?: Requirement;
   inputs: { id: number; quantity: number }[];
   outputs: { id: number; quantity: number }[];
 }
@@ -76,9 +76,7 @@ export interface Item {
   lowPrice?: number;
 }
 
-export async function fetchItems(
-  ids: number[]
-): Promise<Record<number, Item>> {
+export async function fetchItems(ids: number[]): Promise<Record<number, Item>> {
   const url = new URL(`${API_URL}/items`);
   url.searchParams.set("ids", ids.join(","));
   url.searchParams.set("fields", "name,iconUrl,highPrice,lowPrice");
