@@ -7,6 +7,7 @@ import {
 } from "../lib/api";
 import { useParams } from "react-router-dom";
 import { getUrlByType, formatNumber, formatPercent } from "@/lib/utils";
+import Markdown from "@/components/Markdown";
 import { useQuery } from "@tanstack/react-query";
 import { useUsername } from "@/contexts/UsernameContext";
 import { useEffect } from "react";
@@ -94,7 +95,7 @@ export function MethodDetail(_props: Props) {
       <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight text-balance">
         {method.name}
       </h1>
-      <p className="mb-2">{method.description}</p>
+      <Markdown content={method.description} items={itemsMap} />
       <div className="mb-4">
         <span className="font-semibold">Category:</span> {method.category}
       </div>
@@ -342,7 +343,7 @@ export function MethodDetail(_props: Props) {
 
                 {/* Descripción: mobile debajo, desktop a la izquierda */}
                 <div className="order-2 rounded-md border border-gray-300 bg-gray-200 p-4 dark:border-gray-700 dark:bg-gray-800 lg:order-1 lg:col-span-8">
-                  {variant.description}
+                  <Markdown content={variant.description} items={itemsMap} />
                 </div>
               </div>
 
