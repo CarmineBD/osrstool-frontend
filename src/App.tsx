@@ -11,7 +11,10 @@ function App() {
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
-            <Route path="/moneyMakingMethod/:id" element={<MethodDetail />} />
+            <Route
+              path="/moneyMakingMethod/:slug/:variantSlug?"
+              element={<MethodDetail />}
+            />
           </Route>
         </Routes>
       </UsernameProvider>

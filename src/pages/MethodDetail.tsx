@@ -1,16 +1,17 @@
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import {
   fetchItems,
   fetchMethodDetail,
+  fetchMethods,
   type Variant,
   type MethodDetailResponse,
+  type MethodsResponse,
 } from "../lib/api";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { getUrlByType, formatNumber, formatPercent } from "@/lib/utils";
 import Markdown from "@/components/Markdown";
 import { useQuery } from "@tanstack/react-query";
 import { useUsername } from "@/contexts/UsernameContext";
-import { useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
@@ -39,12 +40,38 @@ export type Props = Record<string, never>;
 
 export function MethodDetail(_props: Props) {
   void _props;
-  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { slug: methodParam = "", variantSlug } = useParams<{
+    slug: string;
+    variantSlug?: string;
+  }>();
+  const state = location.state as { methodId?: string } | undefined;
   const { username, setUserError } = useUsername();
-  const { data, error, isLoading } = useQuery<MethodDetailResponse, Error>({
-    queryKey: ["methodDetail", id, username],
-    queryFn: () => fetchMethodDetail(id!, username),
-    enabled: !!id,
+
+  const isNumericId = /^\d+$/.test(methodParam);
+
+  const { data: methodsData, isLoading: isLoadingMethods } =
+    useQuery<MethodsResponse>({
+      queryKey: ["methods", username],
+      queryFn: () => fetchMethods(username),
+      enabled: !state?.methodId && !isNumericId,
+    });
+
+  const methodId =
+    state?.methodId ??
+    (isNumericId
+      ? methodParam
+      : methodsData?.methods.find((m) => m.slug === methodParam)?.id);
+
+  const {
+    data,
+    error,
+    isLoading: isLoadingDetail,
+  } = useQuery<MethodDetailResponse, Error>({
+    queryKey: ["methodDetail", methodId, username],
+    queryFn: () => fetchMethodDetail(methodId!, username),
+    enabled: !!methodId,
     retry: false,
   });
 
@@ -79,11 +106,13 @@ export function MethodDetail(_props: Props) {
     enabled: itemIds.length > 0,
   });
 
-  if (isLoading) return <p>Cargando método…</p>;
+  if (isLoadingMethods || isLoadingDetail) return <p>Cargando método…</p>;
   if (error) return <p className="text-red-500">❌ {`${error}`}</p>;
   if (!method) return <p>No se encontró el método.</p>;
   const itemsMap = itemsData || {};
-  const firstTabValue = (method?.variants?.[0]?.id ?? "0").toString();
+  const firstTabSlug =
+    method.variants[0]?.slug ?? (method.variants[0]?.id ?? 0).toString();
+  const activeSlug = variantSlug ?? firstTabSlug;
   const hasMultiple = (method?.variants?.length ?? 0) > 1;
   return (
     <div className="max-w-5xl mx-auto bg-white p-6 rounded shadow">
@@ -101,13 +130,26 @@ export function MethodDetail(_props: Props) {
       </div>
       {hasMultiple && <h3 className="font-semibold mb-2">Variants:</h3>}
 
-      <Tabs defaultValue={firstTabValue} className="w-full">
+      <Tabs
+        value={activeSlug}
+        onValueChange={(v) =>
+          navigate(
+            `/moneyMakingMethod/${methodParam}${
+              hasMultiple ? `/${v}` : ""
+            }`,
+            { state: { methodId: method.id } }
+          )
+        }
+        className="w-full"
+      >
         {hasMultiple && (
           <TabsList>
             {method.variants.map((variant: Variant, index: number) => (
               <TabsTrigger
-                key={variant.id ?? index.toString()}
-                value={(variant.id ?? index.toString()).toString()}
+                key={variant.slug ?? variant.id ?? index.toString()}
+                value={
+                  variant.slug ?? (variant.id ?? index.toString()).toString()
+                }
               >
                 {variant.label}
               </TabsTrigger>
@@ -117,8 +159,10 @@ export function MethodDetail(_props: Props) {
 
         {method.variants.map((variant: Variant, index: number) => (
           <TabsContent
-            key={variant.id ?? index.toString()}
-            value={(variant.id ?? index.toString()).toString()}
+            key={variant.slug ?? variant.id ?? index.toString()}
+            value={
+              variant.slug ?? (variant.id ?? index.toString()).toString()
+            }
             className="p-4"
           >
             {/* <div className="mb-2">

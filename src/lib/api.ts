@@ -3,6 +3,7 @@ const API_URL = import.meta.env.VITE_API_URL as string;
 
 export interface Method {
   id: string;
+  slug: string;
   name: string;
   category: string;
   description?: string;
@@ -42,6 +43,7 @@ type Requirement = {
 
 export interface Variant {
   id?: string;
+  slug?: string;
   label: string;
   description?: string;
   afkiness?: number;
