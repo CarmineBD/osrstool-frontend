@@ -44,6 +44,7 @@ export function MethodsList({ username }: Props) {
 
   const rows: Row[] = (data?.methods ?? []).flatMap((method: Method) =>
     method.variants.map((variant: Variant, index: number) => {
+      const variantCount = method.variantCount ?? method.variants.length;
       const xpHour = Array.isArray(variant.xpHour)
         ? variant.xpHour
         : variant.xpHour
@@ -65,7 +66,7 @@ export function MethodsList({ username }: Props) {
         methodId: method.id,
         methodSlug: method.slug,
         variantSlug: variant.slug ?? (variant.id ?? index).toString(),
-        variantCount: method.variants.length,
+        variantCount,
         name: method.name,
         category: method.category,
         label: variant.label,
