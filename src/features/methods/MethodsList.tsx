@@ -19,6 +19,9 @@ export type Props = { username: string };
 interface Row {
   id: string;
   methodId: string;
+  methodSlug: string;
+  variantSlug: string;
+  variantCount: number;
   name: string;
   category: string;
   label: string;
@@ -60,6 +63,9 @@ export function MethodsList({ username }: Props) {
       return {
         id: `${method.id}-${variant.id ?? index}`,
         methodId: method.id,
+        methodSlug: method.slug,
+        variantSlug: variant.slug ?? (variant.id ?? index).toString(),
+        variantCount: method.variants.length,
         name: method.name,
         category: method.category,
         label: variant.label,
@@ -101,8 +107,11 @@ export function MethodsList({ username }: Props) {
               {/* Name */}
               <TableCell className="font-medium">
                 <Link
-                  to={`/moneyMakingMethod/${row.methodId}`}
+                  to={`/moneyMakingMethod/${row.methodSlug}${
+                    row.variantCount > 1 ? `/${row.variantSlug}` : ""
+                  }`}
                   className="text-blue-600 hover:underline"
+                  state={{ methodId: row.methodId }}
                 >
                   {row.name}
                 </Link>
