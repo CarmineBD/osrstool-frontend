@@ -8,6 +8,7 @@ export interface Method {
   category: string;
   description?: string;
   variants: Variant[];
+  variantCount?: number;
 }
 
 type ItemRequirement = {
@@ -90,7 +91,9 @@ export interface MethodsResponse {
   warnings?: ApiWarning[];
 }
 
-export async function fetchMethods(username?: string): Promise<MethodsResponse> {
+export async function fetchMethods(
+  username?: string
+): Promise<MethodsResponse> {
   const url = new URL(`${API_URL}/methods`);
   if (username) url.searchParams.set("username", username);
 
@@ -177,7 +180,8 @@ export async function fetchMethodDetail(
     throw new Error(`HTTP ${res.status} – Error fetching method`);
   }
   const json: unknown = await res.json();
-  const method = (json as { data?: { method?: Method } }).data?.method ??
+  const method =
+    (json as { data?: { method?: Method } }).data?.method ??
     (json as { data?: Method }).data ??
     (json as { method?: Method }).method;
   if (!method) {
