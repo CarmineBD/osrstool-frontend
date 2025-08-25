@@ -82,7 +82,7 @@ export function formatNumber(num: number): string {
   }
 }
 
-export function formatPercent(num: number): string {
+export function formatPercent(num: number, decimals = 1): string {
   const sign = num >= 0 ? "+" : "";
-  return `${sign}${num.toFixed(1)}%`;
+  return `${sign}${num.toFixed(decimals)}%`;
 }

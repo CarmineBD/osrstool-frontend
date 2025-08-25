@@ -60,6 +60,7 @@ export interface Variant {
   trendLast24h?: number;
   trendLastWeek?: number;
   trendLastMonth?: number;
+  trendLastYear?: number;
   missingRequirements?: Requirement;
   inputs: { id: number; quantity: number }[];
   outputs: { id: number; quantity: number }[];
