@@ -1,6 +1,13 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { LineChart, Line, CartesianGrid, ReferenceLine, XAxis } from "recharts";
+import {
+  LineChart,
+  Line,
+  CartesianGrid,
+  ReferenceLine,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -71,11 +78,26 @@ export function VariantHistoryChart({
     enabled: !!variantId,
   });
 
-  const points =
-    data?.data.map((p) => ({
-      ...p,
-      timestamp: new Date(p.timestamp).getTime(),
-    })) ?? [];
+  const points = useMemo(
+    () =>
+      data?.data.map((p) => ({
+        ...p,
+        timestamp: new Date(p.timestamp).getTime(),
+      })) ?? [],
+    [data]
+  );
+
+  const yDomain = useMemo(() => {
+    if (!points.length) {
+      return [0, 0];
+    }
+    const lows = points.map((p) => p.lowProfit);
+    const highs = points.map((p) => p.highProfit);
+    const min = Math.min(...lows, ...highs);
+    const max = Math.max(...lows, ...highs);
+    const padding = (max - min) * 0.1 || 1;
+    return [min - padding, max + padding];
+  }, [points]);
 
   const snapshots = data?.variant_snapshot ?? [];
   const latestPoint = points[points.length - 1];
@@ -129,12 +151,13 @@ export function VariantHistoryChart({
             <div className="text-red-500">Error loading history</div>
           ) : (
             <ChartContainer config={chartConfig} className="h-64 w-full">
-              <LineChart data={points} margin={{ left: 12, right: 12 }}>
+              <LineChart data={points} margin={{ left: 0, right: 0 }}>
                 <CartesianGrid vertical={false} />
                 <XAxis
                   dataKey="timestamp"
                   type="number"
-                  domain={["auto", "auto"]}
+                  domain={["dataMin", "dataMax"]}
+                  padding={{ left: 0, right: 0 }}
                   tickFormatter={(value) => {
                     const date = new Date(value);
                     return range === "24h"
@@ -142,6 +165,7 @@ export function VariantHistoryChart({
                       : date.toLocaleDateString();
                   }}
                 />
+                <YAxis domain={yDomain} hide />
                 <ChartTooltip
                   cursor={false}
                   content={
