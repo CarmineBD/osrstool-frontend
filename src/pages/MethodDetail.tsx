@@ -702,7 +702,16 @@ export function MethodDetail(_props: Props) {
               </div>
 
               {/* Gráfico */}
-              {variant.id && <VariantHistoryChart variantId={variant.id} />}
+              {variant.id && (
+                <VariantHistoryChart
+                  variantId={variant.id}
+                  trendLastHour={variant.trendLastHour}
+                  trendLast24h={variant.trendLast24h}
+                  trendLastWeek={variant.trendLastWeek}
+                  trendLastMonth={variant.trendLastMonth}
+                  trendLastYear={variant.trendLastYear}
+                />
+              )}
             </div>
           </TabsContent>
         ))}
