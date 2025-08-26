@@ -3,11 +3,14 @@ import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { fetchMethods, type MethodsResponse } from "../../lib/api";
 import { useUsername } from "@/contexts/UsernameContext";
 
-export function useMethods(username?: string): UseQueryResult<MethodsResponse, Error> {
+export function useMethods(
+  username?: string,
+  page = 1
+): UseQueryResult<MethodsResponse, Error> {
   const { setUserError } = useUsername();
   const query = useQuery<MethodsResponse, Error>({
-    queryKey: ["methods", username],
-    queryFn: () => fetchMethods(username),
+    queryKey: ["methods", username, page],
+    queryFn: () => fetchMethods(username, page),
     staleTime: 30 * 1000,
     retry: false,
   });

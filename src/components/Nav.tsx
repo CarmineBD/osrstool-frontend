@@ -11,12 +11,8 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
-  navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 export type Props = { hideInput?: boolean };
-
-import * as React from "react";
-import { CircleCheckIcon, CircleHelpIcon, CircleIcon } from "lucide-react";
 
 const components: { title: string; href: string; description: string }[] = [
   {
@@ -122,7 +118,7 @@ export function Nav({ hideInput }: Props) {
                         All methods
                       </div>
                       <p className="text-muted-foreground text-sm leading-tight">
-                        All aviable money making methods on OSRS
+                        All official money making methods.
                       </p>
                     </a>
                   </NavigationMenuLink>
@@ -130,15 +126,15 @@ export function Nav({ hideInput }: Props) {
                 <ListItem href="/docs" title="Hottest">
                   Money making methods that are trending now.
                 </ListItem>
-                <ListItem href="/docs/installation" title="Most favourites">
+                <ListItem href="/docs/installation" title="Most favourited">
                   Money making methods that have been favourited the most by
                   users.
                 </ListItem>
                 <ListItem
                   href="/docs/primitives/typography"
-                  title="Most viable"
+                  title="Community Money Making Methods"
                 >
-                  Money making methods that are the most profitable.
+                  Money making methods submitted by the community.
                 </ListItem>
               </ul>
             </NavigationMenuContent>
