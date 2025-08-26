@@ -90,13 +90,16 @@ function parseWarnings(value: unknown): ApiWarning[] | undefined {
 export interface MethodsResponse {
   methods: Method[];
   warnings?: ApiWarning[];
+  pageCount?: number;
 }
 
 export async function fetchMethods(
-  username?: string
+  username?: string,
+  page?: number
 ): Promise<MethodsResponse> {
   const url = new URL(`${API_URL}/methods`);
   if (username) url.searchParams.set("username", username);
+  if (page !== undefined) url.searchParams.set("page", page.toString());
 
   const res = await fetch(url.toString());
   if (!res.ok) {
@@ -104,14 +107,20 @@ export async function fetchMethods(
   }
   const json: unknown = await res.json();
   let methods: Method[] = [];
+  let pageCount: number | undefined;
   if (Array.isArray(json)) {
     methods = json as Method[];
   } else {
-    const data = (json as { data?: { methods?: Method[] } }).data;
+    const data = (json as { data?: { methods?: Method[]; pageCount?: number; pagination?: { pageCount?: number } } }).data;
     methods = data?.methods ?? [];
+    pageCount =
+      (json as { pageCount?: number }).pageCount ??
+      data?.pageCount ??
+      (data?.pagination as { pageCount?: number } | undefined)?.pageCount ??
+      (json as { meta?: { pagination?: { pageCount?: number } } }).meta?.pagination?.pageCount;
   }
   const warnings = parseWarnings((json as { warnings?: unknown }).warnings);
-  return { methods, warnings };
+  return { methods, warnings, pageCount };
 }
 
 export interface Item {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMethods } from "./hooks";
 import { Link } from "react-router-dom";
 import {
@@ -35,9 +35,12 @@ interface Row {
 }
 
 export function MethodsList({ username }: Props) {
-  const { data, error, isLoading, isFetching } = useMethods(username);
   const [page, setPage] = useState(1);
-  const pageSize = 5;
+  const { data, error, isLoading, isFetching } = useMethods(username, page);
+
+  useEffect(() => {
+    setPage(1);
+  }, [username]);
 
   if (isLoading) return <p>🔄 Cargando métodos…</p>;
   if (error) return <p className="text-red-500">❌ {`${error}`}</p>;
@@ -81,8 +84,8 @@ export function MethodsList({ username }: Props) {
     })
   );
 
-  const pageCount = Math.ceil(rows.length / pageSize);
-  const current: Row[] = rows.slice((page - 1) * pageSize, page * pageSize);
+  const pageCount =
+    data?.pageCount ?? (data?.methods.length === 10 ? page + 1 : page);
 
   return (
     <div className="space-y-4">
@@ -103,7 +106,7 @@ export function MethodsList({ username }: Props) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {current.map((row) => (
+          {rows.map((row) => (
             <TableRow key={row.id}>
               {/* Name */}
               <TableCell className="font-medium">
