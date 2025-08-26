@@ -22,7 +22,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { IconTrendingUp, IconTrendingDown, IconClick } from "@tabler/icons-react";
+import {
+  IconTrendingUp,
+  IconTrendingDown,
+  IconClick,
+} from "@tabler/icons-react";
 import {
   Accordion,
   AccordionContent,
@@ -94,7 +98,7 @@ export function MethodDetail(_props: Props) {
     method.variants.forEach((variant: Variant) => {
       variant.inputs.forEach((i) => ids.add(i.id));
       variant.outputs.forEach((o) => ids.add(o.id));
-      variant.requirements.items?.forEach((i) => ids.add(i.id));
+      variant.requirements?.items?.forEach((i) => ids.add(i.id));
       variant.recommendations?.items?.forEach((i) => ids.add(i.id));
     });
     return Array.from(ids);
@@ -134,9 +138,7 @@ export function MethodDetail(_props: Props) {
         value={activeSlug}
         onValueChange={(v) =>
           navigate(
-            `/moneyMakingMethod/${methodParam}${
-              hasMultiple ? `/${v}` : ""
-            }`,
+            `/moneyMakingMethod/${methodParam}${hasMultiple ? `/${v}` : ""}`,
             { state: { methodId: method.id } }
           )
         }
@@ -160,9 +162,7 @@ export function MethodDetail(_props: Props) {
         {method.variants.map((variant: Variant, index: number) => (
           <TabsContent
             key={variant.slug ?? variant.id ?? index.toString()}
-            value={
-              variant.slug ?? (variant.id ?? index.toString()).toString()
-            }
+            value={variant.slug ?? (variant.id ?? index.toString()).toString()}
             className="p-4"
           >
             {/* <div className="mb-2">
