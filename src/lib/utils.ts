@@ -71,14 +71,19 @@ export function getQuestStageByLevel(id: number): string | null {
 // utils/formatNumber.ts
 
 export function formatNumber(num: number): string {
-  if (num >= 1_000_000_000) {
-    return (num / 1_000_000_000).toFixed(2).replace(/\.?0+$/, "") + "b";
-  } else if (num >= 1_000_000) {
-    return (num / 1_000_000).toFixed(2).replace(/\.?0+$/, "") + "m";
-  } else if (num >= 1_000) {
-    return (num / 1_000).toFixed(2).replace(/\.?0+$/, "") + "k";
+  const sign = num < 0 ? "-" : "";
+  const absNum = Math.abs(num);
+
+  if (absNum >= 1_000_000_000) {
+    return (
+      sign + (absNum / 1_000_000_000).toFixed(2).replace(/\.?0+$/, "") + "b"
+    );
+  } else if (absNum >= 1_000_000) {
+    return sign + (absNum / 1_000_000).toFixed(2).replace(/\.?0+$/, "") + "m";
+  } else if (absNum >= 1_000) {
+    return sign + (absNum / 1_000).toFixed(2).replace(/\.?0+$/, "") + "k";
   } else {
-    return num.toString();
+    return sign + absNum.toString();
   }
 }
 

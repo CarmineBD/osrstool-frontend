@@ -122,35 +122,61 @@ interface PaginationProps {
   page: number;
   pageCount: number;
   onPageChange: (page: number) => void;
+  maxButtons?: number; // show up to this many page numbers at once
 }
 
-function Pagination({ page, pageCount, onPageChange }: PaginationProps) {
-  const pages = Array.from({ length: pageCount }, (_, i) => i + 1);
+function Pagination({ page, pageCount, onPageChange, maxButtons = 10 }: PaginationProps) {
+  const windowStart = Math.floor((page - 1) / maxButtons) * maxButtons + 1;
+  const windowEnd = Math.min(windowStart + maxButtons - 1, pageCount);
+  const visiblePages = Array.from({ length: windowEnd - windowStart + 1 }, (_, i) => windowStart + i);
 
   return (
     <PaginationRoot>
       <PaginationContent>
         <PaginationItem>
-          <PaginationPrevious
-            onClick={() => onPageChange(Math.max(page - 1, 1))}
-          />
+          <PaginationPrevious onClick={() => onPageChange(Math.max(page - 1, 1))} />
         </PaginationItem>
 
-        {pages.map((p) => (
+        {windowStart > 1 && (
+          <>
+            <PaginationItem>
+              <PaginationLink isActive={page === 1} onClick={() => onPageChange(1)}>
+                1
+              </PaginationLink>
+            </PaginationItem>
+            {windowStart > 2 && (
+              <PaginationItem>
+                <PaginationEllipsis />
+              </PaginationItem>
+            )}
+          </>
+        )}
+
+        {visiblePages.map((p) => (
           <PaginationItem key={p}>
-            <PaginationLink
-              isActive={p === page}
-              onClick={() => onPageChange(p)}
-            >
+            <PaginationLink isActive={p === page} onClick={() => onPageChange(p)}>
               {p}
             </PaginationLink>
           </PaginationItem>
         ))}
 
+        {windowEnd < pageCount && (
+          <>
+            {windowEnd < pageCount - 1 && (
+              <PaginationItem>
+                <PaginationEllipsis />
+              </PaginationItem>
+            )}
+            <PaginationItem>
+              <PaginationLink isActive={page === pageCount} onClick={() => onPageChange(pageCount)}>
+                {pageCount}
+              </PaginationLink>
+            </PaginationItem>
+          </>
+        )}
+
         <PaginationItem>
-          <PaginationNext
-            onClick={() => onPageChange(Math.min(page + 1, pageCount))}
-          />
+          <PaginationNext onClick={() => onPageChange(Math.min(page + 1, pageCount))} />
         </PaginationItem>
       </PaginationContent>
     </PaginationRoot>
