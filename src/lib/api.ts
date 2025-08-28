@@ -95,11 +95,13 @@ export interface MethodsResponse {
 
 export async function fetchMethods(
   username?: string,
-  page?: number
+  page?: number,
+  name?: string
 ): Promise<MethodsResponse> {
   const url = new URL(`${API_URL}/methods`);
   if (username) url.searchParams.set("username", username);
   if (page !== undefined) url.searchParams.set("page", page.toString());
+  if (name) url.searchParams.set("name", name);
 
   const res = await fetch(url.toString());
   if (!res.ok) {
@@ -118,6 +120,21 @@ export async function fetchMethods(
       data?.pageCount ??
       (data?.pagination as { pageCount?: number } | undefined)?.pageCount ??
       (json as { meta?: { pagination?: { pageCount?: number } } }).meta?.pagination?.pageCount;
+
+    // Derive pageCount from meta.total / meta.perPage when available
+    if (
+      pageCount === undefined &&
+      (json as { meta?: { total?: number; perPage?: number } }).meta?.total !==
+        undefined
+    ) {
+      const meta = (json as { meta?: { total?: number; perPage?: number } })
+        .meta;
+      const total = Number(meta?.total ?? 0);
+      const perPage = Number(meta?.perPage ?? 10);
+      if (Number.isFinite(total) && total > 0 && Number.isFinite(perPage) && perPage > 0) {
+        pageCount = Math.max(1, Math.ceil(total / perPage));
+      }
+    }
   }
   const warnings = parseWarnings((json as { warnings?: unknown }).warnings);
   return { methods, warnings, pageCount };

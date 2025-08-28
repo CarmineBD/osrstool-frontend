@@ -14,7 +14,7 @@ import { formatNumber, getUrlByType } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import type { Method, Variant } from "@/lib/api";
 
-export type Props = { username: string };
+export type Props = { username: string; name?: string };
 
 interface Row {
   id: string;
@@ -34,13 +34,17 @@ interface Row {
   highProfit?: number;
 }
 
-export function MethodsList({ username }: Props) {
+export function MethodsList({ username, name }: Props) {
   const [page, setPage] = useState(1);
-  const { data, error, isLoading, isFetching } = useMethods(username, page);
+  const { data, error, isLoading, isFetching } = useMethods(
+    username,
+    page,
+    name
+  );
 
   useEffect(() => {
     setPage(1);
-  }, [username]);
+  }, [username, name]);
 
   if (isLoading) return <p>🔄 Cargando métodos…</p>;
   if (error) return <p className="text-red-500">❌ {`${error}`}</p>;
@@ -86,6 +90,8 @@ export function MethodsList({ username }: Props) {
 
   const pageCount =
     data?.pageCount ?? (data?.methods.length === 10 ? page + 1 : page);
+
+  console.log("data", data);
 
   return (
     <div className="space-y-4">

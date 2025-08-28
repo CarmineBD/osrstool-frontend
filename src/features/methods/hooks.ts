@@ -5,12 +5,13 @@ import { useUsername } from "@/contexts/UsernameContext";
 
 export function useMethods(
   username?: string,
-  page = 1
+  page = 1,
+  name?: string
 ): UseQueryResult<MethodsResponse, Error> {
   const { setUserError } = useUsername();
   const query = useQuery<MethodsResponse, Error>({
-    queryKey: ["methods", username, page],
-    queryFn: () => fetchMethods(username, page),
+    queryKey: ["methods", username, name, page],
+    queryFn: () => fetchMethods(username, page, name),
     staleTime: 30 * 1000,
     retry: false,
   });
