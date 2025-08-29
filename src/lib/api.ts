@@ -217,3 +217,33 @@ export async function fetchMethodDetail(
   const warnings = parseWarnings((json as { warnings?: unknown }).warnings);
   return { method, warnings };
 }
+
+export interface UpdateMethodDto {
+  name: string;
+  category: string;
+  description?: string;
+  variants: Variant[];
+}
+
+export async function updateMethod(
+  id: string,
+  dto: UpdateMethodDto
+): Promise<Method> {
+  const res = await fetch(`${API_URL}/methods/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(dto),
+  });
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status} – Error updating method`);
+  }
+  const json: unknown = await res.json();
+  const method =
+    (json as { data?: { method?: Method } }).data?.method ??
+    (json as { data?: Method }).data ??
+    (json as { method?: Method }).method;
+  if (!method) {
+    throw new Error("Method not found");
+  }
+  return method;
+}
