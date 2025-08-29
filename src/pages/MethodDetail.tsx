@@ -26,6 +26,7 @@ import {
   IconTrendingUp,
   IconTrendingDown,
   IconClick,
+  IconPencil,
 } from "@tabler/icons-react";
 import {
   Accordion,
@@ -39,6 +40,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import VariantHistoryChart from "@/components/VariantHistoryChart";
+import { Button } from "@/components/ui/button";
 
 export type Props = Record<string, never>;
 
@@ -119,7 +121,19 @@ export function MethodDetail(_props: Props) {
   const activeSlug = variantSlug ?? firstTabSlug;
   const hasMultiple = (method?.variants?.length ?? 0) > 1;
   return (
-    <div className="max-w-5xl mx-auto bg-white p-6 rounded shadow">
+    <div className="max-w-5xl mx-auto bg-white p-6 rounded shadow relative">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute top-4 right-4"
+        onClick={() =>
+          navigate(`/moneyMakingMethod/${methodParam}/edit`, {
+            state: { methodId: method.id },
+          })
+        }
+      >
+        <IconPencil size={20} />
+      </Button>
       <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight text-balance">
         {method.name}
       </h1>
