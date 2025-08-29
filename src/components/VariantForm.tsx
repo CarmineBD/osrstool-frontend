@@ -18,11 +18,7 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import {
-  IconDotsVertical,
-  IconX,
-  IconChevronDown,
-} from "@tabler/icons-react";
+import { IconDotsVertical, IconX, IconChevronDown } from "@tabler/icons-react";
 
 interface VariantFormProps {
   onRemove: () => void;
@@ -76,9 +72,9 @@ export function VariantForm({ onRemove }: VariantFormProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem>Option 1</DropdownMenuItem>
-              <DropdownMenuItem>Option 2</DropdownMenuItem>
-              <DropdownMenuItem>Option 3</DropdownMenuItem>
+              <DropdownMenuItem>Delete</DropdownMenuItem>
+              <DropdownMenuItem>Duplicate</DropdownMenuItem>
+              <DropdownMenuItem>Move to</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -108,4 +104,3 @@ export function VariantForm({ onRemove }: VariantFormProps) {
 }
 
 export default VariantForm;
-
