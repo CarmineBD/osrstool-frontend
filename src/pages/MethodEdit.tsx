@@ -154,8 +154,9 @@ export function MethodEdit(_props: Props) {
                   <FormItem>
                     <FormLabel>Category</FormLabel>
                     <Select
+                      key={field.value}
                       onValueChange={field.onChange}
-                      value={field.value || undefined}
+                      value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger className="w-[180px]">
