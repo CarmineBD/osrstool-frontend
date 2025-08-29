@@ -120,11 +120,6 @@ export function MethodDetail(_props: Props) {
   const hasMultiple = (method?.variants?.length ?? 0) > 1;
   return (
     <div className="max-w-5xl mx-auto bg-white p-6 rounded shadow">
-      {!username && (
-        <p className="mb-4 text-sm text-gray-500">
-          Please enter your username to fetch your user data.
-        </p>
-      )}
       <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight text-balance">
         {method.name}
       </h1>
@@ -214,6 +209,25 @@ export function MethodDetail(_props: Props) {
             <div className="mx-auto max-w-6xl p-4 lg:p-6">
               {/* missingRequirements */}
               <div className="mb-4 rounded-md border border-gray-300 bg-gray-200 px-4 py-3 text-sm dark:border-gray-700 dark:bg-gray-800">
+                {!username && (
+                  <p className="mb-3 text-gray-700">
+                    Please{' '}
+                    <button
+                      type="button"
+                      className="text-blue-600 underline hover:text-blue-800 cursor-pointer"
+                      onClick={() => {
+                        const el = document.getElementById('username-input') as HTMLInputElement | null;
+                        if (el) {
+                          el.focus();
+                          el.select?.();
+                        }
+                      }}
+                    >
+                      enter your username
+                    </button>{' '}
+                    to fetch your user data.
+                  </p>
+                )}
                 {variant.missingRequirements ? (
                   <>
                     <p className="text-red-600 mb-4">
@@ -263,7 +277,9 @@ export function MethodDetail(_props: Props) {
                     </div>
                   </>
                 ) : (
-                  <p className="text-green-600">All requirements met! 🎉</p>
+                  username ? (
+                    <p className="text-green-600">All requirements met! 🎉</p>
+                  ) : null
                 )}
               </div>
 
