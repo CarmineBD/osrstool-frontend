@@ -223,6 +223,7 @@ export function Nav({ hideInput }: Props) {
             <form onSubmit={handleSubmit} className="flex gap-2">
               <Input
                 type="text"
+                id="username-input"
                 placeholder="Enter username"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
