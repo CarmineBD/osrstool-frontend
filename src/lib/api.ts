@@ -51,6 +51,7 @@ export interface Variant {
   clickIntensity?: number;
   riskLevel?: string;
   wilderness?: boolean;
+  actionsPerHour?: number;
   xpHour?: { skill: string; experience: number }[];
   requirements: Requirement;
   recommendations?: Requirement;
@@ -113,13 +114,22 @@ export async function fetchMethods(
   if (Array.isArray(json)) {
     methods = json as Method[];
   } else {
-    const data = (json as { data?: { methods?: Method[]; pageCount?: number; pagination?: { pageCount?: number } } }).data;
+    const data = (
+      json as {
+        data?: {
+          methods?: Method[];
+          pageCount?: number;
+          pagination?: { pageCount?: number };
+        };
+      }
+    ).data;
     methods = data?.methods ?? [];
     pageCount =
       (json as { pageCount?: number }).pageCount ??
       data?.pageCount ??
       (data?.pagination as { pageCount?: number } | undefined)?.pageCount ??
-      (json as { meta?: { pagination?: { pageCount?: number } } }).meta?.pagination?.pageCount;
+      (json as { meta?: { pagination?: { pageCount?: number } } }).meta
+        ?.pagination?.pageCount;
 
     // Derive pageCount from meta.total / meta.perPage when available
     if (
@@ -131,7 +141,12 @@ export async function fetchMethods(
         .meta;
       const total = Number(meta?.total ?? 0);
       const perPage = Number(meta?.perPage ?? 10);
-      if (Number.isFinite(total) && total > 0 && Number.isFinite(perPage) && perPage > 0) {
+      if (
+        Number.isFinite(total) &&
+        total > 0 &&
+        Number.isFinite(perPage) &&
+        perPage > 0
+      ) {
         pageCount = Math.max(1, Math.ceil(total / perPage));
       }
     }
