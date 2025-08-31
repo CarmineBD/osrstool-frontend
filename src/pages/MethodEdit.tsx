@@ -10,6 +10,7 @@ import {
   updateMethod,
   type MethodDetailResponse,
   type MethodsResponse,
+  type Variant,
 } from "@/lib/api";
 import { useUsername } from "@/contexts/UsernameContext";
 import {
@@ -73,11 +74,26 @@ export function MethodEdit(_props: Props) {
     enabled: !!methodId,
     retry: false,
   });
-  const [variants, setVariants] = useState<number[]>([0]);
+  const [variants, setVariants] = useState<Variant[]>([] as Variant[]);
 
-  const addVariant = () => setVariants((v) => [...v, v.length]);
+  useEffect(() => {
+    const m = data?.method;
+    if (m) {
+      setVariants(m.variants ?? []);
+    }
+  }, [data?.method]);
+
+  const addVariant = () => setVariants((v) => [...v, {
+    label: "New variant",
+    description: "",
+    requirements: {},
+    inputs: [],
+    outputs: [],
+  }]);
   const removeVariant = (index: number) =>
     setVariants((v) => v.filter((_, i) => i !== index));
+  const updateVariantAt = (index: number, updated: Variant) =>
+    setVariants((v) => v.map((it, i) => (i === index ? updated : it)));
 
   useEffect(() => {
     const warning = data?.warnings?.[0];
@@ -106,7 +122,7 @@ export function MethodEdit(_props: Props) {
   }, [method, form]);
   const onSubmit = async (values: FormValues) => {
     if (!method) return;
-    await updateMethod(method.id, { ...values, variants: method.variants });
+    await updateMethod(method.id, { ...values, variants });
     navigate(`/moneyMakingMethod/${method.slug}`, {
       state: { methodId: method.id },
     });
@@ -195,16 +211,21 @@ export function MethodEdit(_props: Props) {
               />
             </div>
           </section>
-          <section>
+          {/* <section>
             <h2 className="font-semibold mb-2">Variants details</h2>
             <pre className="rounded bg-muted p-4 overflow-auto text-sm">
               {JSON.stringify(method.variants, null, 2)}
             </pre>
-          </section>
+          </section> */}
           <section>
             <h2 className="font-semibold mb-2">Variants details</h2>
-            {variants.map((_, index) => (
-              <VariantForm key={index} onRemove={() => removeVariant(index)} />
+            {variants.map((variant, index) => (
+              <VariantForm
+                key={index}
+                onRemove={() => removeVariant(index)}
+                variant={variant}
+                onChange={(v) => updateVariantAt(index, v)}
+              />
             ))}
             <Button
               onClick={addVariant}
