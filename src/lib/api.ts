@@ -11,6 +11,14 @@ export interface Method {
   variantCount?: number;
 }
 
+export type IoItemType = "input" | "output";
+
+export interface IoItem {
+  id: number;
+  quantity: number;
+  type?: IoItemType;
+}
+
 type ItemRequirement = {
   id: number;
   quantity: number;
@@ -63,8 +71,8 @@ export interface Variant {
   trendLastMonth?: number;
   trendLastYear?: number;
   missingRequirements?: Requirement;
-  inputs: { id: number; quantity: number }[];
-  outputs: { id: number; quantity: number }[];
+  inputs: IoItem[];
+  outputs: IoItem[];
 }
 
 export interface ApiWarning {
@@ -233,24 +241,108 @@ export async function fetchMethodDetail(
   return { method, warnings };
 }
 
-export interface UpdateMethodDto {
+export interface UpdateMethodBasicDto {
   name: string;
   category: string;
   description?: string;
-  variants: Variant[];
 }
 
-export async function updateMethod(
+export interface UpdateVariantDto {
+  id?: string;
+  label: string;
+  description?: string;
+  afkiness?: number;
+  clickIntensity?: number;
+  riskLevel?: string;
+  wilderness?: boolean;
+  actionsPerHour?: number;
+  xpHour?: { skill: string; experience: number }[];
+  requirements?: Requirement;
+  recommendations?: Requirement;
+  inputs: IoItem[];
+  outputs: IoItem[];
+}
+
+export interface UpdateMethodDto extends UpdateMethodBasicDto {
+  variants: UpdateVariantDto[];
+}
+
+function mapIoItems(items: IoItem[] | undefined, type: IoItemType): IoItem[] {
+  return (items ?? []).map((item) => ({
+    id: item.id,
+    quantity: item.quantity,
+    type,
+  }));
+}
+
+function buildVariantUpdatePayload(variant: Variant): UpdateVariantDto {
+  return {
+    id: variant.id,
+    label: variant.label,
+    description: variant.description,
+    actionsPerHour: variant.actionsPerHour,
+    clickIntensity: variant.clickIntensity,
+    afkiness: variant.afkiness,
+    riskLevel: variant.riskLevel,
+    wilderness: variant.wilderness,
+    xpHour: variant.xpHour,
+    requirements: variant.requirements ?? {},
+    recommendations: variant.recommendations,
+    inputs: mapIoItems(variant.inputs, "input"),
+    outputs: mapIoItems(variant.outputs, "output"),
+  };
+}
+
+export function buildMethodUpdatePayload(
+  values: UpdateMethodBasicDto,
+  variants: Variant[]
+): UpdateMethodDto {
+  return {
+    ...values,
+    variants: variants.map(buildVariantUpdatePayload),
+  };
+}
+
+export function getVariantsSignature(variants: Variant[]): string {
+  return JSON.stringify(variants.map(buildVariantUpdatePayload));
+}
+
+export async function updateMethodBasic(
   id: string,
-  dto: UpdateMethodDto
+  dto: UpdateMethodBasicDto
 ): Promise<Method> {
+  const res = await fetch(`${API_URL}/methods/${id}/basic`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(dto),
+  });
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status} â€“ Error updating method`);
+  }
+  const json: unknown = await res.json();
+  const method =
+    (json as { data?: { method?: Method } }).data?.method ??
+    (json as { data?: Method }).data ??
+    (json as { method?: Method }).method;
+  if (!method) {
+    throw new Error("Method not found");
+  }
+  return method;
+}
+
+export async function updateMethodWithVariants(
+  id: string,
+  values: UpdateMethodBasicDto,
+  variants: Variant[]
+): Promise<Method> {
+  const dto = buildMethodUpdatePayload(values, variants);
   const res = await fetch(`${API_URL}/methods/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(dto),
   });
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} – Error updating method`);
+    throw new Error(`HTTP ${res.status} - Error updating method`);
   }
   const json: unknown = await res.json();
   const method =
