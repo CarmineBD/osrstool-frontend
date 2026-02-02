@@ -7,7 +7,9 @@ import { useQuery } from "@tanstack/react-query";
 import {
   fetchMethods,
   fetchMethodDetail,
-  updateMethod,
+  getVariantsSignature,
+  updateMethodBasic,
+  updateMethodWithVariants,
   type MethodDetailResponse,
   type MethodsResponse,
   type Variant,
@@ -75,11 +77,16 @@ export function MethodEdit(_props: Props) {
     retry: false,
   });
   const [variants, setVariants] = useState<Variant[]>([] as Variant[]);
+  const [initialVariantsSignature, setInitialVariantsSignature] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     const m = data?.method;
     if (m) {
-      setVariants(m.variants ?? []);
+      const nextVariants = m.variants ?? [];
+      setVariants(nextVariants);
+      setInitialVariantsSignature(getVariantsSignature(nextVariants));
     }
   }, [data?.method]);
 
@@ -122,7 +129,15 @@ export function MethodEdit(_props: Props) {
   }, [method, form]);
   const onSubmit = async (values: FormValues) => {
     if (!method) return;
-    await updateMethod(method.id, { ...values, variants });
+    const baselineSignature =
+      initialVariantsSignature ?? getVariantsSignature(method.variants ?? []);
+    const variantsChanged =
+      baselineSignature !== getVariantsSignature(variants);
+    if (variantsChanged) {
+      await updateMethodWithVariants(method.id, values, variants);
+    } else {
+      await updateMethodBasic(method.id, values);
+    }
     navigate(`/moneyMakingMethod/${method.slug}`, {
       state: { methodId: method.id },
     });
