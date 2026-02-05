@@ -31,7 +31,7 @@ interface VariantFormProps {
 }
 
 export function VariantForm({ onRemove, variant, onChange }: VariantFormProps) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const [label, setLabel] = useState<string>(variant.label);
   const [description, setDescription] = useState<string>(variant.description ?? "");
   const [wilderness, setWilderness] = useState<boolean>(variant.wilderness ?? false);
