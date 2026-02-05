@@ -116,6 +116,11 @@ export function MethodDetail(_props: Props) {
   if (error) return <p className="text-red-500">❌ {`${error}`}</p>;
   if (!method) return <p>No se encontró el método.</p>;
   const itemsMap = itemsData || {};
+  const getLowPriceTotal = (items: Variant["inputs"]) =>
+    items.reduce((total, item) => {
+      const lowPrice = itemsMap[item.id]?.lowPrice ?? 0;
+      return total + lowPrice * item.quantity;
+    }, 0);
   const firstTabSlug =
     method.variants[0]?.slug ?? (method.variants[0]?.id ?? 0).toString();
   const activeSlug = variantSlug ?? firstTabSlug;
@@ -168,12 +173,15 @@ export function MethodDetail(_props: Props) {
           </TabsList>
         )}
 
-        {method.variants.map((variant: Variant, index: number) => (
-          <TabsContent
-            key={variant.slug ?? variant.id ?? index.toString()}
-            value={variant.slug ?? (variant.id ?? index.toString()).toString()}
-            className="p-4"
-          >
+        {method.variants.map((variant: Variant, index: number) => {
+          const inputsTotal = getLowPriceTotal(variant.inputs);
+          const outputsTotal = getLowPriceTotal(variant.outputs);
+          return (
+            <TabsContent
+              key={variant.slug ?? variant.id ?? index.toString()}
+              value={variant.slug ?? (variant.id ?? index.toString()).toString()}
+              className="p-4"
+            >
             {/* <div className="mb-2">
               <span className="font-semibold">AFKiness:</span>{" "}
               {variant.afkiness}
@@ -433,7 +441,12 @@ export function MethodDetail(_props: Props) {
                       <AccordionTrigger>Inputs & Outputs</AccordionTrigger>
                       <AccordionContent className="flex gap-4 text-balance">
                         <div className="flex-1">
-                          <h3 className="text-sm font-semibold">Inputs</h3>
+                          <h3 className="text-sm font-semibold">
+                            Inputs{" "}
+                            <span className="text-xs font-normal text-muted-foreground">
+                              ({formatNumber(inputsTotal)} gp)
+                            </span>
+                          </h3>
                           <div className="mt-3 min-h-14 w-full rounded bg-[#494034] p-4 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)]">
                             <div className="flex flex-start flex-wrap gap-1">
                               {variant.inputs.map((input) => {
@@ -471,7 +484,12 @@ export function MethodDetail(_props: Props) {
                           </div>
                         </div>
                         <div className="flex-1">
-                          <h3 className="text-sm font-semibold">Outputs</h3>
+                          <h3 className="text-sm font-semibold">
+                            Outputs{" "}
+                            <span className="text-xs font-normal text-muted-foreground">
+                              ({formatNumber(outputsTotal)} gp)
+                            </span>
+                          </h3>
                           <div className="mt-3 min-h-14 w-full rounded bg-[#494034] p-4 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)]">
                             <div className="flex flex-start flex-wrap gap-1">
                               {variant.outputs.map((output) => {
@@ -744,7 +762,8 @@ export function MethodDetail(_props: Props) {
               )}
             </div>
           </TabsContent>
-        ))}
+          );
+        })}
       </Tabs>
     </div>
   );
