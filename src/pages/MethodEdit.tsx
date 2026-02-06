@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type KeyboardEvent } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -142,6 +142,13 @@ export function MethodEdit(_props: Props) {
       state: { methodId: method.id },
     });
   };
+  const handleFormKeyDown = (event: KeyboardEvent<HTMLFormElement>) => {
+    if (event.key !== "Enter") return;
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+    if (target.tagName === "TEXTAREA" || target.isContentEditable) return;
+    event.preventDefault();
+  };
   const [confirmOpen, setConfirmOpen] = useState(false);
   const handleCancel = () => {
     if (form.formState.isDirty) {
@@ -161,7 +168,11 @@ export function MethodEdit(_props: Props) {
     <div className="max-w-5xl mx-auto p-4 space-y-6">
       <h1 className="text-3xl font-bold">Edit method</h1>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
+          onKeyDown={handleFormKeyDown}
+          className="space-y-6"
+        >
           <section>
             <h2 className="font-semibold mb-2">Method details</h2>
             <div className="flex flex-col md:flex-row gap-4 mb-4">

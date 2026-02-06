@@ -23,6 +23,7 @@ import { IconDotsVertical, IconX, IconChevronDown } from "@tabler/icons-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { IoItemsField } from "@/components/IoItemsField";
 
 interface VariantFormProps {
   onRemove: () => void;
@@ -42,12 +43,8 @@ export function VariantForm({ onRemove, variant, onChange }: VariantFormProps) {
   const [xpHour, setXpHour] = useState<string>(
     JSON.stringify(variant.xpHour ?? [], null, 2)
   );
-  const [inputs, setInputs] = useState<string>(
-    JSON.stringify(variant.inputs ?? [], null, 2)
-  );
-  const [outputs, setOutputs] = useState<string>(
-    JSON.stringify(variant.outputs ?? [], null, 2)
-  );
+  const [inputs, setInputs] = useState<Variant["inputs"]>(variant.inputs ?? []);
+  const [outputs, setOutputs] = useState<Variant["outputs"]>(variant.outputs ?? []);
   const [requirements, setRequirements] = useState<string>(
     JSON.stringify(variant.requirements ?? {}, null, 2)
   );
@@ -62,8 +59,8 @@ export function VariantForm({ onRemove, variant, onChange }: VariantFormProps) {
     setAfkiness(variant.afkiness);
     setActionsPerHour(variant.actionsPerHour);
     setXpHour(JSON.stringify(variant.xpHour ?? [], null, 2));
-    setInputs(JSON.stringify(variant.inputs ?? [], null, 2));
-    setOutputs(JSON.stringify(variant.outputs ?? [], null, 2));
+    setInputs(variant.inputs ?? []);
+    setOutputs(variant.outputs ?? []);
     setRequirements(JSON.stringify(variant.requirements ?? {}, null, 2));
     setRecommendations(JSON.stringify(variant.recommendations ?? {}, null, 2));
   }, [variant]);
@@ -202,36 +199,22 @@ export function VariantForm({ onRemove, variant, onChange }: VariantFormProps) {
             />
           </div>
           <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium mb-2">Inputs</label>
-              <Textarea
-                className="min-h-[100px] font-mono"
-                value={inputs}
-                onChange={(e) => {
-                  const next = e.target.value;
-                  setInputs(next);
-                  try {
-                    const parsed = JSON.parse(next);
-                    onChange?.({ ...variant, inputs: parsed });
-                  } catch {}
-                }}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Outputs</label>
-              <Textarea
-                className="min-h-[100px] font-mono"
-                value={outputs}
-                onChange={(e) => {
-                  const next = e.target.value;
-                  setOutputs(next);
-                  try {
-                    const parsed = JSON.parse(next);
-                    onChange?.({ ...variant, outputs: parsed });
-                  } catch {}
-                }}
-              />
-            </div>
+            <IoItemsField
+              label="Inputs"
+              items={inputs}
+              onChange={(next) => {
+                setInputs(next);
+                onChange?.({ ...variant, inputs: next });
+              }}
+            />
+            <IoItemsField
+              label="Outputs"
+              items={outputs}
+              onChange={(next) => {
+                setOutputs(next);
+                onChange?.({ ...variant, outputs: next });
+              }}
+            />
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
