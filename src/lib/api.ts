@@ -1,4 +1,4 @@
-// src/lib/api.ts
+﻿// src/lib/api.ts
 const API_URL = import.meta.env.VITE_API_URL as string;
 
 export interface Method {
@@ -17,6 +17,7 @@ export interface IoItem {
   id: number;
   quantity: number;
   type?: IoItemType;
+  reason?: string | null;
 }
 
 type ItemRequirement = {
@@ -114,7 +115,7 @@ export async function fetchMethods(
 
   const res = await fetch(url.toString());
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} – Error fetching methods`);
+    throw new Error(`HTTP ${res.status} â€“ Error fetching methods`);
   }
   const json: unknown = await res.json();
   let methods: Method[] = [];
@@ -170,16 +171,161 @@ export interface Item {
   lowPrice?: number;
 }
 
+export interface ItemSearchResult {
+  id: number;
+  name: string;
+  iconUrl?: string;
+}
+
+export interface ItemSearchResponse {
+  items: ItemSearchResult[];
+  page?: number;
+  pageCount?: number;
+  total?: number;
+  perPage?: number;
+}
+
 export async function fetchItems(ids: number[]): Promise<Record<number, Item>> {
   const url = new URL(`${API_URL}/items`);
   url.searchParams.set("ids", ids.join(","));
   url.searchParams.set("fields", "name,iconUrl,highPrice,lowPrice");
   const res = await fetch(url.toString());
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} – Error fetching items`);
+    throw new Error(`HTTP ${res.status} â€“ Error fetching items`);
   }
   const json = await res.json();
   return json.data ?? json;
+}
+
+function parseItemSearchResults(value: unknown): ItemSearchResult[] {
+  const data =
+    (value as { data?: { items?: unknown } })?.data?.items ??
+    (value as { data?: unknown })?.data ??
+    (value as { items?: unknown })?.items ??
+    (value as { results?: unknown })?.results ??
+    value;
+  if (!Array.isArray(data)) return [];
+  return data
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return null;
+      const record = entry as Record<string, unknown>;
+      const idValue = record.id ?? record.itemId ?? record.item_id;
+      const nameValue = record.name ?? record.label ?? record.value;
+      if (typeof nameValue !== "string") return null;
+      const id = Number(idValue);
+      if (!Number.isFinite(id)) return null;
+      const iconValue = record.iconUrl ?? record.icon_url ?? record.icon;
+      const result: ItemSearchResult = {
+        id,
+        name: nameValue,
+        ...(typeof iconValue === "string" ? { iconUrl: iconValue } : {}),
+      };
+      return result;
+    })
+    .filter((item): item is ItemSearchResult => item !== null);
+}
+
+function toNumber(value: unknown): number | undefined {
+  if (value === null || value === undefined) return undefined;
+  const num = Number(value);
+  return Number.isFinite(num) ? num : undefined;
+}
+
+function parseItemSearchResponse(
+  value: unknown,
+  fallbackLimit: number
+): ItemSearchResponse {
+  const items = parseItemSearchResults(value);
+  const root = value as Record<string, unknown> | undefined;
+  const data = (root?.data ?? {}) as Record<string, unknown>;
+  const meta = (root?.meta ?? {}) as Record<string, unknown>;
+  const dataMeta = (data?.meta ?? {}) as Record<string, unknown>;
+  const pagination =
+    (data?.pagination ??
+      dataMeta?.pagination ??
+      root?.pagination ??
+      meta?.pagination) as Record<string, unknown> | undefined;
+
+  const page = toNumber(
+    data.page ??
+      root?.page ??
+      pagination?.page ??
+      pagination?.currentPage ??
+      pagination?.current_page
+  );
+  const pageCount = toNumber(
+    data.pageCount ??
+      root?.pageCount ??
+      pagination?.pageCount ??
+      pagination?.page_count ??
+      pagination?.totalPages ??
+      pagination?.total_pages
+  );
+  const perPage = toNumber(
+    data.perPage ??
+      root?.perPage ??
+      pagination?.perPage ??
+      pagination?.per_page ??
+      pagination?.limit ??
+      root?.limit
+  );
+  const total = toNumber(
+    data.total ??
+      root?.total ??
+      pagination?.total ??
+      pagination?.count ??
+      meta?.total ??
+      dataMeta?.total
+  );
+
+  let normalizedPageCount = pageCount;
+  const effectivePerPage = perPage ?? fallbackLimit;
+  if (
+    normalizedPageCount === undefined &&
+    total !== undefined &&
+    effectivePerPage > 0
+  ) {
+    normalizedPageCount = Math.max(1, Math.ceil(total / effectivePerPage));
+  }
+
+  return {
+    items,
+    page,
+    pageCount: normalizedPageCount,
+    total,
+    perPage: perPage ?? (fallbackLimit > 0 ? fallbackLimit : undefined),
+  };
+}
+
+export async function searchItems(
+  query: string,
+  limit = 10,
+  pageOrSignal?: number | AbortSignal,
+  signal?: AbortSignal
+): Promise<ItemSearchResponse> {
+  const trimmed = query.trim();
+  if (!trimmed) return { items: [], page: 1, pageCount: 0 };
+  if (!API_URL) {
+    throw new Error("VITE_API_URL is missing");
+  }
+  const page = typeof pageOrSignal === "number" ? pageOrSignal : 1;
+  const requestSignal =
+    pageOrSignal && typeof pageOrSignal !== "number"
+      ? pageOrSignal
+      : signal;
+  const url = new URL(`${API_URL}/items/search`);
+  url.searchParams.set("q", trimmed);
+  url.searchParams.set("limit", limit.toString());
+  url.searchParams.set("page", page.toString());
+  const res = await fetch(
+    url.toString(),
+    requestSignal ? { signal: requestSignal } : undefined
+  );
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status} â€“ Error searching items`);
+  }
+  const json: unknown = await res.json();
+  return parseItemSearchResponse(json, limit);
 }
 
 export interface VariantHistoryPoint {
@@ -208,7 +354,7 @@ export async function fetchVariantHistory(
   url.searchParams.set("granularity", granularity);
   const res = await fetch(url.toString());
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} – Error fetching variant history`);
+    throw new Error(`HTTP ${res.status} â€“ Error fetching variant history`);
   }
   const json = await res.json();
   return json;
@@ -227,7 +373,7 @@ export async function fetchMethodDetail(
   if (username) url.searchParams.set("username", username);
   const res = await fetch(url.toString());
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} – Error fetching method`);
+    throw new Error(`HTTP ${res.status} â€“ Error fetching method`);
   }
   const json: unknown = await res.json();
   const method =
@@ -272,6 +418,7 @@ function mapIoItems(items: IoItem[] | undefined, type: IoItemType): IoItem[] {
     id: item.id,
     quantity: item.quantity,
     type,
+    reason: item.reason ?? null,
   }));
 }
 
@@ -317,7 +464,7 @@ export async function updateMethodBasic(
     body: JSON.stringify(dto),
   });
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} â€“ Error updating method`);
+    throw new Error(`HTTP ${res.status} Ã¢â‚¬â€œ Error updating method`);
   }
   const json: unknown = await res.json();
   const method =
@@ -354,3 +501,4 @@ export async function updateMethodWithVariants(
   }
   return method;
 }
+
