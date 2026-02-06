@@ -452,6 +452,7 @@ export function MethodDetail(_props: Props) {
                               {variant.inputs.map((input) => {
                                 const item = itemsMap[input.id];
                                 if (!item) return null;
+                                const reasonLabel = input.reason?.trim();
                                 return (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
@@ -475,7 +476,14 @@ export function MethodDetail(_props: Props) {
                                       </div>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                      <p>{item.name}</p>
+                                      <div className="flex flex-col">
+                                        <span>{item.name}</span>
+                                        {reasonLabel ? (
+                                          <span className="text-muted-foreground">
+                                            {reasonLabel}
+                                          </span>
+                                        ) : null}
+                                      </div>
                                     </TooltipContent>
                                   </Tooltip>
                                 );
@@ -495,6 +503,7 @@ export function MethodDetail(_props: Props) {
                               {variant.outputs.map((output) => {
                                 const item = itemsMap[output.id];
                                 if (!item) return null;
+                                const reasonLabel = output.reason?.trim();
                                 return (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
@@ -518,7 +527,14 @@ export function MethodDetail(_props: Props) {
                                       </div>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                      <p>{item.name}</p>
+                                      <div className="flex flex-col">
+                                        <span>{item.name}</span>
+                                        {reasonLabel ? (
+                                          <span className="text-muted-foreground">
+                                            {reasonLabel}
+                                          </span>
+                                        ) : null}
+                                      </div>
                                     </TooltipContent>
                                   </Tooltip>
                                 );
