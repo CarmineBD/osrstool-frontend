@@ -29,9 +29,17 @@ interface VariantFormProps {
   onRemove: () => void;
   variant: Variant;
   onChange?: (updated: Variant) => void;
+  onDuplicate?: () => void;
+  isLabelDuplicate?: boolean;
 }
 
-export function VariantForm({ onRemove, variant, onChange }: VariantFormProps) {
+export function VariantForm({
+  onRemove,
+  variant,
+  onChange,
+  onDuplicate,
+  isLabelDuplicate,
+}: VariantFormProps) {
   const [open, setOpen] = useState(false);
   const [label, setLabel] = useState<string>(variant.label);
   const [description, setDescription] = useState<string>(variant.description ?? "");
@@ -111,7 +119,7 @@ export function VariantForm({ onRemove, variant, onChange }: VariantFormProps) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem>Delete</DropdownMenuItem>
-              <DropdownMenuItem>Duplicate</DropdownMenuItem>
+              <DropdownMenuItem onClick={onDuplicate}>Duplicate</DropdownMenuItem>
               <DropdownMenuItem>Move to</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -123,12 +131,20 @@ export function VariantForm({ onRemove, variant, onChange }: VariantFormProps) {
             <label className="block text-sm font-medium mb-2">Label</label>
             <Input
               value={label}
+              className={cn(
+                isLabelDuplicate && "border-red-500 focus-visible:ring-red-500"
+              )}
               onChange={(e) => {
                 const next = e.target.value;
                 setLabel(next);
                 onChange?.({ ...variant, label: next });
               }}
             />
+            {isLabelDuplicate && (
+              <p className="mt-1 text-sm text-red-500">
+                Este nombre ya existe en otro variant.
+              </p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium mb-2">Description</label>

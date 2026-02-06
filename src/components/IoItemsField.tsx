@@ -190,7 +190,10 @@ export function IoItemsField({
         filter={null}
         itemToStringLabel={(item) => item.name}
         itemToStringValue={(item) => item.id.toString()}
-        isItemEqualToValue={(a, b) => a.id === b.id}
+        isItemEqualToValue={(a, b) => {
+          if (!a || !b) return false;
+          return a.id === b.id;
+        }}
       >
         <ComboboxInput
           className="w-full"

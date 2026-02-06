@@ -1,4 +1,4 @@
-import { useEffect, useState, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -89,6 +89,39 @@ export function MethodEdit(_props: Props) {
     setVariants((v) => v.filter((_, i) => i !== index));
   const updateVariantAt = (index: number, updated: Variant) =>
     setVariants((v) => v.map((it, i) => (i === index ? updated : it)));
+  const duplicateVariantAt = (index: number) =>
+    setVariants((v) => {
+      const original = v[index];
+      if (!original) return v;
+      const cloned =
+        typeof structuredClone === "function"
+          ? structuredClone(original)
+          : (JSON.parse(JSON.stringify(original)) as Variant);
+      const nextLabel = `copy of ${original.label ?? ""}`;
+      const nextVariant = { ...cloned, label: nextLabel };
+      return [...v.slice(0, index + 1), nextVariant, ...v.slice(index + 1)];
+    });
+
+  const normalizeVariantLabel = (label: string) =>
+    label.trim().toLowerCase();
+  const labelCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const variant of variants) {
+      const key = normalizeVariantLabel(variant.label ?? "");
+      if (!key) continue;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return counts;
+  }, [variants]);
+  const hasDuplicateVariantLabels = useMemo(
+    () => Array.from(labelCounts.values()).some((count) => count > 1),
+    [labelCounts]
+  );
+  const isVariantLabelDuplicate = (label: string) => {
+    const key = normalizeVariantLabel(label ?? "");
+    if (!key) return false;
+    return (labelCounts.get(key) ?? 0) > 1;
+  };
 
   useEffect(() => {
     const warning = data?.warnings?.[0];
@@ -237,6 +270,8 @@ export function MethodEdit(_props: Props) {
               <VariantForm
                 key={index}
                 onRemove={() => removeVariant(index)}
+                onDuplicate={() => duplicateVariantAt(index)}
+                isLabelDuplicate={isVariantLabelDuplicate(variant.label ?? "")}
                 variant={variant}
                 onChange={(v) => updateVariantAt(index, v)}
               />
@@ -251,7 +286,9 @@ export function MethodEdit(_props: Props) {
             </Button>
           </section>
           <div className="flex justify-end gap-2">
-            <Button type="submit">Guardar</Button>
+            <Button type="submit" disabled={hasDuplicateVariantLabels}>
+              Guardar
+            </Button>
             <Button type="button" variant="outline" onClick={handleCancel}>
               Cancelar
             </Button>
