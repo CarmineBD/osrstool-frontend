@@ -1,11 +1,9 @@
 import { useMemo, useEffect } from "react";
 import {
   fetchItems,
-  fetchMethodDetail,
-  fetchMethods,
+  fetchMethodDetailByParam,
   type Variant,
   type MethodDetailResponse,
-  type MethodsResponse,
 } from "../lib/api";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { getUrlByType, formatNumber, formatPercent } from "@/lib/utils";
@@ -55,29 +53,15 @@ export function MethodDetail(_props: Props) {
   const state = location.state as { methodId?: string } | undefined;
   const { username, setUserError } = useUsername();
 
-  const isNumericId = /^\d+$/.test(methodParam);
-
-  const { data: methodsData, isLoading: isLoadingMethods } =
-    useQuery<MethodsResponse>({
-      queryKey: ["methods", username],
-      queryFn: () => fetchMethods(username),
-      enabled: !state?.methodId && !isNumericId,
-    });
-
-  const methodId =
-    state?.methodId ??
-    (isNumericId
-      ? methodParam
-      : methodsData?.methods.find((m) => m.slug === methodParam)?.id);
-
   const {
     data,
     error,
-    isLoading: isLoadingDetail,
+    isLoading,
   } = useQuery<MethodDetailResponse, Error>({
-    queryKey: ["methodDetail", methodId, username],
-    queryFn: () => fetchMethodDetail(methodId!, username),
-    enabled: !!methodId,
+    queryKey: ["methodDetail", methodParam, state?.methodId, username],
+    queryFn: () =>
+      fetchMethodDetailByParam(methodParam, username, state?.methodId),
+    enabled: !!methodParam,
     retry: false,
   });
 
@@ -112,7 +96,7 @@ export function MethodDetail(_props: Props) {
     enabled: itemIds.length > 0,
   });
 
-  if (isLoadingMethods || isLoadingDetail) return <p>Cargando método…</p>;
+  if (isLoading) return <p>Cargando método…</p>;
   if (error) return <p className="text-red-500">❌ {`${error}`}</p>;
   if (!method) return <p>No se encontró el método.</p>;
   const itemsMap = itemsData || {};

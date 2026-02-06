@@ -82,7 +82,7 @@ export function VariantForm({ onRemove, variant, onChange }: VariantFormProps) {
         <div className="flex items-center gap-2">
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="icon">
+              <Button type="button" variant="ghost" size="icon">
                 <IconX size={16} />
               </Button>
             </AlertDialogTrigger>
@@ -96,8 +96,8 @@ export function VariantForm({ onRemove, variant, onChange }: VariantFormProps) {
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={onRemove}>
+                <AlertDialogCancel type="button">Cancelar</AlertDialogCancel>
+                <AlertDialogAction type="button" onClick={onRemove}>
                   Eliminar
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -105,7 +105,7 @@ export function VariantForm({ onRemove, variant, onChange }: VariantFormProps) {
           </AlertDialog>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
+              <Button type="button" variant="ghost" size="icon">
                 <IconDotsVertical size={16} />
               </Button>
             </DropdownMenuTrigger>
