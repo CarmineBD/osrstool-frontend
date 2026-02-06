@@ -27,11 +27,19 @@ import { IoItemsField } from "@/components/IoItemsField";
 
 interface VariantFormProps {
   onRemove: () => void;
+  onDuplicate: () => void;
   variant: Variant;
   onChange?: (updated: Variant) => void;
+  labelError?: string | null;
 }
 
-export function VariantForm({ onRemove, variant, onChange }: VariantFormProps) {
+export function VariantForm({
+  onRemove,
+  onDuplicate,
+  variant,
+  labelError,
+  onChange,
+}: VariantFormProps) {
   const [open, setOpen] = useState(false);
   const [label, setLabel] = useState<string>(variant.label);
   const [description, setDescription] = useState<string>(variant.description ?? "");
@@ -111,7 +119,9 @@ export function VariantForm({ onRemove, variant, onChange }: VariantFormProps) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem>Delete</DropdownMenuItem>
-              <DropdownMenuItem>Duplicate</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => onDuplicate()}>
+                Duplicate
+              </DropdownMenuItem>
               <DropdownMenuItem>Move to</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -123,12 +133,19 @@ export function VariantForm({ onRemove, variant, onChange }: VariantFormProps) {
             <label className="block text-sm font-medium mb-2">Label</label>
             <Input
               value={label}
+              aria-invalid={labelError ? true : undefined}
+              className={cn(
+                labelError && "border-destructive focus-visible:ring-destructive"
+              )}
               onChange={(e) => {
                 const next = e.target.value;
                 setLabel(next);
                 onChange?.({ ...variant, label: next });
               }}
             />
+            {labelError ? (
+              <p className="mt-1 text-sm text-destructive">{labelError}</p>
+            ) : null}
           </div>
           <div>
             <label className="block text-sm font-medium mb-2">Description</label>

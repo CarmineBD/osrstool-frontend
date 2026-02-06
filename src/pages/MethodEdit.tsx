@@ -1,4 +1,4 @@
-import { useEffect, useState, type KeyboardEvent } from "react";
+﻿import { useEffect, useState, type KeyboardEvent } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -97,6 +97,76 @@ export function MethodEdit(_props: Props) {
     inputs: [],
     outputs: [],
   }]);
+  const normalizeVariantLabel = (value: string) => value.trim().toLowerCase();
+  const getDuplicateLabelCounts = (list: Variant[]) => {
+    const counts = new Map<string, number>();
+    list.forEach((entry) => {
+      const key = normalizeVariantLabel(entry.label ?? "");
+      if (!key) return;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    });
+    return counts;
+  };
+  const getDuplicateLabelError = (
+    counts: Map<string, number>,
+    label: string
+  ) => {
+    const key = normalizeVariantLabel(label ?? "");
+    if (!key) return null;
+    return (counts.get(key) ?? 0) > 1
+      ? "Ya existe un variant con ese nombre."
+      : null;
+  };
+  const makeDuplicateLabel = (sourceLabel: string, existing: Set<string>) => {
+    const baseLabel = `copy of ${sourceLabel.trim() || "variant"}`;
+    let candidate = baseLabel;
+    let index = 2;
+    while (existing.has(normalizeVariantLabel(candidate))) {
+      candidate = `${baseLabel} (${index})`;
+      index += 1;
+    }
+    return candidate;
+  };
+  const cloneRequirement = (
+    req: Variant["requirements"] | Variant["recommendations"]
+  ) => ({
+    items: req?.items?.map((item) => ({ ...item })),
+    levels: req?.levels?.map((level) => ({ ...level })),
+    quests: req?.quests?.map((quest) => ({ ...quest })),
+    achievement_diaries: req?.achievement_diaries?.map((diary) => ({
+      ...diary,
+    })),
+  });
+  const cloneVariantForDuplicate = (source: Variant, label: string): Variant => ({
+    ...source,
+    id: undefined,
+    slug: undefined,
+    label,
+    xpHour: Array.isArray(source.xpHour)
+      ? source.xpHour.map((entry) => ({ ...entry }))
+      : source.xpHour,
+    requirements: cloneRequirement(source.requirements),
+    recommendations: source.recommendations
+      ? cloneRequirement(source.recommendations)
+      : source.recommendations,
+    inputs: Array.isArray(source.inputs)
+      ? source.inputs.map((item) => ({ ...item }))
+      : [],
+    outputs: Array.isArray(source.outputs)
+      ? source.outputs.map((item) => ({ ...item }))
+      : [],
+  });
+  const duplicateVariantAt = (index: number) =>
+    setVariants((v) => {
+      const source = v[index];
+      if (!source) return v;
+      const existingLabels = new Set(
+        v.map((entry) => normalizeVariantLabel(entry.label ?? ""))
+      );
+      const nextLabel = makeDuplicateLabel(source.label, existingLabels);
+      const copy = cloneVariantForDuplicate(source, nextLabel);
+      return [...v.slice(0, index + 1), copy, ...v.slice(index + 1)];
+    });
   const removeVariant = (index: number) =>
     setVariants((v) => v.filter((_, i) => i !== index));
   const updateVariantAt = (index: number, updated: Variant) =>
@@ -129,6 +199,14 @@ export function MethodEdit(_props: Props) {
   }, [method, form]);
   const onSubmit = async (values: FormValues) => {
     if (!method) return;
+    const duplicateLabelCounts = getDuplicateLabelCounts(variants);
+    const hasDuplicateLabels = Array.from(duplicateLabelCounts.values()).some(
+      (count) => count > 1
+    );
+    if (hasDuplicateLabels) {
+      setUserError("Hay variants con nombres repetidos.");
+      return;
+    }
     const baselineSignature =
       initialVariantsSignature ?? getVariantsSignature(method.variants ?? []);
     const variantsChanged =
@@ -161,9 +239,13 @@ export function MethodEdit(_props: Props) {
       navigate(-1);
     }
   };
-  if (isLoading) return <p>Cargando método…</p>;
-  if (error) return <p className="text-red-500">❌ {`${error}`}</p>;
-  if (!method) return <p>No se encontró el método.</p>;
+  const duplicateLabelCounts = getDuplicateLabelCounts(variants);
+  const hasDuplicateLabels = Array.from(duplicateLabelCounts.values()).some(
+    (count) => count > 1
+  );
+  if (isLoading) return <p>Cargando mÃ©todoâ€¦</p>;
+  if (error) return <p className="text-red-500">âŒ {`${error}`}</p>;
+  if (!method) return <p>No se encontrÃ³ el mÃ©todo.</p>;
   return (
     <div className="max-w-5xl mx-auto p-4 space-y-6">
       <h1 className="text-3xl font-bold">Edit method</h1>
@@ -249,7 +331,12 @@ export function MethodEdit(_props: Props) {
               <VariantForm
                 key={index}
                 onRemove={() => removeVariant(index)}
+                onDuplicate={() => duplicateVariantAt(index)}
                 variant={variant}
+                labelError={getDuplicateLabelError(
+                  duplicateLabelCounts,
+                  variant.label
+                )}
                 onChange={(v) => updateVariantAt(index, v)}
               />
             ))}
@@ -262,7 +349,9 @@ export function MethodEdit(_props: Props) {
             </Button>
           </section>
           <div className="flex justify-end gap-2">
-            <Button type="submit">Guardar</Button>
+            <Button type="submit" disabled={hasDuplicateLabels}>
+              Guardar
+            </Button>
             <Button type="button" variant="outline" onClick={handleCancel}>
               Cancelar
             </Button>
@@ -273,7 +362,7 @@ export function MethodEdit(_props: Props) {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              ¿Estás seguro de salir sin guardar los cambios?
+              Â¿EstÃ¡s seguro de salir sin guardar los cambios?
             </AlertDialogTitle>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -292,7 +381,7 @@ export function MethodEdit(_props: Props) {
                 }
               }}
             >
-              Sí
+              SÃ­
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -302,3 +391,4 @@ export function MethodEdit(_props: Props) {
 }
 
 export default MethodEdit;
+
