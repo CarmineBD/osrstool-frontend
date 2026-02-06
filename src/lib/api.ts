@@ -387,6 +387,32 @@ export async function fetchMethodDetail(
   return { method, warnings };
 }
 
+export async function fetchMethodDetailBySlug(
+  slug: string,
+  username?: string
+): Promise<MethodDetailResponse> {
+  const safeSlug = encodeURIComponent(slug);
+  const url = new URL(`${API_URL}/methods/slug/${safeSlug}`);
+  if (username) url.searchParams.set("username", username);
+  const res = await fetch(url.toString());
+  if (res.status === 404) {
+    throw new Error("Method not found");
+  }
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status} â€“ Error fetching method`);
+  }
+  const json: unknown = await res.json();
+  const method =
+    (json as { data?: { method?: Method } }).data?.method ??
+    (json as { data?: Method }).data ??
+    (json as { method?: Method }).method;
+  if (!method) {
+    throw new Error("Method not found");
+  }
+  const warnings = parseWarnings((json as { warnings?: unknown }).warnings);
+  return { method, warnings };
+}
+
 export interface UpdateMethodBasicDto {
   name: string;
   category: string;

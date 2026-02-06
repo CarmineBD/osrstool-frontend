@@ -1,13 +1,11 @@
 import { useMemo, useEffect } from "react";
 import {
   fetchItems,
-  fetchMethodDetail,
-  fetchMethods,
+  fetchMethodDetailBySlug,
   type Variant,
   type MethodDetailResponse,
-  type MethodsResponse,
 } from "../lib/api";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { getUrlByType, formatNumber, formatPercent } from "@/lib/utils";
 import Markdown from "@/components/Markdown";
 import { useQuery } from "@tanstack/react-query";
@@ -47,37 +45,20 @@ export type Props = Record<string, never>;
 export function MethodDetail(_props: Props) {
   void _props;
   const navigate = useNavigate();
-  const location = useLocation();
   const { slug: methodParam = "", variantSlug } = useParams<{
     slug: string;
     variantSlug?: string;
   }>();
-  const state = location.state as { methodId?: string } | undefined;
   const { username, setUserError } = useUsername();
-
-  const isNumericId = /^\d+$/.test(methodParam);
-
-  const { data: methodsData, isLoading: isLoadingMethods } =
-    useQuery<MethodsResponse>({
-      queryKey: ["methods", username],
-      queryFn: () => fetchMethods(username),
-      enabled: !state?.methodId && !isNumericId,
-    });
-
-  const methodId =
-    state?.methodId ??
-    (isNumericId
-      ? methodParam
-      : methodsData?.methods.find((m) => m.slug === methodParam)?.id);
 
   const {
     data,
     error,
-    isLoading: isLoadingDetail,
+    isLoading,
   } = useQuery<MethodDetailResponse, Error>({
-    queryKey: ["methodDetail", methodId, username],
-    queryFn: () => fetchMethodDetail(methodId!, username),
-    enabled: !!methodId,
+    queryKey: ["methodDetailBySlug", methodParam, username],
+    queryFn: () => fetchMethodDetailBySlug(methodParam, username),
+    enabled: !!methodParam,
     retry: false,
   });
 
@@ -112,7 +93,7 @@ export function MethodDetail(_props: Props) {
     enabled: itemIds.length > 0,
   });
 
-  if (isLoadingMethods || isLoadingDetail) return <p>Cargando método…</p>;
+  if (isLoading) return <p>Cargando método…</p>;
   if (error) return <p className="text-red-500">❌ {`${error}`}</p>;
   if (!method) return <p>No se encontró el método.</p>;
   const itemsMap = itemsData || {};
@@ -132,9 +113,7 @@ export function MethodDetail(_props: Props) {
         size="icon"
         className="absolute top-4 right-4"
         onClick={() =>
-          navigate(`/moneyMakingMethod/${methodParam}/edit`, {
-            state: { methodId: method.id },
-          })
+          navigate(`/moneyMakingMethod/${method.slug}/edit`)
         }
       >
         <IconPencil size={20} />
@@ -152,8 +131,7 @@ export function MethodDetail(_props: Props) {
         value={activeSlug}
         onValueChange={(v) =>
           navigate(
-            `/moneyMakingMethod/${methodParam}${hasMultiple ? `/${v}` : ""}`,
-            { state: { methodId: method.id } }
+            `/moneyMakingMethod/${method.slug}${hasMultiple ? `/${v}` : ""}`
           )
         }
         className="w-full"

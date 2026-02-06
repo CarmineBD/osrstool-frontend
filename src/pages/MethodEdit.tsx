@@ -2,16 +2,14 @@ import { useEffect, useState, type KeyboardEvent } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
-  fetchMethods,
-  fetchMethodDetail,
+  fetchMethodDetailBySlug,
   getVariantsSignature,
   updateMethodBasic,
   updateMethodWithVariants,
   type MethodDetailResponse,
-  type MethodsResponse,
   type Variant,
 } from "@/lib/api";
 import { useUsername } from "@/contexts/UsernameContext";
@@ -57,23 +55,11 @@ export function MethodEdit(_props: Props) {
   void _props;
   const navigate = useNavigate();
   const { slug: methodParam = "" } = useParams<{ slug: string }>();
-  const state = useLocation().state as { methodId?: string } | undefined;
   const { username, setUserError } = useUsername();
-  const isNumericId = /^\d+$/.test(methodParam);
-  const { data: methodsData } = useQuery<MethodsResponse>({
-    queryKey: ["methods", username],
-    queryFn: () => fetchMethods(username),
-    enabled: !state?.methodId && !isNumericId,
-  });
-  const methodId =
-    state?.methodId ??
-    (isNumericId
-      ? methodParam
-      : methodsData?.methods.find((m) => m.slug === methodParam)?.id);
   const { data, error, isLoading } = useQuery<MethodDetailResponse, Error>({
-    queryKey: ["methodDetail", methodId, username],
-    queryFn: () => fetchMethodDetail(methodId!, username),
-    enabled: !!methodId,
+    queryKey: ["methodDetailBySlug", methodParam, username],
+    queryFn: () => fetchMethodDetailBySlug(methodParam, username),
+    enabled: !!methodParam,
     retry: false,
   });
   const [variants, setVariants] = useState<Variant[]>([] as Variant[]);
@@ -138,9 +124,7 @@ export function MethodEdit(_props: Props) {
     } else {
       await updateMethodBasic(method.id, values);
     }
-    navigate(`/moneyMakingMethod/${method.slug}`, {
-      state: { methodId: method.id },
-    });
+    navigate(`/moneyMakingMethod/${method.slug}`);
   };
   const handleFormKeyDown = (event: KeyboardEvent<HTMLFormElement>) => {
     if (event.key !== "Enter") return;
@@ -154,9 +138,7 @@ export function MethodEdit(_props: Props) {
     if (form.formState.isDirty) {
       setConfirmOpen(true);
     } else if (method) {
-      navigate(`/moneyMakingMethod/${method.slug}`, {
-        state: { methodId: method.id },
-      });
+      navigate(`/moneyMakingMethod/${method.slug}`);
     } else {
       navigate(-1);
     }
@@ -284,9 +266,7 @@ export function MethodEdit(_props: Props) {
               onClick={() => {
                 setConfirmOpen(false);
                 if (method) {
-                  navigate(`/moneyMakingMethod/${method.slug}`, {
-                    state: { methodId: method.id },
-                  });
+                  navigate(`/moneyMakingMethod/${method.slug}`);
                 } else {
                   navigate(-1);
                 }
