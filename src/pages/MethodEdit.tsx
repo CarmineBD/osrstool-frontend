@@ -5,13 +5,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
-  fetchMethods,
-  fetchMethodDetail,
+  fetchMethodDetailByParam,
   getVariantsSignature,
   updateMethodBasic,
   updateMethodWithVariants,
   type MethodDetailResponse,
-  type MethodsResponse,
   type Variant,
 } from "@/lib/api";
 import { useUsername } from "@/contexts/UsernameContext";
@@ -59,21 +57,11 @@ export function MethodEdit(_props: Props) {
   const { slug: methodParam = "" } = useParams<{ slug: string }>();
   const state = useLocation().state as { methodId?: string } | undefined;
   const { username, setUserError } = useUsername();
-  const isNumericId = /^\d+$/.test(methodParam);
-  const { data: methodsData } = useQuery<MethodsResponse>({
-    queryKey: ["methods", username],
-    queryFn: () => fetchMethods(username),
-    enabled: !state?.methodId && !isNumericId,
-  });
-  const methodId =
-    state?.methodId ??
-    (isNumericId
-      ? methodParam
-      : methodsData?.methods.find((m) => m.slug === methodParam)?.id);
   const { data, error, isLoading } = useQuery<MethodDetailResponse, Error>({
-    queryKey: ["methodDetail", methodId, username],
-    queryFn: () => fetchMethodDetail(methodId!, username),
-    enabled: !!methodId,
+    queryKey: ["methodDetail", methodParam, state?.methodId, username],
+    queryFn: () =>
+      fetchMethodDetailByParam(methodParam, username, state?.methodId),
+    enabled: !!methodParam,
     retry: false,
   });
   const [variants, setVariants] = useState<Variant[]>([] as Variant[]);
@@ -255,6 +243,7 @@ export function MethodEdit(_props: Props) {
             ))}
             <Button
               onClick={addVariant}
+              type="button"
               variant="outline"
               className="mt-4 w-full"
             >

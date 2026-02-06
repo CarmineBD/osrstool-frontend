@@ -148,11 +148,13 @@ export function IoItemsField({
   };
 
   const handleQuantityChange = (id: number, value: string) => {
-    const nextQuantity = value === "" ? 1 : Math.max(1, Number(value));
+    const nextQuantity = value === "" ? 0 : Number(value);
     if (!Number.isFinite(nextQuantity)) return;
     onChange(
       items.map((entry) =>
-        entry.id === id ? { ...entry, quantity: nextQuantity } : entry
+        entry.id === id
+          ? { ...entry, quantity: Math.max(0, nextQuantity) }
+          : entry
       )
     );
   };
@@ -268,8 +270,9 @@ export function IoItemsField({
                   <TableCell>
                     <Input
                       type="number"
-                      min={1}
-                      step={1}
+                      min={0}
+                      step="any"
+                      inputMode="decimal"
                       value={entry.quantity}
                       onChange={(e) =>
                         handleQuantityChange(entry.id, e.target.value)
