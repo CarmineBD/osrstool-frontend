@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
-  fetchMethodDetailByParam,
+  fetchMethodDetailBySlug,
   getVariantsSignature,
   updateMethodBasic,
   updateMethodWithVariants,
@@ -55,12 +55,10 @@ export function MethodEdit(_props: Props) {
   void _props;
   const navigate = useNavigate();
   const { slug: methodParam = "" } = useParams<{ slug: string }>();
-  const state = useLocation().state as { methodId?: string } | undefined;
   const { username, setUserError } = useUsername();
   const { data, error, isLoading } = useQuery<MethodDetailResponse, Error>({
-    queryKey: ["methodDetail", methodParam, state?.methodId, username],
-    queryFn: () =>
-      fetchMethodDetailByParam(methodParam, username, state?.methodId),
+    queryKey: ["methodDetail", methodParam, username],
+    queryFn: () => fetchMethodDetailBySlug(methodParam, username),
     enabled: !!methodParam,
     retry: false,
   });

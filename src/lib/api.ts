@@ -365,65 +365,6 @@ export interface MethodDetailResponse {
   warnings?: ApiWarning[];
 }
 
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const MAX_METHOD_PAGES = 200;
-
-function isMethodId(value: string): boolean {
-  if (!value) return false;
-  return /^\d+$/.test(value) || UUID_PATTERN.test(value);
-}
-
-function slugToSearchTerm(slug: string): string {
-  return slug.replace(/[-_]+/g, " ").trim();
-}
-
-async function findMethodIdBySlug(
-  slug: string,
-  username?: string
-): Promise<string | null> {
-  const normalizedSlug = slug.trim();
-  if (!normalizedSlug) return null;
-
-  const searchTerms = Array.from(
-    new Set([normalizedSlug, slugToSearchTerm(normalizedSlug)].filter(Boolean))
-  );
-
-  for (const term of searchTerms) {
-    const id = await findMethodIdBySearchTerm(term, normalizedSlug, username);
-    if (id) return id;
-  }
-
-  return findMethodIdBySearchTerm(undefined, normalizedSlug, username);
-}
-
-async function findMethodIdBySearchTerm(
-  name: string | undefined,
-  slug: string,
-  username?: string
-): Promise<string | null> {
-  let page = 1;
-  let pageCount: number | undefined;
-
-  while (page <= MAX_METHOD_PAGES) {
-    const { methods, pageCount: nextPageCount } = await fetchMethods(
-      username,
-      page,
-      name
-    );
-    const match = methods.find((method) => method.slug === slug);
-    if (match) return match.id;
-    if (nextPageCount !== undefined) {
-      pageCount = nextPageCount;
-    }
-    if (pageCount !== undefined && page >= pageCount) break;
-    if (pageCount === undefined && methods.length === 0) break;
-    page += 1;
-  }
-
-  return null;
-}
-
 export async function fetchMethodDetail(
   id: string,
   username?: string
@@ -446,24 +387,35 @@ export async function fetchMethodDetail(
   return { method, warnings };
 }
 
-export async function fetchMethodDetailByParam(
-  param: string,
-  username?: string,
-  preferredId?: string
+export async function fetchMethodDetailBySlug(
+  slug: string,
+  username?: string
 ): Promise<MethodDetailResponse> {
-  if (preferredId) {
-    return fetchMethodDetail(preferredId, username);
+  const normalizedSlug = slug.trim();
+  if (!normalizedSlug) {
+    throw new Error("Method slug is required");
   }
-
-  if (isMethodId(param)) {
-    return fetchMethodDetail(param, username);
+  const url = new URL(
+    `${API_URL}/methods/slug/${encodeURIComponent(normalizedSlug)}`
+  );
+  if (username) url.searchParams.set("username", username);
+  const res = await fetch(url.toString());
+  if (!res.ok) {
+    if (res.status === 404) {
+      throw new Error("Method not found");
+    }
+    throw new Error(`HTTP ${res.status} â€“ Error fetching method`);
   }
-
-  const resolvedId = await findMethodIdBySlug(param, username);
-  if (!resolvedId) {
+  const json: unknown = await res.json();
+  const method =
+    (json as { data?: { method?: Method } }).data?.method ??
+    (json as { data?: Method }).data ??
+    (json as { method?: Method }).method;
+  if (!method) {
     throw new Error("Method not found");
   }
-  return fetchMethodDetail(resolvedId, username);
+  const warnings = parseWarnings((json as { warnings?: unknown }).warnings);
+  return { method, warnings };
 }
 
 export interface UpdateMethodBasicDto {
