@@ -103,15 +103,47 @@ export interface MethodsResponse {
   pageCount?: number;
 }
 
+export interface MethodsFilters {
+  category?: "combat" | "collecting" | "processing" | "skilling";
+  clickIntensity?: number;
+  afkiness?: number;
+  riskLevel?: number;
+  givesExperience?: boolean;
+  skill?: string;
+  showProfitables?: boolean;
+  sortBy?: "clickIntensity" | "afkiness" | "xpHour" | "highProfit";
+  order?: "asc" | "desc";
+}
+
 export async function fetchMethods(
   username?: string,
   page?: number,
-  name?: string
+  name?: string,
+  filters?: MethodsFilters
 ): Promise<MethodsResponse> {
   const url = new URL(`${API_URL}/methods`);
   if (username) url.searchParams.set("username", username);
   if (page !== undefined) url.searchParams.set("page", page.toString());
   if (name) url.searchParams.set("name", name);
+  if (filters?.category) url.searchParams.set("category", filters.category);
+  if (filters?.clickIntensity !== undefined) {
+    url.searchParams.set("clickIntensity", filters.clickIntensity.toString());
+  }
+  if (filters?.afkiness !== undefined) {
+    url.searchParams.set("afkiness", filters.afkiness.toString());
+  }
+  if (filters?.riskLevel !== undefined) {
+    url.searchParams.set("riskLevel", filters.riskLevel.toString());
+  }
+  if (filters?.givesExperience !== undefined) {
+    url.searchParams.set("givesExperience", String(filters.givesExperience));
+  }
+  if (filters?.skill) url.searchParams.set("skill", filters.skill);
+  if (filters?.showProfitables !== undefined) {
+    url.searchParams.set("showProfitables", String(filters.showProfitables));
+  }
+  if (filters?.sortBy) url.searchParams.set("sortBy", filters.sortBy);
+  if (filters?.order) url.searchParams.set("order", filters.order);
 
   const res = await fetch(url.toString());
   if (!res.ok) {
