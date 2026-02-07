@@ -1,11 +1,11 @@
 import { useMemo, useEffect } from "react";
 import {
   fetchItems,
-  fetchMethodDetailByParam,
+  fetchMethodDetailBySlug,
   type Variant,
   type MethodDetailResponse,
 } from "../lib/api";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { getUrlByType, formatNumber, formatPercent } from "@/lib/utils";
 import Markdown from "@/components/Markdown";
 import { useQuery } from "@tanstack/react-query";
@@ -45,12 +45,10 @@ export type Props = Record<string, never>;
 export function MethodDetail(_props: Props) {
   void _props;
   const navigate = useNavigate();
-  const location = useLocation();
   const { slug: methodParam = "", variantSlug } = useParams<{
     slug: string;
     variantSlug?: string;
   }>();
-  const state = location.state as { methodId?: string } | undefined;
   const { username, setUserError } = useUsername();
 
   const {
@@ -58,9 +56,8 @@ export function MethodDetail(_props: Props) {
     error,
     isLoading,
   } = useQuery<MethodDetailResponse, Error>({
-    queryKey: ["methodDetail", methodParam, state?.methodId, username],
-    queryFn: () =>
-      fetchMethodDetailByParam(methodParam, username, state?.methodId),
+    queryKey: ["methodDetail", methodParam, username],
+    queryFn: () => fetchMethodDetailBySlug(methodParam, username),
     enabled: !!methodParam,
     retry: false,
   });
