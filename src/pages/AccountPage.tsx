@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/auth/AuthProvider";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { authFetch } from "@/lib/http";
 
 export function AccountPage() {
-  const { session, user, signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const [isTestingMe, setIsTestingMe] = useState(false);
   const [meStatus, setMeStatus] = useState<number | null>(null);
   const [mePayload, setMePayload] = useState<unknown>(null);
@@ -21,21 +22,13 @@ export function AccountPage() {
     setMeError(null);
 
     try {
-      const token = session?.access_token;
-      if (!token) {
-        throw new Error("No hay sesión activa o falta access_token.");
-      }
-
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
       if (!apiBaseUrl) {
         throw new Error("Falta VITE_API_BASE_URL en .env.local.");
       }
 
-      const response = await fetch(`${apiBaseUrl.replace(/\/$/, "")}/me`, {
+      const response = await authFetch(`${apiBaseUrl.replace(/\/$/, "")}/me`, {
         method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
 
       setMeStatus(response.status);
@@ -53,7 +46,7 @@ export function AccountPage() {
       <Card>
         <CardHeader>
           <CardTitle>Cuenta (ruta protegida)</CardTitle>
-          <CardDescription>Esta pantalla solo sirve para testear sesión en frontend.</CardDescription>
+          <CardDescription>Esta pantalla solo sirve para testear sesion en frontend.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 text-sm">
           <div>
