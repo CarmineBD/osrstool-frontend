@@ -7,6 +7,7 @@ export interface Method {
   name: string;
   category: string;
   description?: string;
+  enabled?: boolean;
   variants: Variant[];
   variantCount?: number;
 }
@@ -109,6 +110,7 @@ export interface MethodsFilters {
   afkiness?: number;
   riskLevel?: number;
   givesExperience?: boolean;
+  enabled: boolean;
   skill?: string;
   showProfitables?: boolean;
   sortBy?: "clickIntensity" | "afkiness" | "xpHour" | "highProfit";
@@ -137,6 +139,9 @@ export async function fetchMethods(
   }
   if (filters?.givesExperience !== undefined) {
     url.searchParams.set("givesExperience", String(filters.givesExperience));
+  }
+  if (filters?.enabled !== undefined) {
+    url.searchParams.set("enabled", String(filters.enabled));
   }
   if (filters?.skill) url.searchParams.set("skill", filters.skill);
   if (filters?.showProfitables !== undefined) {
@@ -454,6 +459,7 @@ export interface UpdateMethodBasicDto {
   name: string;
   category: string;
   description?: string;
+  enabled: boolean;
 }
 
 export interface UpdateVariantDto {

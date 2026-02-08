@@ -32,6 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -66,6 +67,7 @@ export function MethodEdit(_props: Props) {
   const [initialVariantsSignature, setInitialVariantsSignature] = useState<
     string | null
   >(null);
+  const [enabled, setEnabled] = useState<boolean>(true);
 
   useEffect(() => {
     const m = data?.method;
@@ -73,6 +75,7 @@ export function MethodEdit(_props: Props) {
       const nextVariants = m.variants ?? [];
       setVariants(nextVariants);
       setInitialVariantsSignature(getVariantsSignature(nextVariants));
+      setEnabled(m.enabled ?? true);
     }
   }, [data?.method]);
 
@@ -146,20 +149,27 @@ export function MethodEdit(_props: Props) {
       });
     }
   }, [method, form]);
-  const onSubmit = async (values: FormValues) => {
+  const submitWithEnabled = async (values: FormValues, enabledValue: boolean) => {
     if (!method) return;
     const baselineSignature =
       initialVariantsSignature ?? getVariantsSignature(method.variants ?? []);
     const variantsChanged =
       baselineSignature !== getVariantsSignature(variants);
     if (variantsChanged) {
-      await updateMethodWithVariants(method.id, values, variants);
+      await updateMethodWithVariants(
+        method.id,
+        { ...values, enabled: enabledValue },
+        variants
+      );
     } else {
-      await updateMethodBasic(method.id, values);
+      await updateMethodBasic(method.id, { ...values, enabled: enabledValue });
     }
     navigate(`/moneyMakingMethod/${method.slug}`, {
       state: { methodId: method.id },
     });
+  };
+  const onSubmit = async (values: FormValues) => {
+    await submitWithEnabled(values, enabled);
   };
   const handleFormKeyDown = (event: KeyboardEvent<HTMLFormElement>) => {
     if (event.key !== "Enter") return;
@@ -192,6 +202,13 @@ export function MethodEdit(_props: Props) {
           onKeyDown={handleFormKeyDown}
           className="space-y-6"
         >
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={enabled}
+              onCheckedChange={(checked) => setEnabled(checked)}
+            />
+            <span className="text-sm">enabled</span>
+          </div>
           <section>
             <h2 className="font-semibold mb-2">Method details</h2>
             <div className="flex flex-col md:flex-row gap-4 mb-4">
