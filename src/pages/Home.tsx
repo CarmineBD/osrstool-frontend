@@ -33,9 +33,11 @@ export function Home(_props: Props) {
   const [showProfitables, setShowProfitables] = useState<
     boolean | undefined
   >(undefined);
+  const [enabled, setEnabled] = useState<boolean>(true);
   const [sortBy, setSortBy] = useState<MethodsFilters["sortBy"]>("highProfit");
   const [order, setOrder] = useState<MethodsFilters["order"]>("desc");
   const [filters, setFilters] = useState<MethodsFilters>({
+    enabled: true,
     sortBy: "highProfit",
     order: "desc",
   });
@@ -80,6 +82,7 @@ export function Home(_props: Props) {
       afkiness: parsedAfkiness,
       riskLevel: boundedRiskLevel,
       givesExperience,
+      enabled,
       skill: skill || undefined,
       showProfitables,
       sortBy,
@@ -239,6 +242,14 @@ export function Home(_props: Props) {
                   }
                 />
                 <span className="text-sm">showProfitables</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={enabled}
+                  onCheckedChange={(checked) => setEnabled(checked)}
+                />
+                <span className="text-sm">enabled</span>
               </div>
             </div>
             <Button type="submit">Aplicar filtros</Button>
