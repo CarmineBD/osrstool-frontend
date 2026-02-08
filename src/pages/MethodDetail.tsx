@@ -10,6 +10,7 @@ import { getUrlByType, formatNumber, formatPercent } from "@/lib/utils";
 import Markdown from "@/components/Markdown";
 import { useQuery } from "@tanstack/react-query";
 import { useUsername } from "@/contexts/UsernameContext";
+import { fetchMe } from "@/lib/me";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
@@ -62,6 +63,12 @@ export function MethodDetail(_props: Props) {
     retry: false,
   });
 
+  const { data: meData } = useQuery({
+    queryKey: ["me"],
+    queryFn: fetchMe,
+    retry: false,
+  });
+
   useEffect(() => {
     const warning = data?.warnings?.[0];
     setUserError(warning?.message ?? null);
@@ -106,20 +113,23 @@ export function MethodDetail(_props: Props) {
     method.variants[0]?.slug ?? (method.variants[0]?.id ?? 0).toString();
   const activeSlug = variantSlug ?? firstTabSlug;
   const hasMultiple = (method?.variants?.length ?? 0) > 1;
+  const isSuperAdmin = meData?.data?.role === "super_admin";
   return (
     <div className="max-w-5xl mx-auto bg-white p-6 rounded shadow relative">
-      <Button
-        variant="ghost"
-        size="icon"
-        className="absolute top-4 right-4"
-        onClick={() =>
-          navigate(`/moneyMakingMethod/${methodParam}/edit`, {
-            state: { methodId: method.id },
-          })
-        }
-      >
-        <IconPencil size={20} />
-      </Button>
+      {isSuperAdmin && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-4 right-4"
+          onClick={() =>
+            navigate(`/moneyMakingMethod/${methodParam}/edit`, {
+              state: { methodId: method.id },
+            })
+          }
+        >
+          <IconPencil size={20} />
+        </Button>
+      )}
       <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight text-balance">
         {method.name}
       </h1>

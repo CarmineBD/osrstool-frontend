@@ -1,4 +1,6 @@
-﻿// src/lib/api.ts
+// src/lib/api.ts
+import { authFetch as apiFetch } from "./http";
+
 const API_URL = import.meta.env.VITE_API_URL as string;
 
 export interface Method {
@@ -110,7 +112,7 @@ export interface MethodsFilters {
   afkiness?: number;
   riskLevel?: number;
   givesExperience?: boolean;
-  enabled: boolean;
+  enabled?: boolean;
   skill?: string;
   showProfitables?: boolean;
   sortBy?: "clickIntensity" | "afkiness" | "xpHour" | "highProfit";
@@ -150,9 +152,9 @@ export async function fetchMethods(
   if (filters?.sortBy) url.searchParams.set("sortBy", filters.sortBy);
   if (filters?.order) url.searchParams.set("order", filters.order);
 
-  const res = await fetch(url.toString());
+  const res = await apiFetch(url.toString());
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} â€“ Error fetching methods`);
+    throw new Error(`HTTP ${res.status} – Error fetching methods`);
   }
   const json: unknown = await res.json();
   let methods: Method[] = [];
@@ -226,9 +228,9 @@ export async function fetchItems(ids: number[]): Promise<Record<number, Item>> {
   const url = new URL(`${API_URL}/items`);
   url.searchParams.set("ids", ids.join(","));
   url.searchParams.set("fields", "name,iconUrl,highPrice,lowPrice");
-  const res = await fetch(url.toString());
+  const res = await apiFetch(url.toString());
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} â€“ Error fetching items`);
+    throw new Error(`HTTP ${res.status} – Error fetching items`);
   }
   const json = await res.json();
   return json.data ?? json;
@@ -354,12 +356,12 @@ export async function searchItems(
   url.searchParams.set("q", trimmed);
   url.searchParams.set("limit", limit.toString());
   url.searchParams.set("page", page.toString());
-  const res = await fetch(
+  const res = await apiFetch(
     url.toString(),
     requestSignal ? { signal: requestSignal } : undefined
   );
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} â€“ Error searching items`);
+    throw new Error(`HTTP ${res.status} – Error searching items`);
   }
   const json: unknown = await res.json();
   return parseItemSearchResponse(json, limit);
@@ -389,9 +391,9 @@ export async function fetchVariantHistory(
   const url = new URL(`${API_URL}/variants/${variantId}/history`);
   url.searchParams.set("range", range);
   url.searchParams.set("granularity", granularity);
-  const res = await fetch(url.toString());
+  const res = await apiFetch(url.toString());
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} â€“ Error fetching variant history`);
+    throw new Error(`HTTP ${res.status} – Error fetching variant history`);
   }
   const json = await res.json();
   return json;
@@ -408,9 +410,9 @@ export async function fetchMethodDetail(
 ): Promise<MethodDetailResponse> {
   const url = new URL(`${API_URL}/methods/${id}`);
   if (username) url.searchParams.set("username", username);
-  const res = await fetch(url.toString());
+  const res = await apiFetch(url.toString());
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} â€“ Error fetching method`);
+    throw new Error(`HTTP ${res.status} – Error fetching method`);
   }
   const json: unknown = await res.json();
   const method =
@@ -436,12 +438,12 @@ export async function fetchMethodDetailBySlug(
     `${API_URL}/methods/slug/${encodeURIComponent(normalizedSlug)}`
   );
   if (username) url.searchParams.set("username", username);
-  const res = await fetch(url.toString());
+  const res = await apiFetch(url.toString());
   if (!res.ok) {
     if (res.status === 404) {
       throw new Error("Method not found");
     }
-    throw new Error(`HTTP ${res.status} â€“ Error fetching method`);
+    throw new Error(`HTTP ${res.status} – Error fetching method`);
   }
   const json: unknown = await res.json();
   const method =
@@ -527,13 +529,13 @@ export async function updateMethodBasic(
   id: string,
   dto: UpdateMethodBasicDto
 ): Promise<Method> {
-  const res = await fetch(`${API_URL}/methods/${id}/basic`, {
+  const res = await apiFetch(`${API_URL}/methods/${id}/basic`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(dto),
   });
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} Ã¢â‚¬â€œ Error updating method`);
+    throw new Error(`HTTP ${res.status} â€“ Error updating method`);
   }
   const json: unknown = await res.json();
   const method =
@@ -552,7 +554,7 @@ export async function updateMethodWithVariants(
   variants: Variant[]
 ): Promise<Method> {
   const dto = buildMethodUpdatePayload(values, variants);
-  const res = await fetch(`${API_URL}/methods/${id}`, {
+  const res = await apiFetch(`${API_URL}/methods/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(dto),
@@ -570,4 +572,5 @@ export async function updateMethodWithVariants(
   }
   return method;
 }
+
 

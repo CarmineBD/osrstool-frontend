@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useUsername } from "@/contexts/UsernameContext";
+import { useAuth } from "@/auth/AuthProvider";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -12,6 +13,7 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
+
 export type Props = { hideInput?: boolean };
 
 const components: { title: string; href: string; description: string }[] = [
@@ -24,8 +26,7 @@ const components: { title: string; href: string; description: string }[] = [
   {
     title: "Hover Card",
     href: "/docs/primitives/hover-card",
-    description:
-      "For sighted users to preview content available behind a link.",
+    description: "For sighted users to preview content available behind a link.",
   },
   {
     title: "Progress",
@@ -42,7 +43,7 @@ const components: { title: string; href: string; description: string }[] = [
     title: "Tabs",
     href: "/docs/primitives/tabs",
     description:
-      "A set of layered sections of content—known as tab panels—that are displayed one at a time.",
+      "A set of layered sections of content known as tab panels that are displayed one at a time.",
   },
   {
     title: "Tooltip",
@@ -54,8 +55,10 @@ const components: { title: string; href: string; description: string }[] = [
 
 export function Nav({ hideInput }: Props) {
   const { username, setUsername, userError, setUserError } = useUsername();
+  const { session, signOut } = useAuth();
   const [input, setInput] = useState<string>(username);
   const [seconds, setSeconds] = useState(60);
+  const [logoutError, setLogoutError] = useState<string | null>(null);
   const location = useLocation();
   const { id } = useParams<{ id?: string }>();
   const queryClient = useQueryClient();
@@ -92,8 +95,16 @@ export function Nav({ hideInput }: Props) {
     setUsername(input.trim());
   };
 
+  const handleLogout = async () => {
+    setLogoutError(null);
+    const error = await signOut();
+    if (error) {
+      setLogoutError(error);
+    }
+  };
+
   return (
-    <nav className="flex items-center justify-between p-4 bg-white shadow z-10">
+    <nav className="flex items-center justify-between bg-white p-4 shadow z-10">
       <Link to="/" className="flex items-center space-x-2">
         <img
           src="https://oldschool.runescape.wiki/images/thumb/Coins_detail.png/120px-Coins_detail.png?404bc"
@@ -102,6 +113,7 @@ export function Nav({ hideInput }: Props) {
         />
         <span className="text-xl font-bold">GP Now</span>
       </Link>
+
       <NavigationMenu viewport={false}>
         <NavigationMenuList>
           <NavigationMenuItem>
@@ -110,9 +122,9 @@ export function Nav({ hideInput }: Props) {
               <ul className="grid gap-2 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
                 <li className="row-span-3">
                   <NavigationMenuLink asChild>
-                    <a
+                    <Link
                       className="from-muted/50 to-muted flex h-full w-full flex-col justify-end rounded-md bg-linear-to-b p-6 no-underline outline-hidden select-none focus:shadow-md"
-                      href="/"
+                      to="/"
                     >
                       <div className="mt-4 mb-2 text-lg font-medium">
                         All methods
@@ -120,7 +132,7 @@ export function Nav({ hideInput }: Props) {
                       <p className="text-muted-foreground text-sm leading-tight">
                         All official money making methods.
                       </p>
-                    </a>
+                    </Link>
                   </NavigationMenuLink>
                 </li>
                 <ListItem href="/docs" title="Hottest">
@@ -139,6 +151,7 @@ export function Nav({ hideInput }: Props) {
               </ul>
             </NavigationMenuContent>
           </NavigationMenuItem>
+
           <NavigationMenuItem>
             <NavigationMenuTrigger>Training methods</NavigationMenuTrigger>
             <NavigationMenuContent>
@@ -155,13 +168,14 @@ export function Nav({ hideInput }: Props) {
               </ul>
             </NavigationMenuContent>
           </NavigationMenuItem>
+
           <NavigationMenuItem>
             <NavigationMenuTrigger>Calculators</NavigationMenuTrigger>
             <NavigationMenuContent>
               <ul className="grid w-[300px] gap-4">
                 <li>
                   <NavigationMenuLink asChild>
-                    <Link href="#">
+                    <Link to="#">
                       <div className="font-medium">Skilkling Calculators</div>
                       <div className="text-muted-foreground">
                         Focused on terms of skilling
@@ -169,7 +183,7 @@ export function Nav({ hideInput }: Props) {
                     </Link>
                   </NavigationMenuLink>
                   <NavigationMenuLink asChild>
-                    <Link href="#">
+                    <Link to="#">
                       <div className="font-medium">
                         Money making calculators
                       </div>
@@ -182,13 +196,14 @@ export function Nav({ hideInput }: Props) {
               </ul>
             </NavigationMenuContent>
           </NavigationMenuItem>
+
           <NavigationMenuItem>
             <NavigationMenuTrigger>Useful tables</NavigationMenuTrigger>
             <NavigationMenuContent>
               <ul className="grid w-[300px] gap-4">
                 <li>
                   <NavigationMenuLink asChild>
-                    <Link href="#">
+                    <Link to="#">
                       <div className="font-medium">Components</div>
                       <div className="text-muted-foreground">
                         Browse all components in the library.
@@ -196,7 +211,7 @@ export function Nav({ hideInput }: Props) {
                     </Link>
                   </NavigationMenuLink>
                   <NavigationMenuLink asChild>
-                    <Link href="#">
+                    <Link to="#">
                       <div className="font-medium">Documentation</div>
                       <div className="text-muted-foreground">
                         Learn how to use the library.
@@ -204,7 +219,7 @@ export function Nav({ hideInput }: Props) {
                     </Link>
                   </NavigationMenuLink>
                   <NavigationMenuLink asChild>
-                    <Link href="#">
+                    <Link to="#">
                       <div className="font-medium">Blog</div>
                       <div className="text-muted-foreground">
                         Read our latest blog posts.
@@ -217,6 +232,7 @@ export function Nav({ hideInput }: Props) {
           </NavigationMenuItem>
         </NavigationMenuList>
       </NavigationMenu>
+
       <div className="flex items-center gap-4">
         {!hideInput && (
           <div className="flex flex-col gap-1">
@@ -230,12 +246,27 @@ export function Nav({ hideInput }: Props) {
               />
               <Button type="submit">Buscar</Button>
             </form>
-            {userError && <p className="text-red-500 text-sm">{userError}</p>}
+            {userError && <p className="text-sm text-red-500">{userError}</p>}
           </div>
         )}
-        <span className="text-sm text-gray-500">
-          Actualización en: {seconds}s
-        </span>
+
+        <span className="text-sm text-gray-500">Actualizacion en: {seconds}s</span>
+
+        {session ? (
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline">
+              <Link to="/account">Account</Link>
+            </Button>
+            <Button variant="outline" onClick={handleLogout}>
+              Logout
+            </Button>
+          </div>
+        ) : (
+          <Button asChild variant="outline">
+            <Link to="/login">Login</Link>
+          </Button>
+        )}
+        {logoutError && <p className="text-sm text-destructive">{logoutError}</p>}
       </div>
     </nav>
   );
@@ -250,7 +281,7 @@ function ListItem({
   return (
     <li {...props}>
       <NavigationMenuLink asChild>
-        <Link href={href}>
+        <Link to={href}>
           <div className="text-sm leading-none font-medium">{title}</div>
           <p className="text-muted-foreground line-clamp-2 text-sm leading-snug">
             {children}
@@ -260,3 +291,4 @@ function ListItem({
     </li>
   );
 }
+

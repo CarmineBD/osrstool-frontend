@@ -13,6 +13,7 @@ import {
   type Variant,
 } from "@/lib/api";
 import { useUsername } from "@/contexts/UsernameContext";
+import { fetchMe } from "@/lib/me";
 import {
   Form,
   FormField,
@@ -57,6 +58,15 @@ export function MethodEdit(_props: Props) {
   const navigate = useNavigate();
   const { slug: methodParam = "" } = useParams<{ slug: string }>();
   const { username, setUserError } = useUsername();
+  const {
+    data: meData,
+    isLoading: isMeLoading,
+    error: meError,
+  } = useQuery({
+    queryKey: ["me"],
+    queryFn: fetchMe,
+    retry: false,
+  });
   const { data, error, isLoading } = useQuery<MethodDetailResponse, Error>({
     queryKey: ["methodDetail", methodParam, username],
     queryFn: () => fetchMethodDetailBySlug(methodParam, username),
@@ -190,7 +200,15 @@ export function MethodEdit(_props: Props) {
       navigate(-1);
     }
   };
-  if (isLoading) return <p>Cargando método…</p>;
+  if (isMeLoading || isLoading) return <p>Cargando método…</p>;
+  const isSuperAdmin = meData?.data?.role === "super_admin";
+  if (meError || !isSuperAdmin) {
+    return (
+      <div className="max-w-5xl mx-auto p-4">
+        <p className="text-red-500">No tienes permisos para editar métodos.</p>
+      </div>
+    );
+  }
   if (error) return <p className="text-red-500">❌ {`${error}`}</p>;
   if (!method) return <p>No se encontró el método.</p>;
   return (
