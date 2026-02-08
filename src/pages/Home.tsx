@@ -3,6 +3,7 @@ import { MethodsList } from "../features/methods/MethodsList";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useUsername } from "@/contexts/UsernameContext";
+import { authFetch } from "@/lib/http";
 import {
   Select,
   SelectContent,
@@ -18,6 +19,7 @@ export type Props = Record<string, never>;
 export function Home(_props: Props) {
   void _props;
   const { username, setUsername, userError, setUserError } = useUsername();
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [input, setInput] = useState<string>(username);
   const [methodInput, setMethodInput] = useState<string>("");
   const [methodName, setMethodName] = useState<string>("");
@@ -45,6 +47,34 @@ export function Home(_props: Props) {
   useEffect(() => {
     setInput(username);
   }, [username]);
+
+  useEffect(() => {
+    const loadMe = async () => {
+      try {
+        const apiUrl = (import.meta.env.VITE_API_URL as string | undefined)?.replace(
+          /\/$/,
+          ""
+        );
+        if (!apiUrl) {
+          setIsSuperAdmin(false);
+          return;
+        }
+
+        const response = await authFetch(`${apiUrl}/me`, { method: "GET" });
+        if (!response.ok) {
+          setIsSuperAdmin(false);
+          return;
+        }
+
+        const payload = (await response.json()) as { data?: { role?: string } };
+        setIsSuperAdmin(payload.data?.role === "super_admin");
+      } catch {
+        setIsSuperAdmin(false);
+      }
+    };
+
+    void loadMe();
+  }, []);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -82,7 +112,7 @@ export function Home(_props: Props) {
       afkiness: parsedAfkiness,
       riskLevel: boundedRiskLevel,
       givesExperience,
-      enabled,
+      enabled: isSuperAdmin ? enabled : undefined,
       skill: skill || undefined,
       showProfitables,
       sortBy,
@@ -244,13 +274,15 @@ export function Home(_props: Props) {
                 <span className="text-sm">showProfitables</span>
               </div>
 
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={enabled}
-                  onCheckedChange={(checked) => setEnabled(checked)}
-                />
-                <span className="text-sm">enabled</span>
-              </div>
+              {isSuperAdmin && (
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={enabled}
+                    onCheckedChange={(checked) => setEnabled(checked)}
+                  />
+                  <span className="text-sm">enabled</span>
+                </div>
+              )}
             </div>
             <Button type="submit">Aplicar filtros</Button>
           </form>

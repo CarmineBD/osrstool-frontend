@@ -112,7 +112,7 @@ export interface MethodsFilters {
   afkiness?: number;
   riskLevel?: number;
   givesExperience?: boolean;
-  enabled: boolean;
+  enabled?: boolean;
   skill?: string;
   showProfitables?: boolean;
   sortBy?: "clickIntensity" | "afkiness" | "xpHour" | "highProfit";
