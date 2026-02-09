@@ -17,6 +17,7 @@ export function useMethods(
   const query = useQuery<MethodsResponse, Error>({
     queryKey: ["methods", username, name, page, filters],
     queryFn: () => fetchMethods(username, page, name, filters),
+    placeholderData: (previousData) => previousData,
     staleTime: 30 * 1000,
     retry: false,
   });

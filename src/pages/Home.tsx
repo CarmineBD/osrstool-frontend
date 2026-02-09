@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { MethodsList } from "../features/methods/MethodsList";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,10 @@ import { getUrlByType } from "@/lib/utils";
 
 export type Props = Record<string, never>;
 const LOGIN_REQUIRED_MESSAGE = "sign-in/login to fetch data by osrs usernames";
+type SortConfig = {
+  sortBy?: MethodsFilters["sortBy"];
+  order?: MethodsFilters["order"];
+};
 
 const SKILL_OPTIONS = [
   "combat",
@@ -70,12 +74,9 @@ export function Home(_props: Props) {
     boolean | undefined
   >(undefined);
   const [enabled, setEnabled] = useState<boolean>(true);
-  const [sortBy, setSortBy] = useState<MethodsFilters["sortBy"]>("highProfit");
-  const [order, setOrder] = useState<MethodsFilters["order"]>("desc");
+  const [sortConfig, setSortConfig] = useState<SortConfig>({});
   const [filters, setFilters] = useState<MethodsFilters>({
     enabled: true,
-    sortBy: "highProfit",
-    order: "desc",
   });
 
   useEffect(() => {
@@ -161,14 +162,28 @@ export function Home(_props: Props) {
       enabled: isSuperAdmin ? enabled : undefined,
       skill: skill || undefined,
       showProfitables,
-      sortBy,
-      order,
     });
 
     if (parsedRiskLevel !== undefined && parsedRiskLevel !== boundedRiskLevel) {
       setRiskLevel(String(boundedRiskLevel));
     }
   };
+
+  const handleSortChange = (
+    sortBy?: MethodsFilters["sortBy"],
+    order?: MethodsFilters["order"]
+  ) => {
+    setSortConfig({ sortBy, order });
+  };
+
+  const appliedFilters = useMemo<MethodsFilters>(
+    () => ({
+      ...filters,
+      sortBy: sortConfig.sortBy,
+      order: sortConfig.order,
+    }),
+    [filters, sortConfig.order, sortConfig.sortBy]
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -288,34 +303,6 @@ export function Home(_props: Props) {
                 </SelectContent>
               </Select>
 
-              <Select
-                value={sortBy}
-                onValueChange={(value) => setSortBy(value as MethodsFilters["sortBy"])}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Sort" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="clickIntensity">clickIntensity</SelectItem>
-                  <SelectItem value="afkiness">afkiness</SelectItem>
-                  <SelectItem value="xpHour">xpHour</SelectItem>
-                  <SelectItem value="highProfit">highProfit</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select
-                value={order}
-                onValueChange={(value) => setOrder(value as MethodsFilters["order"])}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Order" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="asc">asc</SelectItem>
-                  <SelectItem value="desc">desc</SelectItem>
-                </SelectContent>
-              </Select>
-
               <div className="flex items-center gap-2">
                 <Switch
                   checked={givesExperience ?? false}
@@ -359,7 +346,14 @@ export function Home(_props: Props) {
             <Button type="submit">Filtrar</Button>
           </form>
         </div>
-        <MethodsList username={effectiveUsername} name={methodName} filters={filters} />
+        <MethodsList
+          username={effectiveUsername}
+          name={methodName}
+          filters={appliedFilters}
+          sortBy={sortConfig.sortBy}
+          order={sortConfig.order}
+          onSortChange={handleSortChange}
+        />
       </div>
     </div>
   );
