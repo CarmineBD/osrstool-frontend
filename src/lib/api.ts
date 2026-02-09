@@ -10,6 +10,8 @@ export interface Method {
   category: string;
   description?: string;
   enabled?: boolean;
+  likes?: number;
+  likedByMe?: boolean;
   variants: Variant[];
   variantCount?: number;
 }
@@ -115,7 +117,8 @@ export interface MethodsFilters {
   enabled?: boolean;
   skill?: string;
   showProfitables?: boolean;
-  sortBy?: "clickIntensity" | "afkiness" | "xpHour" | "highProfit";
+  likedByMe?: boolean;
+  sortBy?: "clickIntensity" | "afkiness" | "xpHour" | "highProfit" | "likes";
   order?: "asc" | "desc";
 }
 
@@ -148,6 +151,9 @@ export async function fetchMethods(
   if (filters?.skill) url.searchParams.set("skill", filters.skill);
   if (filters?.showProfitables !== undefined) {
     url.searchParams.set("showProfitables", String(filters.showProfitables));
+  }
+  if (filters?.likedByMe !== undefined) {
+    url.searchParams.set("likedByMe", String(filters.likedByMe));
   }
   if (filters?.sortBy) url.searchParams.set("sortBy", filters.sortBy);
   if (filters?.order) url.searchParams.set("order", filters.order);
@@ -455,6 +461,24 @@ export async function fetchMethodDetailBySlug(
   }
   const warnings = parseWarnings((json as { warnings?: unknown }).warnings);
   return { method, warnings };
+}
+
+export async function likeMethod(methodId: string): Promise<void> {
+  const res = await apiFetch(`${API_URL}/methods/${methodId}/like`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status} - Error liking method`);
+  }
+}
+
+export async function unlikeMethod(methodId: string): Promise<void> {
+  const res = await apiFetch(`${API_URL}/methods/${methodId}/like`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status} - Error unliking method`);
+  }
 }
 
 export interface UpdateMethodBasicDto {

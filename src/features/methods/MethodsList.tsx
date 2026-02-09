@@ -14,6 +14,7 @@ import { formatNumber, getUrlByType } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import type { Method, MethodsFilters, Variant } from "@/lib/api";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
+import { LikeButton } from "./LikeButton";
 
 type SortBy = NonNullable<MethodsFilters["sortBy"]>;
 type SortOrder = NonNullable<MethodsFilters["order"]>;
@@ -43,6 +44,8 @@ interface Row {
   levels: { skill: string; level: number }[];
   lowProfit?: number;
   highProfit?: number;
+  likes?: number;
+  likedByMe?: boolean;
 }
 
 export function MethodsList({
@@ -101,6 +104,8 @@ export function MethodsList({
         levels,
         lowProfit: variant.lowProfit,
         highProfit: variant.highProfit,
+        likes: method.likes,
+        likedByMe: method.likedByMe,
       };
     })
   );
@@ -141,8 +146,8 @@ export function MethodsList({
       <Table className="table-fixed">
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[30%]">Method Name</TableHead>
-            <TableHead className="w-[14%]">
+            <TableHead className="w-[24%]">Method Name</TableHead>
+            <TableHead className="w-[13%]">
               <button
                 type="button"
                 className="inline-flex w-full items-center gap-1 font-medium text-left"
@@ -162,7 +167,7 @@ export function MethodsList({
                 {getSortIcon("xpHour")}
               </button>
             </TableHead>
-            <TableHead className="w-[16%]">
+            <TableHead className="w-[14%]">
               <button
                 type="button"
                 className="inline-flex w-full items-center gap-1 font-medium text-left"
@@ -172,7 +177,7 @@ export function MethodsList({
                 {getSortIcon("clickIntensity")}
               </button>
             </TableHead>
-            <TableHead className="w-[9%]">
+            <TableHead className="w-[8%]">
               <button
                 type="button"
                 className="inline-flex w-full items-center gap-1 font-medium text-left"
@@ -183,6 +188,16 @@ export function MethodsList({
               </button>
             </TableHead>
             <TableHead className="w-[14%]">Requirements</TableHead>
+            <TableHead className="w-[10%]">
+              <button
+                type="button"
+                className="inline-flex w-full items-center gap-1 font-medium text-left"
+                onClick={() => handleSortClick("likes")}
+              >
+                <span>Likes</span>
+                {getSortIcon("likes")}
+              </button>
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -210,17 +225,20 @@ export function MethodsList({
                 <TableCell>
                   <div className="h-6 w-20 animate-pulse rounded bg-muted" />
                 </TableCell>
+                <TableCell>
+                  <div className="h-4 w-14 animate-pulse rounded bg-muted" />
+                </TableCell>
               </TableRow>
             ))
           ) : error && !data ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-red-500">
+              <TableCell colSpan={7} className="text-red-500">
                 Error: {`${error}`}
               </TableCell>
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-muted-foreground">
+              <TableCell colSpan={7} className="text-muted-foreground">
                 No methods found.
               </TableCell>
             </TableRow>
@@ -302,6 +320,15 @@ export function MethodsList({
                       )
                     )}
                   </div>
+                </TableCell>
+
+                <TableCell>
+                  <LikeButton
+                    methodId={row.methodId}
+                    likedByMe={row.likedByMe}
+                    likes={row.likes}
+                    className="h-auto px-0 hover:bg-transparent"
+                  />
                 </TableCell>
               </TableRow>
             ))

@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/tooltip";
 import VariantHistoryChart from "@/components/VariantHistoryChart";
 import { Button } from "@/components/ui/button";
+import { LikeButton } from "@/features/methods/LikeButton";
 
 export type Props = Record<string, never>;
 
@@ -133,6 +134,13 @@ export function MethodDetail(_props: Props) {
       <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight text-balance">
         {method.name}
       </h1>
+      <div className="mb-4 mt-2 flex items-center">
+        <LikeButton
+          methodId={method.id}
+          likedByMe={method.likedByMe}
+          likes={method.likes ?? 0}
+        />
+      </div>
       <Markdown content={method.description} items={itemsMap} />
       <div className="mb-4">
         <span className="font-semibold">Category:</span> {method.category}
