@@ -13,8 +13,19 @@ import { Pagination } from "@/components/ui/pagination";
 import { formatNumber, getUrlByType } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import type { Method, MethodsFilters, Variant } from "@/lib/api";
+import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 
-export type Props = { username: string; name?: string; filters?: MethodsFilters };
+type SortBy = NonNullable<MethodsFilters["sortBy"]>;
+type SortOrder = NonNullable<MethodsFilters["order"]>;
+
+export type Props = {
+  username: string;
+  name?: string;
+  filters?: MethodsFilters;
+  sortBy?: SortBy;
+  order?: SortOrder;
+  onSortChange?: (sortBy?: SortBy, order?: SortOrder) => void;
+};
 
 interface Row {
   id: string;
@@ -34,9 +45,17 @@ interface Row {
   highProfit?: number;
 }
 
-export function MethodsList({ username, name, filters }: Props) {
+export function MethodsList({
+  username,
+  name,
+  filters,
+  sortBy,
+  order,
+  onSortChange,
+}: Props) {
+  const SKELETON_ROW_COUNT = 8;
   const [page, setPage] = useState(1);
-  const { data, error, isLoading, isFetching } = useMethods(
+  const { data, error, isFetching } = useMethods(
     username,
     page,
     name,
@@ -47,28 +66,25 @@ export function MethodsList({ username, name, filters }: Props) {
     setPage(1);
   }, [username, name, filters]);
 
-  if (isLoading) return <p>🔄 Cargando métodos…</p>;
-  if (error) return <p className="text-red-500">❌ {`${error}`}</p>;
-
   const rows: Row[] = (data?.methods ?? []).flatMap((method: Method) =>
     method.variants.map((variant: Variant, index: number) => {
       const variantCount = method.variantCount ?? method.variants.length;
       const xpHour = Array.isArray(variant.xpHour)
         ? variant.xpHour
         : variant.xpHour
-        ? Object.entries(variant.xpHour).map(([skill, experience]) => ({
-            skill,
-            experience: Number(experience),
-          }))
-        : [];
+          ? Object.entries(variant.xpHour).map(([skill, experience]) => ({
+              skill,
+              experience: Number(experience),
+            }))
+          : [];
       const levels = Array.isArray(variant.requirements?.levels)
         ? variant.requirements?.levels
         : variant.requirements?.levels
-        ? Object.entries(variant.requirements.levels).map(([skill, level]) => ({
-            skill,
-            level: Number(level),
-          }))
-        : [];
+          ? Object.entries(variant.requirements.levels).map(([skill, level]) => ({
+              skill,
+              level: Number(level),
+            }))
+          : [];
       return {
         id: `${method.id}-${variant.id ?? index}`,
         methodId: method.id,
@@ -92,111 +108,204 @@ export function MethodsList({ username, name, filters }: Props) {
   const pageCount =
     data?.pageCount ?? (data?.methods.length === 10 ? page + 1 : page);
 
+  const getSortIcon = (key: SortBy) => {
+    if (sortBy !== key || !order) {
+      return <ArrowUpDown className="h-5 w-5 shrink-0 text-muted-foreground" />;
+    }
+
+    return order === "asc" ? (
+      <ArrowUp className="h-5 w-5 shrink-0" />
+    ) : (
+      <ArrowDown className="h-5 w-5 shrink-0" />
+    );
+  };
+
+  const handleSortClick = (key: SortBy) => {
+    if (!onSortChange) return;
+
+    if (sortBy !== key) {
+      onSortChange(key, "asc");
+      return;
+    }
+
+    if (order === "asc") {
+      onSortChange(key, "desc");
+      return;
+    }
+
+    onSortChange(undefined, undefined);
+  };
+
   return (
     <div className="space-y-4">
-      {isFetching && <p className="text-sm text-gray-500">Actualizando…</p>}
-
-      <Table>
+      <Table className="table-fixed">
         <TableHeader>
           <TableRow>
-            <TableHead>Method Name</TableHead>
-            {/* <TableHead>Categoría</TableHead> */}
-            {/* <TableHead>Variante</TableHead> */}
-            <TableHead>Gp/Hr</TableHead>
-            <TableHead>XP/Hr</TableHead>
-            {/* <TableHead>Intensidad de clicks</TableHead> */}
-            <TableHead>AFKiness</TableHead>
-            {/* <TableHead>Riesgo</TableHead> */}
-            <TableHead>Requirements</TableHead>
+            <TableHead className="w-[30%]">Method Name</TableHead>
+            <TableHead className="w-[14%]">
+              <button
+                type="button"
+                className="inline-flex w-full items-center gap-1 font-medium text-left"
+                onClick={() => handleSortClick("highProfit")}
+              >
+                <span>Gp/Hr</span>
+                {getSortIcon("highProfit")}
+              </button>
+            </TableHead>
+            <TableHead className="w-[17%]">
+              <button
+                type="button"
+                className="inline-flex w-full items-center gap-1 font-medium text-left"
+                onClick={() => handleSortClick("xpHour")}
+              >
+                <span>XP/Hr</span>
+                {getSortIcon("xpHour")}
+              </button>
+            </TableHead>
+            <TableHead className="w-[16%]">
+              <button
+                type="button"
+                className="inline-flex w-full items-center gap-1 font-medium text-left"
+                onClick={() => handleSortClick("clickIntensity")}
+              >
+                <span>Click Intensity</span>
+                {getSortIcon("clickIntensity")}
+              </button>
+            </TableHead>
+            <TableHead className="w-[9%]">
+              <button
+                type="button"
+                className="inline-flex w-full items-center gap-1 font-medium text-left"
+                onClick={() => handleSortClick("afkiness")}
+              >
+                <span>AFKiness</span>
+                {getSortIcon("afkiness")}
+              </button>
+            </TableHead>
+            <TableHead className="w-[14%]">Requirements</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {rows.map((row) => (
-            <TableRow key={row.id}>
-              {/* Name */}
-              <TableCell className="font-medium">
-                <Link
-                  to={`/moneyMakingMethod/${row.methodSlug}${
-                    row.variantCount > 1 ? `/${row.variantSlug}` : ""
-                  }`}
-                  className="text-blue-600 hover:underline"
-                  state={{ methodId: row.methodId }}
-                >
-                  {row.name}
-                </Link>
-              </TableCell>
-
-              {/* GP/hr */}
-              <TableCell>
-                <div className="flex flex-col">
-                  <span className="font-bold">
-                    {row.highProfit !== undefined
-                      ? formatNumber(row.highProfit)
-                      : "N/A"}
-                  </span>
-                  <span>
-                    {row.lowProfit !== undefined
-                      ? formatNumber(row.lowProfit)
-                      : "N/A"}
-                  </span>
-                </div>
-              </TableCell>
-
-              {/* Xp/Hr */}
-              <TableCell>
-                <div className="flex flex-col">
-                  {(row.xpHour || []).map(
-                    ({
-                      skill,
-                      experience,
-                    }: {
-                      skill: string;
-                      experience: number;
-                    }) => (
-                      <Badge size="lg" key={skill} variant="secondary">
-                        <img
-                          src={getUrlByType(skill) ?? ""}
-                          alt={`${skill.toLowerCase()}_icon`}
-                          title={`${skill}`}
-                        />
-                        {formatNumber(experience)}
-                      </Badge>
-                    )
-                  )}
-                </div>
-              </TableCell>
-
-              {/* Afkiness & click intensity */}
-              <TableCell>
-                <div className="flex flex-col">
-                  <span>
-                    {row.afkiness !== undefined ? `${row.afkiness}%` : "N/A"}
-                  </span>
-                  <span>
-                    {row.clickIntensity !== undefined
-                      ? `${row.clickIntensity}cph`
-                      : "-"}{" "}
-                  </span>
-                </div>
-              </TableCell>
-
-              {/* Requirements */}
-              <TableCell>
-                {row.levels.map(
-                  ({ skill, level }: { skill: string; level: number }) => (
-                    <Badge size="lg" key={skill} variant="secondary">
-                      <img
-                        src={getUrlByType(skill) ?? ""}
-                        alt={`${skill.toLowerCase()}_icon`}
-                        title={`${skill}`}
-                      />
-                      {level}
-                    </Badge>
-                  )
-                )}
+          {isFetching ? (
+            Array.from({ length: SKELETON_ROW_COUNT }).map((_, index) => (
+              <TableRow key={`fetching-skeleton-row-${index}`}>
+                <TableCell>
+                  <div className="h-5 w-[85%] animate-pulse rounded bg-muted" />
+                </TableCell>
+                <TableCell>
+                  <div className="space-y-2">
+                    <div className="h-4 w-16 animate-pulse rounded bg-muted" />
+                    <div className="h-4 w-14 animate-pulse rounded bg-muted" />
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="h-6 w-24 animate-pulse rounded bg-muted" />
+                </TableCell>
+                <TableCell>
+                  <div className="h-4 w-14 animate-pulse rounded bg-muted" />
+                </TableCell>
+                <TableCell>
+                  <div className="h-4 w-10 animate-pulse rounded bg-muted" />
+                </TableCell>
+                <TableCell>
+                  <div className="h-6 w-20 animate-pulse rounded bg-muted" />
+                </TableCell>
+              </TableRow>
+            ))
+          ) : error && !data ? (
+            <TableRow>
+              <TableCell colSpan={6} className="text-red-500">
+                Error: {`${error}`}
               </TableCell>
             </TableRow>
-          ))}
+          ) : rows.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={6} className="text-muted-foreground">
+                No methods found.
+              </TableCell>
+            </TableRow>
+          ) : (
+            rows.map((row) => (
+              <TableRow key={row.id}>
+                <TableCell className="font-medium truncate">
+                  <Link
+                    to={`/moneyMakingMethod/${row.methodSlug}${
+                      row.variantCount > 1 ? `/${row.variantSlug}` : ""
+                    }`}
+                    className="text-blue-600 hover:underline"
+                    state={{ methodId: row.methodId }}
+                  >
+                    {row.name}
+                  </Link>
+                </TableCell>
+
+                <TableCell>
+                  <div className="flex flex-col">
+                    <span className="font-bold">
+                      {row.highProfit !== undefined
+                        ? formatNumber(row.highProfit)
+                        : "N/A"}
+                    </span>
+                    <span>
+                      {row.lowProfit !== undefined
+                        ? formatNumber(row.lowProfit)
+                        : "N/A"}
+                    </span>
+                  </div>
+                </TableCell>
+
+                <TableCell>
+                  <div className="flex flex-wrap gap-1">
+                    {(row.xpHour || []).map(
+                      ({
+                        skill,
+                        experience,
+                      }: {
+                        skill: string;
+                        experience: number;
+                      }) => (
+                        <Badge size="lg" key={skill} variant="secondary">
+                          <img
+                            src={getUrlByType(skill) ?? ""}
+                            alt={`${skill.toLowerCase()}_icon`}
+                            title={`${skill}`}
+                          />
+                          {formatNumber(experience)}
+                        </Badge>
+                      )
+                    )}
+                  </div>
+                </TableCell>
+
+                <TableCell>
+                  {row.clickIntensity !== undefined
+                    ? `${row.clickIntensity}cph`
+                    : "-"}
+                </TableCell>
+
+                <TableCell>
+                  {row.afkiness !== undefined ? `${row.afkiness}%` : "N/A"}
+                </TableCell>
+
+                <TableCell>
+                  <div className="flex flex-wrap gap-1">
+                    {row.levels.map(
+                      ({ skill, level }: { skill: string; level: number }) => (
+                        <Badge size="lg" key={skill} variant="secondary">
+                          <img
+                            src={getUrlByType(skill) ?? ""}
+                            alt={`${skill.toLowerCase()}_icon`}
+                            title={`${skill}`}
+                          />
+                          {level}
+                        </Badge>
+                      )
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
         </TableBody>
       </Table>
       <Pagination page={page} pageCount={pageCount} onPageChange={setPage} />
