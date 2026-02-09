@@ -14,8 +14,37 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import type { MethodsFilters } from "@/lib/api";
+import { getUrlByType } from "@/lib/utils";
 
 export type Props = Record<string, never>;
+
+const SKILL_OPTIONS = [
+  "combat",
+  "attack",
+  "strength",
+  "defence",
+  "ranged",
+  "prayer",
+  "magic",
+  "runecraft",
+  "construction",
+  "hitpoints",
+  "agility",
+  "herblore",
+  "thieving",
+  "crafting",
+  "fletching",
+  "slayer",
+  "hunter",
+  "mining",
+  "smithing",
+  "fishing",
+  "cooking",
+  "firemaking",
+  "woodcutting",
+  "farming",
+  "sailing",
+] as const;
 
 export function Home(_props: Props) {
   void _props;
@@ -212,31 +241,26 @@ export function Home(_props: Props) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">Sin filtro</SelectItem>
-                  <SelectItem value="combat">combat</SelectItem>
-                  <SelectItem value="attack">attack</SelectItem>
-                  <SelectItem value="strength">strength</SelectItem>
-                  <SelectItem value="defence">defence</SelectItem>
-                  <SelectItem value="ranged">ranged</SelectItem>
-                  <SelectItem value="prayer">prayer</SelectItem>
-                  <SelectItem value="magic">magic</SelectItem>
-                  <SelectItem value="runecraft">runecraft</SelectItem>
-                  <SelectItem value="construction">construction</SelectItem>
-                  <SelectItem value="hitpoints">hitpoints</SelectItem>
-                  <SelectItem value="agility">agility</SelectItem>
-                  <SelectItem value="herblore">herblore</SelectItem>
-                  <SelectItem value="thieving">thieving</SelectItem>
-                  <SelectItem value="crafting">crafting</SelectItem>
-                  <SelectItem value="fletching">fletching</SelectItem>
-                  <SelectItem value="slayer">slayer</SelectItem>
-                  <SelectItem value="hunter">hunter</SelectItem>
-                  <SelectItem value="mining">mining</SelectItem>
-                  <SelectItem value="smithing">smithing</SelectItem>
-                  <SelectItem value="fishing">fishing</SelectItem>
-                  <SelectItem value="cooking">cooking</SelectItem>
-                  <SelectItem value="firemaking">firemaking</SelectItem>
-                  <SelectItem value="woodcutting">woodcutting</SelectItem>
-                  <SelectItem value="farming">farming</SelectItem>
-                  <SelectItem value="sailing">sailing</SelectItem>
+                  {SKILL_OPTIONS.map((skillOption) => {
+                    const iconUrl = getUrlByType(skillOption);
+                    return (
+                      <SelectItem key={skillOption} value={skillOption}>
+                        <span className="flex items-center gap-2">
+                          {iconUrl ? (
+                            <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+                              <img
+                                src={iconUrl}
+                                alt={`${skillOption}_icon`}
+                                className="max-h-full max-w-full object-contain"
+                                loading="lazy"
+                              />
+                            </span>
+                          ) : null}
+                          <span>{skillOption}</span>
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
 
