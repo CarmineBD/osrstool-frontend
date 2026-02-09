@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useUsername } from "@/contexts/UsernameContext";
 import { authFetch } from "@/lib/http";
+import { useAuth } from "@/auth/AuthProvider";
 import {
   Select,
   SelectContent,
@@ -17,6 +18,7 @@ import type { MethodsFilters } from "@/lib/api";
 import { getUrlByType } from "@/lib/utils";
 
 export type Props = Record<string, never>;
+const LOGIN_REQUIRED_MESSAGE = "sign-in/login to fetch data by osrs usernames";
 
 const SKILL_OPTIONS = [
   "combat",
@@ -49,8 +51,10 @@ const SKILL_OPTIONS = [
 export function Home(_props: Props) {
   void _props;
   const { username, setUsername, userError, setUserError } = useUsername();
+  const { session, isLoading } = useAuth();
+  const effectiveUsername = session ? username : "";
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-  const [input, setInput] = useState<string>(username);
+  const [input, setInput] = useState<string>(effectiveUsername);
   const [methodInput, setMethodInput] = useState<string>("");
   const [methodName, setMethodName] = useState<string>("");
 
@@ -75,8 +79,9 @@ export function Home(_props: Props) {
   });
 
   useEffect(() => {
-    setInput(username);
-  }, [username]);
+    if (isLoading) return;
+    setInput(effectiveUsername);
+  }, [effectiveUsername, isLoading]);
 
   useEffect(() => {
     const loadMe = async () => {
@@ -108,8 +113,18 @@ export function Home(_props: Props) {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    if (!session) {
+      setUserError(LOGIN_REQUIRED_MESSAGE);
+      return;
+    }
     setUserError(null);
     setUsername(input.trim());
+  };
+
+  const handleUsernameInputInteraction = () => {
+    if (!session) {
+      setUserError(LOGIN_REQUIRED_MESSAGE);
+    }
   };
 
   const handleMethodSubmit = (e: FormEvent) => {
@@ -160,14 +175,23 @@ export function Home(_props: Props) {
       <div className="container mx-auto p-8 space-y-6">
         <h1 className="text-3xl font-bold">OSRS Moneymaking Methods</h1>
         <div className="flex flex-col gap-3 max-w-4xl">
-          <form onSubmit={handleSubmit} className="flex gap-2">
-            <Input
-              type="text"
-              placeholder="Enter username"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-            />
-            <Button type="submit">Buscar</Button>
+          <form onSubmit={handleSubmit} className="space-y-1">
+            <div className="flex gap-2">
+              <Input
+                type="text"
+                placeholder="Enter username"
+                value={input}
+                readOnly={!session}
+                onClick={handleUsernameInputInteraction}
+                onFocus={handleUsernameInputInteraction}
+                onChange={(e) => {
+                  if (!session) return;
+                  setInput(e.target.value);
+                }}
+              />
+              <Button type="submit">Buscar</Button>
+            </div>
+            {userError && <p className="text-red-500 text-sm">{userError}</p>}
           </form>
 
           <form onSubmit={handleFiltersSubmit} className="space-y-3">
@@ -335,8 +359,7 @@ export function Home(_props: Props) {
             <Button type="submit">Filtrar</Button>
           </form>
         </div>
-        {userError && <p className="text-red-500 text-sm mt-1">{userError}</p>}
-        <MethodsList username={username} name={methodName} filters={filters} />
+        <MethodsList username={effectiveUsername} name={methodName} filters={filters} />
       </div>
     </div>
   );
