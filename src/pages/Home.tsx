@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
 import type { MethodsFilters } from "@/lib/api";
 
 export type Props = Record<string, never>;
@@ -25,8 +26,8 @@ export function Home(_props: Props) {
   const [methodName, setMethodName] = useState<string>("");
 
   const [category, setCategory] = useState<string>("");
-  const [clickIntensity, setClickIntensity] = useState<string>("");
-  const [afkiness, setAfkiness] = useState<string>("");
+  const [clickIntensity, setClickIntensity] = useState<number>(10000);
+  const [afkiness, setAfkiness] = useState<number>(0);
   const [riskLevel, setRiskLevel] = useState<string>("");
   const [givesExperience, setGivesExperience] = useState<boolean | undefined>(
     undefined
@@ -98,8 +99,9 @@ export function Home(_props: Props) {
   const handleFiltersSubmit = (e: FormEvent) => {
     e.preventDefault();
 
-    const parsedClickIntensity = parseInteger(clickIntensity);
-    const parsedAfkiness = parseInteger(afkiness);
+    const parsedClickIntensity =
+      clickIntensity >= 10000 ? undefined : clickIntensity;
+    const parsedAfkiness = afkiness <= 0 ? undefined : afkiness;
     const parsedRiskLevel = parseInteger(riskLevel);
     const boundedRiskLevel =
       parsedRiskLevel === undefined
@@ -159,23 +161,35 @@ export function Home(_props: Props) {
                 </SelectContent>
               </Select>
 
-              <Input
-                type="number"
-                step={1}
-                min={0}
-                placeholder="Click intensity"
-                value={clickIntensity}
-                onChange={(e) => setClickIntensity(e.target.value)}
-              />
+              <div className="space-y-2 rounded-md border bg-background px-3 py-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span>Click intensity</span>
+                  <span>{clickIntensity >= 10000 ? "unlimited" : clickIntensity}</span>
+                </div>
+                <Slider
+                  min={100}
+                  max={10000}
+                  step={100}
+                  value={[clickIntensity]}
+                  onValueChange={(value) => setClickIntensity(value[0] ?? 10000)}
+                />
+              </div>
 
-              <Input
-                type="number"
-                step={1}
-                min={0}
-                placeholder="AFKiness"
-                value={afkiness}
-                onChange={(e) => setAfkiness(e.target.value)}
-              />
+              <div className="space-y-2 rounded-md border bg-background px-3 py-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span>min AFK %</span>
+                  <span>{afkiness === 0 ? "No min." : `${afkiness}% or more`}</span>
+                </div>
+                
+                <Slider
+                  min={0}
+                  max={100}
+                  step={1}
+                  fillSide="end"
+                  value={[afkiness]}
+                  onValueChange={(value) => setAfkiness(value[0] ?? 0)}
+                />
+              </div>
 
               <Input
                 type="number"

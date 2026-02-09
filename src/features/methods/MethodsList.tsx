@@ -169,9 +169,13 @@ export function MethodsList({ username, name, filters }: Props) {
               {/* Afkiness & click intensity */}
               <TableCell>
                 <div className="flex flex-col">
-                  <span>{row.afkiness ? `${row.afkiness}cph` : "N/A"}</span>
                   <span>
-                    {row.clickIntensity ? `${row.clickIntensity}cph` : "-"}{" "}
+                    {row.afkiness !== undefined ? `${row.afkiness}%` : "N/A"}
+                  </span>
+                  <span>
+                    {row.clickIntensity !== undefined
+                      ? `${row.clickIntensity}cph`
+                      : "-"}{" "}
                   </span>
                 </div>
               </TableCell>

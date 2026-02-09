@@ -45,8 +45,8 @@ export function VariantForm({
   const [description, setDescription] = useState<string>(variant.description ?? "");
   const [wilderness, setWilderness] = useState<boolean>(variant.wilderness ?? false);
   const [afkiness, setAfkiness] = useState<number | undefined>(variant.afkiness);
-  const [actionsPerHour, setActionsPerHour] = useState<number | undefined>(
-    variant.actionsPerHour
+  const [clickIntensity, setClickIntensity] = useState<number | undefined>(
+    variant.clickIntensity ?? variant.actionsPerHour
   );
   const [xpHour, setXpHour] = useState<string>(
     JSON.stringify(variant.xpHour ?? [], null, 2)
@@ -65,7 +65,7 @@ export function VariantForm({
     setDescription(variant.description ?? "");
     setWilderness(variant.wilderness ?? false);
     setAfkiness(variant.afkiness);
-    setActionsPerHour(variant.actionsPerHour);
+    setClickIntensity(variant.clickIntensity ?? variant.actionsPerHour);
     setXpHour(JSON.stringify(variant.xpHour ?? [], null, 2));
     setInputs(variant.inputs ?? []);
     setOutputs(variant.outputs ?? []);
@@ -185,16 +185,16 @@ export function VariantForm({
             </div>
             <div>
               <label className="block text-sm font-medium mb-2">
-                Clicks per hour
+                Clicks per hour (clickIntensity)
               </label>
               <Input
                 type="number"
-                value={actionsPerHour ?? ""}
+                value={clickIntensity ?? ""}
                 onChange={(e) => {
                   const v = e.target.value;
                   const num = v === "" ? undefined : Number(v);
-                  setActionsPerHour(num);
-                  onChange?.({ ...variant, actionsPerHour: num });
+                  setClickIntensity(num);
+                  onChange?.({ ...variant, clickIntensity: num });
                 }}
               />
             </div>
