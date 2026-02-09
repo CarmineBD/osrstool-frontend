@@ -498,7 +498,6 @@ function buildVariantUpdatePayload(variant: Variant): UpdateVariantDto {
     id: variant.id,
     label: variant.label,
     description: variant.description,
-    actionsPerHour: variant.actionsPerHour,
     clickIntensity: variant.clickIntensity,
     afkiness: variant.afkiness,
     riskLevel: variant.riskLevel,

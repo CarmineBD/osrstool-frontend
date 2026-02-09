@@ -393,7 +393,9 @@ export function MethodDetail(_props: Props) {
                     <CardHeader>
                       <CardDescription>AFKiness</CardDescription>
                       <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                        {variant.afkiness ? variant.afkiness : "N/A"}
+                        {variant.afkiness !== undefined
+                          ? `${variant.afkiness}%`
+                          : "N/A"}
                       </CardTitle>
                       <CardAction>
                         {/* <Badge variant="outline">
