@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/navigation-menu";
 
 export type Props = { hideInput?: boolean };
+const LOGIN_REQUIRED_MESSAGE = "sign-in/login to fetch data by osrs usernames";
 
 const components: { title: string; href: string; description: string }[] = [
   {
@@ -91,8 +92,18 @@ export function Nav({ hideInput }: Props) {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    if (!session) {
+      setUserError(LOGIN_REQUIRED_MESSAGE);
+      return;
+    }
     setUserError(null);
     setUsername(input.trim());
+  };
+
+  const handleUsernameInputInteraction = () => {
+    if (!session) {
+      setUserError(LOGIN_REQUIRED_MESSAGE);
+    }
   };
 
   const handleLogout = async () => {
@@ -242,7 +253,13 @@ export function Nav({ hideInput }: Props) {
                 id="username-input"
                 placeholder="Enter username"
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                readOnly={!session}
+                onClick={handleUsernameInputInteraction}
+                onFocus={handleUsernameInputInteraction}
+                onChange={(e) => {
+                  if (!session) return;
+                  setInput(e.target.value);
+                }}
               />
               <Button type="submit">Buscar</Button>
             </form>
@@ -291,4 +308,3 @@ function ListItem({
     </li>
   );
 }
-
