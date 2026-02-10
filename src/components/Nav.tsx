@@ -55,7 +55,7 @@ const components: { title: string; href: string; description: string }[] = [
 ];
 
 export function Nav({ hideInput }: Props) {
-  const { username, setUsername, userError, setUserError } = useUsername();
+  const { username, setUsername, clearUsername, userError, setUserError } = useUsername();
   const { session, signOut } = useAuth();
   const [input, setInput] = useState<string>(username);
   const [seconds, setSeconds] = useState(60);
@@ -111,7 +111,9 @@ export function Nav({ hideInput }: Props) {
     const error = await signOut();
     if (error) {
       setLogoutError(error);
+      return;
     }
+    clearUsername();
   };
 
   return (
