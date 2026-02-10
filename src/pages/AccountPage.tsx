@@ -34,7 +34,7 @@ function maskEmail(email: string) {
 
 export function AccountPage() {
   const { user, signOut } = useAuth();
-  const { username } = useUsername();
+  const { username, clearUsername } = useUsername();
   const [sortConfig, setSortConfig] = useState<{
     sortBy?: MethodsFilters["sortBy"];
     order?: MethodsFilters["order"];
@@ -48,7 +48,9 @@ export function AccountPage() {
   });
 
   const handleLogout = async () => {
-    await signOut();
+    const error = await signOut();
+    if (error) return;
+    clearUsername();
   };
 
   const likesCount = meData?.data?.likesCount ?? meData?.data?.likes ?? 0;
