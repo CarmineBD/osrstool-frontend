@@ -1,7 +1,35 @@
 // src/lib/api.ts
 import { authFetch as apiFetch } from "./http";
 
-const API_URL = import.meta.env.VITE_API_URL as string;
+function resolveApiUrl(): string {
+  const directUrl =
+    (import.meta.env.VITE_API_URL as string | undefined)?.trim() ||
+    (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim();
+  const useProxy =
+    import.meta.env.DEV &&
+    (import.meta.env.VITE_API_USE_PROXY as string | undefined) !== "false";
+
+  if (useProxy) {
+    return "/api";
+  }
+
+  return directUrl?.replace(/\/$/, "") ?? "";
+}
+
+const API_URL = resolveApiUrl();
+
+function toApiUrl(path: string): URL {
+  if (!API_URL) {
+    throw new Error("VITE_API_URL is missing");
+  }
+
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  if (/^https?:\/\//i.test(API_URL)) {
+    return new URL(`${API_URL}${normalizedPath}`);
+  }
+
+  return new URL(`${API_URL}${normalizedPath}`, window.location.origin);
+}
 
 export interface Method {
   id: string;
@@ -128,7 +156,7 @@ export async function fetchMethods(
   name?: string,
   filters?: MethodsFilters
 ): Promise<MethodsResponse> {
-  const url = new URL(`${API_URL}/methods`);
+  const url = toApiUrl("/methods");
   if (username) url.searchParams.set("username", username);
   if (page !== undefined) url.searchParams.set("page", page.toString());
   if (name) url.searchParams.set("name", name);
@@ -231,7 +259,7 @@ export interface ItemSearchResponse {
 }
 
 export async function fetchItems(ids: number[]): Promise<Record<number, Item>> {
-  const url = new URL(`${API_URL}/items`);
+  const url = toApiUrl("/items");
   url.searchParams.set("ids", ids.join(","));
   url.searchParams.set("fields", "name,iconUrl,highPrice,lowPrice");
   const res = await apiFetch(url.toString());
@@ -358,7 +386,7 @@ export async function searchItems(
     pageOrSignal && typeof pageOrSignal !== "number"
       ? pageOrSignal
       : signal;
-  const url = new URL(`${API_URL}/items/search`);
+  const url = toApiUrl("/items/search");
   url.searchParams.set("q", trimmed);
   url.searchParams.set("limit", limit.toString());
   url.searchParams.set("page", page.toString());
@@ -394,7 +422,7 @@ export async function fetchVariantHistory(
   range: string,
   granularity: string
 ): Promise<VariantHistoryResponse> {
-  const url = new URL(`${API_URL}/variants/${variantId}/history`);
+  const url = toApiUrl(`/variants/${variantId}/history`);
   url.searchParams.set("range", range);
   url.searchParams.set("granularity", granularity);
   const res = await apiFetch(url.toString());
@@ -414,7 +442,7 @@ export async function fetchMethodDetail(
   id: string,
   username?: string
 ): Promise<MethodDetailResponse> {
-  const url = new URL(`${API_URL}/methods/${id}`);
+  const url = toApiUrl(`/methods/${id}`);
   if (username) url.searchParams.set("username", username);
   const res = await apiFetch(url.toString());
   if (!res.ok) {
@@ -440,9 +468,7 @@ export async function fetchMethodDetailBySlug(
   if (!normalizedSlug) {
     throw new Error("Method slug is required");
   }
-  const url = new URL(
-    `${API_URL}/methods/slug/${encodeURIComponent(normalizedSlug)}`
-  );
+  const url = toApiUrl(`/methods/slug/${encodeURIComponent(normalizedSlug)}`);
   if (username) url.searchParams.set("username", username);
   const res = await apiFetch(url.toString());
   if (!res.ok) {

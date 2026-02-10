@@ -87,10 +87,16 @@ export function Home(_props: Props) {
   useEffect(() => {
     const loadMe = async () => {
       try {
-        const apiUrl = (import.meta.env.VITE_API_URL as string | undefined)?.replace(
-          /\/$/,
-          ""
-        );
+        const useProxy =
+          import.meta.env.DEV &&
+          (import.meta.env.VITE_API_USE_PROXY as string | undefined) !==
+            "false";
+        const apiUrl = useProxy
+          ? "/api"
+          : (
+              (import.meta.env.VITE_API_URL as string | undefined) ||
+              (import.meta.env.VITE_API_BASE_URL as string | undefined)
+            )?.replace(/\/$/, "");
         if (!apiUrl) {
           setIsSuperAdmin(false);
           return;
