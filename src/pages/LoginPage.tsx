@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { useAuth } from "@/auth/AuthProvider";
+import { Eye, EyeOff } from "lucide-react";
 
 type LocationState = {
   from?: {
@@ -20,6 +22,7 @@ export function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -90,14 +93,27 @@ export function LoginPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="auth-password">Password</Label>
-              <Input
-                id="auth-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                minLength={6}
-                required
-              />
+              <InputGroup>
+                <InputGroupInput
+                  id="auth-password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  minLength={6}
+                  required
+                />
+                <InputGroupAddon align="inline-end">
+                  <InputGroupButton
+                    aria-label={showPassword ? "Ocultar contrasena" : "Mostrar contrasena"}
+                    size="icon-xs"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    type="button"
+                    variant="ghost"
+                  >
+                    {showPassword ? <EyeOff /> : <Eye />}
+                  </InputGroupButton>
+                </InputGroupAddon>
+              </InputGroup>
             </div>
 
             {error && <p className="text-sm text-destructive">{error}</p>}

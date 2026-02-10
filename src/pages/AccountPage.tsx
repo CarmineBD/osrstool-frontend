@@ -14,6 +14,23 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Eye, EyeOff } from "lucide-react";
+
+function maskEmail(email: string) {
+  const atIndex = email.indexOf("@");
+  if (atIndex <= 0) {
+    return email.length <= 1 ? email : `${email[0]}${"*".repeat(email.length - 1)}`;
+  }
+
+  const localPart = email.slice(0, atIndex);
+  const domainPart = email.slice(atIndex);
+  const maskedLocal =
+    localPart.length <= 1
+      ? localPart
+      : `${localPart[0]}${"*".repeat(localPart.length - 1)}`;
+
+  return `${maskedLocal}${domainPart}`;
+}
 
 export function AccountPage() {
   const { user, signOut } = useAuth();
@@ -22,6 +39,7 @@ export function AccountPage() {
     sortBy?: MethodsFilters["sortBy"];
     order?: MethodsFilters["order"];
   }>({});
+  const [showEmail, setShowEmail] = useState(false);
 
   const { data: meData, error: meError, isLoading: isMeLoading } = useQuery({
     queryKey: ["me"],
@@ -53,7 +71,20 @@ export function AccountPage() {
         <CardContent className="space-y-4 text-sm">
           <div>
             <p className="text-muted-foreground">Email</p>
-            <p className="font-medium">{user?.email ?? "Sin email"}</p>
+            <div className="flex items-center gap-2">
+              <p className="font-medium">{user?.email ? (showEmail ? user.email : maskEmail(user.email)) : "Sin email"}</p>
+              {user?.email ? (
+                <Button
+                  aria-label={showEmail ? "Ocultar correo" : "Mostrar correo"}
+                  onClick={() => setShowEmail((prev) => !prev)}
+                  size="icon-xs"
+                  type="button"
+                  variant="ghost"
+                >
+                  {showEmail ? <EyeOff /> : <Eye />}
+                </Button>
+              ) : null}
+            </div>
           </div>
           <div>
             <p className="text-muted-foreground">User ID</p>
