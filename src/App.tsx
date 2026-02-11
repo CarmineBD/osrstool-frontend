@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { MethodDetail } from "./pages/MethodDetail";
 import { Home } from "./pages/Home";
 import { MethodEdit } from "./pages/MethodEdit";
+import { MethodCreate } from "./pages/MethodCreate";
 import { Layout } from "./components/Layout";
 import { UsernameProvider } from "./contexts/UsernameContext";
 import { AuthProvider } from "./auth/AuthProvider";
@@ -20,6 +21,7 @@ function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route element={<ProtectedRoute />}>
                 <Route path="/account" element={<AccountPage />} />
+                <Route path="/moneyMakingMethod/new" element={<MethodCreate />} />
               </Route>
               <Route
                 path="/moneyMakingMethod/:slug/:variantSlug?"

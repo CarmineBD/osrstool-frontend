@@ -698,6 +698,15 @@ export async function unlikeMethod(methodId: string): Promise<void> {
   }
 }
 
+export async function deleteMethod(methodId: string): Promise<void> {
+  const res = await apiFetch(`${API_URL}/methods/${methodId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status} - Error deleting method`);
+  }
+}
+
 export interface UpdateMethodBasicDto {
   name: string;
   category: string;
@@ -801,6 +810,30 @@ export async function updateMethodWithVariants(
   });
   if (!res.ok) {
     throw new Error(`HTTP ${res.status} - Error updating method`);
+  }
+  const json: unknown = await res.json();
+  const method =
+    (json as { data?: { method?: Method } }).data?.method ??
+    (json as { data?: Method }).data ??
+    (json as { method?: Method }).method;
+  if (!method) {
+    throw new Error("Method not found");
+  }
+  return method;
+}
+
+export async function createMethodWithVariants(
+  values: UpdateMethodBasicDto,
+  variants: Variant[]
+): Promise<Method> {
+  const dto = buildMethodUpdatePayload(values, variants);
+  const res = await apiFetch(`${API_URL}/methods`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(dto),
+  });
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status} - Error creating method`);
   }
   const json: unknown = await res.json();
   const method =
