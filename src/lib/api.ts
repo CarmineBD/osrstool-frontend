@@ -258,6 +258,26 @@ export interface ItemSearchResponse {
   perPage?: number;
 }
 
+export interface AchievementDiaryOption {
+  label: string;
+  value: string;
+  name: string;
+  tier: number;
+}
+
+export interface QuestOption {
+  label: string;
+  value: string;
+  name: string;
+  stage: number;
+}
+
+export interface SkillOption {
+  label: string;
+  value: string;
+  name: string;
+}
+
 export async function fetchItems(ids: number[]): Promise<Record<number, Item>> {
   const url = toApiUrl("/items");
   url.searchParams.set("ids", ids.join(","));
@@ -368,6 +388,166 @@ function parseItemSearchResponse(
     total,
     perPage: perPage ?? (fallbackLimit > 0 ? fallbackLimit : undefined),
   };
+}
+
+function parseCatalogArray(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value;
+  if (!value || typeof value !== "object") return [];
+
+  const root = value as Record<string, unknown>;
+  if (Array.isArray(root.data)) return root.data;
+
+  if (root.data && typeof root.data === "object") {
+    const nested = root.data as Record<string, unknown>;
+    const candidates: unknown[] = [
+      nested.achievementDiaries,
+      nested.achievement_diaries,
+      nested.quests,
+      nested.skills,
+      nested.items,
+      nested.results,
+    ];
+    const firstArray = candidates.find((candidate) => Array.isArray(candidate));
+    if (Array.isArray(firstArray)) return firstArray;
+  }
+
+  const rootCandidates: unknown[] = [
+    root.achievementDiaries,
+    root.achievement_diaries,
+    root.quests,
+    root.skills,
+    root.items,
+    root.results,
+  ];
+  const firstRootArray = rootCandidates.find((candidate) =>
+    Array.isArray(candidate)
+  );
+  return Array.isArray(firstRootArray) ? firstRootArray : [];
+}
+
+function parseAchievementDiaryOptions(value: unknown): AchievementDiaryOption[] {
+  const entries = parseCatalogArray(value);
+  const unique = new Map<string, AchievementDiaryOption>();
+
+  for (const entry of entries) {
+    if (!entry || typeof entry !== "object") continue;
+    const record = entry as Record<string, unknown>;
+    const nameValue = record.name ?? record.diary ?? record.label;
+    if (typeof nameValue !== "string" || !nameValue.trim()) continue;
+
+    const rawTier = record.tier ?? record.stage ?? record.level ?? 1;
+    const tier = Number(rawTier);
+    if (!Number.isFinite(tier)) continue;
+
+    const name = nameValue.trim();
+    const label = `${name} ${tier}`;
+    const valueKey = `${name.toLowerCase()}::${tier}`;
+    unique.set(valueKey, {
+      label,
+      value: valueKey,
+      name,
+      tier,
+    });
+  }
+
+  return Array.from(unique.values());
+}
+
+function parseQuestOptions(value: unknown): QuestOption[] {
+  const entries = parseCatalogArray(value);
+  const unique = new Map<string, QuestOption>();
+
+  for (const entry of entries) {
+    if (!entry || typeof entry !== "object") continue;
+    const record = entry as Record<string, unknown>;
+    const nameValue = record.name ?? record.quest ?? record.label;
+    if (typeof nameValue !== "string" || !nameValue.trim()) continue;
+
+    const rawStage = record.stage ?? record.progress ?? record.status ?? 1;
+    const stage = Number(rawStage);
+    if (!Number.isFinite(stage)) continue;
+
+    const name = nameValue.trim();
+    const label = stage === 1 ? name : `${name} (stage ${stage})`;
+    const valueKey = `${name.toLowerCase()}::${stage}`;
+    unique.set(valueKey, {
+      label,
+      value: valueKey,
+      name,
+      stage,
+    });
+  }
+
+  return Array.from(unique.values());
+}
+
+function parseSkillOptions(value: unknown): SkillOption[] {
+  const entries = parseCatalogArray(value);
+  const unique = new Map<string, SkillOption>();
+
+  for (const entry of entries) {
+    const skillName =
+      typeof entry === "string"
+        ? entry
+        : entry && typeof entry === "object"
+          ? ((entry as Record<string, unknown>).name ??
+              (entry as Record<string, unknown>).skill ??
+              (entry as Record<string, unknown>).label ??
+              "") as string
+          : "";
+
+    if (typeof skillName !== "string" || !skillName.trim()) continue;
+    const name = skillName.trim();
+    const value = name.toLowerCase();
+    unique.set(value, {
+      label: name,
+      value,
+      name,
+    });
+  }
+
+  return Array.from(unique.values());
+}
+
+async function fetchCatalog(path: string): Promise<unknown> {
+  const url = toApiUrl(path);
+  const res = await apiFetch(url.toString(), {
+    cache: "no-store",
+    headers: {
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
+    },
+  });
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status} â€“ Error fetching ${path}`);
+  }
+  return res.json();
+}
+
+export async function fetchAchievementDiaries(): Promise<
+  AchievementDiaryOption[]
+> {
+  try {
+    const json = await fetchCatalog("/achievement-diaries");
+    return parseAchievementDiaryOptions(json);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (!message.includes("HTTP 404")) {
+      throw error;
+    }
+    const json = await fetchCatalog("/achievement_diaries");
+    return parseAchievementDiaryOptions(json);
+  }
+}
+
+export async function fetchQuests(): Promise<QuestOption[]> {
+  const json = await fetchCatalog("/quests");
+  return parseQuestOptions(json);
+}
+
+export async function fetchSkills(): Promise<SkillOption[]> {
+  const json = await fetchCatalog("/skills");
+  return parseSkillOptions(json);
 }
 
 export async function searchItems(

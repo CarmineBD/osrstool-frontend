@@ -37,7 +37,7 @@ export function getUrlByType(type: string): string | null {
     hunter: "https://oldschool.runescape.wiki/images/Hunter_icon.png?b4bce",
     farming: "https://oldschool.runescape.wiki/images/Farming_icon.png?b4bce",
     sailing: "https://oldschool.runescape.wiki/images/Sailing_icon.png?b4bce",
-    achivement_diaries:
+    achievement_diaries:
       "https://oldschool.runescape.wiki/images/thumb/Achievement_Diaries.png/25px-Quests.png?f5120",
     quests:
       "https://oldschool.runescape.wiki/images/thumb/Quests.png/25px-Quests.png?f5120",
@@ -48,7 +48,7 @@ export function getUrlByType(type: string): string | null {
   return map[type.toLowerCase()] ?? null;
 }
 
-// export function getAchivementDiaryStageByLevel(id: number): string | null {
+// export function getAchievementDiaryStageByLevel(id: number): string | null {
 //   const map: Record<number, string> = {
 //     1: "Easy",
 //     2: "Medium",

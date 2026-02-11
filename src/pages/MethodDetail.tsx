@@ -288,8 +288,8 @@ export function MethodDetail(_props: Props) {
                           variant="secondary"
                         >
                           <img
-                            src={getUrlByType("achivement_diaries") ?? ""}
-                            alt={`achivements_diaries_icon`}
+                            src={getUrlByType("achievement_diaries") ?? ""}
+                            alt={`achievement_diaries_icon`}
                             title="quests"
                           />
                           {`${name} ${tier}`}
@@ -613,10 +613,10 @@ export function MethodDetail(_props: Props) {
                                         <img
                                           src={
                                             getUrlByType(
-                                              "achivement_diaries"
+                                              "achievement_diaries"
                                             ) ?? ""
                                           }
-                                          alt={`achivements_diaries_icon`}
+                                          alt={`achievement_diaries_icon`}
                                           title="quests"
                                         />
                                         {`${name} ${tier}`}
@@ -678,10 +678,10 @@ export function MethodDetail(_props: Props) {
                                           <img
                                             src={
                                               getUrlByType(
-                                                "achivement_diaries"
+                                                "achievement_diaries"
                                               ) ?? ""
                                             }
-                                            alt={`achivements_diaries_icon`}
+                                            alt={`achievement_diaries_icon`}
                                             title="quests"
                                           />
                                           {`${name} ${tier}`}

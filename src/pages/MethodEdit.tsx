@@ -5,7 +5,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
+  fetchAchievementDiaries,
   fetchMethodDetailBySlug,
+  fetchQuests,
+  fetchSkills,
   getVariantsSignature,
   updateMethodBasic,
   updateMethodWithVariants,
@@ -73,6 +76,57 @@ export function MethodEdit(_props: Props) {
     enabled: !!methodParam,
     retry: false,
   });
+  const isSuperAdmin = meData?.data?.role === "super_admin";
+  const shouldFetchSelectorCatalogs = !!methodParam && isSuperAdmin;
+  const {
+    data: achievementDiaryOptions = [],
+    isLoading: isAchievementDiariesLoading,
+    error: achievementDiariesError,
+  } = useQuery({
+    queryKey: ["methodEditCatalog", "achievement-diaries"],
+    queryFn: fetchAchievementDiaries,
+    enabled: shouldFetchSelectorCatalogs,
+    staleTime: 0,
+    gcTime: 5 * 60 * 1000,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
+    retry: false,
+  });
+  const {
+    data: questOptions = [],
+    isLoading: isQuestsLoading,
+    error: questsError,
+  } = useQuery({
+    queryKey: ["methodEditCatalog", "quests"],
+    queryFn: fetchQuests,
+    enabled: shouldFetchSelectorCatalogs,
+    staleTime: 0,
+    gcTime: 5 * 60 * 1000,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
+    retry: false,
+  });
+  const {
+    data: skillOptions = [],
+    isLoading: isSkillsLoading,
+    error: skillsError,
+  } = useQuery({
+    queryKey: ["methodEditCatalog", "skills"],
+    queryFn: fetchSkills,
+    enabled: shouldFetchSelectorCatalogs,
+    staleTime: 0,
+    gcTime: 5 * 60 * 1000,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
+    retry: false,
+  });
+  const selectorCatalogError =
+    achievementDiariesError ?? questsError ?? skillsError;
+  const selectorCatalogLoading =
+    isAchievementDiariesLoading || isQuestsLoading || isSkillsLoading;
   const [variants, setVariants] = useState<Variant[]>([] as Variant[]);
   const [initialVariantsSignature, setInitialVariantsSignature] = useState<
     string | null
@@ -143,6 +197,11 @@ export function MethodEdit(_props: Props) {
       setUserError("Failed to fetch user");
     }
   }, [error, setUserError]);
+  useEffect(() => {
+    if (selectorCatalogError) {
+      setUserError("Failed to fetch method edit selector options");
+    }
+  }, [selectorCatalogError, setUserError]);
   const method = data?.method;
   type FormValues = z.infer<typeof formSchema>;
   const form = useForm<FormValues>({
@@ -201,7 +260,6 @@ export function MethodEdit(_props: Props) {
     }
   };
   if (isMeLoading || isLoading) return <p>Cargando método…</p>;
-  const isSuperAdmin = meData?.data?.role === "super_admin";
   if (meError || !isSuperAdmin) {
     return (
       <div className="max-w-5xl mx-auto p-4">
@@ -299,6 +357,21 @@ export function MethodEdit(_props: Props) {
           </section> */}
           <section>
             <h2 className="font-semibold mb-2">Variants details</h2>
+            {selectorCatalogLoading ? (
+              <p className="mb-2 text-xs text-muted-foreground">
+                Loading selector options…
+              </p>
+            ) : selectorCatalogError ? (
+              <p className="mb-2 text-xs text-destructive">
+                Failed to load selector options.
+              </p>
+            ) : (
+              <p className="mb-2 text-xs text-muted-foreground">
+                Selector options ready: {skillOptions.length} skills,{" "}
+                {questOptions.length} quests,{" "}
+                {achievementDiaryOptions.length} achievement diaries.
+              </p>
+            )}
             {variants.map((variant, index) => (
               <VariantForm
                 key={index}
