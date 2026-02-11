@@ -18,16 +18,18 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import type { Variant } from "../lib/api";
+import type { SkillOption, Variant } from "../lib/api";
 import { IconDotsVertical, IconX, IconChevronDown } from "@tabler/icons-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { IoItemsField } from "@/components/IoItemsField";
+import { XpSkillsField } from "@/components/XpSkillsField";
 
 interface VariantFormProps {
   onRemove: () => void;
   variant: Variant;
+  skillOptions: SkillOption[];
   onChange?: (updated: Variant) => void;
   onDuplicate?: () => void;
   isLabelDuplicate?: boolean;
@@ -36,6 +38,7 @@ interface VariantFormProps {
 export function VariantForm({
   onRemove,
   variant,
+  skillOptions,
   onChange,
   onDuplicate,
   isLabelDuplicate,
@@ -48,8 +51,8 @@ export function VariantForm({
   const [clickIntensity, setClickIntensity] = useState<number | undefined>(
     variant.clickIntensity ?? variant.actionsPerHour
   );
-  const [xpHour, setXpHour] = useState<string>(
-    JSON.stringify(variant.xpHour ?? [], null, 2)
+  const [xpHour, setXpHour] = useState<NonNullable<Variant["xpHour"]>>(
+    variant.xpHour ?? []
   );
   const [inputs, setInputs] = useState<Variant["inputs"]>(variant.inputs ?? []);
   const [outputs, setOutputs] = useState<Variant["outputs"]>(variant.outputs ?? []);
@@ -66,7 +69,7 @@ export function VariantForm({
     setWilderness(variant.wilderness ?? false);
     setAfkiness(variant.afkiness);
     setClickIntensity(variant.clickIntensity ?? variant.actionsPerHour);
-    setXpHour(JSON.stringify(variant.xpHour ?? [], null, 2));
+    setXpHour(variant.xpHour ?? []);
     setInputs(variant.inputs ?? []);
     setOutputs(variant.outputs ?? []);
     setRequirements(JSON.stringify(variant.requirements ?? {}, null, 2));
@@ -199,23 +202,15 @@ export function VariantForm({
               />
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">XP per hour</label>
-            <Textarea
-              className="min-h-[100px] font-mono"
-              value={xpHour}
-              onChange={(e) => {
-                const next = e.target.value;
-                setXpHour(next);
-                try {
-                  const parsed = JSON.parse(next);
-                  onChange?.({ ...variant, xpHour: parsed });
-                } catch {
-                  return;
-                }
-              }}
-            />
-          </div>
+          <XpSkillsField
+            label="XP per hour"
+            skills={skillOptions}
+            entries={xpHour}
+            onChange={(next) => {
+              setXpHour(next);
+              onChange?.({ ...variant, xpHour: next });
+            }}
+          />
           <div className="grid gap-4 md:grid-cols-2">
             <IoItemsField
               label="Inputs"
