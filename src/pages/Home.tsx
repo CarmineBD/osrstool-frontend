@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { MethodsList } from "../features/methods/MethodsList";
+import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useUsername } from "@/contexts/UsernameContext";
-import { authFetch } from "@/lib/http";
 import { useAuth } from "@/auth/AuthProvider";
 import {
   Select,
@@ -16,6 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import type { MethodsFilters } from "@/lib/api";
 import { getUrlByType } from "@/lib/utils";
+import { fetchMe } from "@/lib/me";
 
 export type Props = Record<string, never>;
 const LOGIN_REQUIRED_MESSAGE = "sign-in/login to fetch data by osrs usernames";
@@ -57,7 +59,6 @@ export function Home(_props: Props) {
   const { username, setUsername, userError, setUserError } = useUsername();
   const { session, isLoading } = useAuth();
   const effectiveUsername = session ? username : "";
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [input, setInput] = useState<string>(effectiveUsername);
   const [methodInput, setMethodInput] = useState<string>("");
   const [methodName, setMethodName] = useState<string>("");
@@ -78,45 +79,18 @@ export function Home(_props: Props) {
   const [filters, setFilters] = useState<MethodsFilters>({
     enabled: true,
   });
+  const { data: meData } = useQuery({
+    queryKey: ["me"],
+    queryFn: fetchMe,
+    enabled: !!session,
+    retry: false,
+  });
+  const isSuperAdmin = meData?.data?.role === "super_admin";
 
   useEffect(() => {
     if (isLoading) return;
     setInput(effectiveUsername);
   }, [effectiveUsername, isLoading]);
-
-  useEffect(() => {
-    const loadMe = async () => {
-      try {
-        const useProxy =
-          import.meta.env.DEV &&
-          (import.meta.env.VITE_API_USE_PROXY as string | undefined) !==
-            "false";
-        const apiUrl = useProxy
-          ? "/api"
-          : (
-              (import.meta.env.VITE_API_URL as string | undefined) ||
-              (import.meta.env.VITE_API_BASE_URL as string | undefined)
-            )?.replace(/\/$/, "");
-        if (!apiUrl) {
-          setIsSuperAdmin(false);
-          return;
-        }
-
-        const response = await authFetch(`${apiUrl}/me`, { method: "GET" });
-        if (!response.ok) {
-          setIsSuperAdmin(false);
-          return;
-        }
-
-        const payload = (await response.json()) as { data?: { role?: string } };
-        setIsSuperAdmin(payload.data?.role === "super_admin");
-      } catch {
-        setIsSuperAdmin(false);
-      }
-    };
-
-    void loadMe();
-  }, []);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -194,7 +168,14 @@ export function Home(_props: Props) {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto p-8 space-y-6">
-        <h1 className="text-3xl font-bold">OSRS Moneymaking Methods</h1>
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <h1 className="text-3xl font-bold">OSRS Moneymaking Methods</h1>
+          {isSuperAdmin && (
+            <Button asChild>
+              <Link to="/moneyMakingMethod/new">Add new method</Link>
+            </Button>
+          )}
+        </div>
         <div className="flex flex-col gap-3 max-w-4xl">
           <form onSubmit={handleSubmit} className="space-y-1">
             <div className="flex gap-2">
