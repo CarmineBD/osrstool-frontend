@@ -316,14 +316,15 @@ export function MethodDetail(_props: Props) {
                   <Card className="@container/card">
                     <CardHeader>
                       <CardDescription>Gp/hr</CardDescription>
-                      <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl flex gap-3">
-                        <figure>
+                      <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl flex items-center gap-3">
+                        <figure className="shrink-0">
                           <img
                             src={
                               "https://oldschool.runescape.wiki/images/Coins_10000.png"
                             }
                             alt={"Coins"}
                             title={"Coins"}
+                            className="size-6 shrink-0 object-contain"
                           />
                         </figure>
 
