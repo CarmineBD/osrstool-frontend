@@ -210,7 +210,9 @@ export function VariantForm({
                 try {
                   const parsed = JSON.parse(next);
                   onChange?.({ ...variant, xpHour: parsed });
-                } catch {}
+                } catch {
+                  return;
+                }
               }}
             />
           </div>
@@ -244,7 +246,9 @@ export function VariantForm({
                   try {
                     const parsed = JSON.parse(next);
                     onChange?.({ ...variant, requirements: parsed });
-                  } catch {}
+                  } catch {
+                    return;
+                  }
                 }}
               />
             </div>
@@ -259,7 +263,9 @@ export function VariantForm({
                   try {
                     const parsed = JSON.parse(next);
                     onChange?.({ ...variant, recommendations: parsed });
-                  } catch {}
+                  } catch {
+                    return;
+                  }
                 }}
               />
             </div>
