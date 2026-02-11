@@ -18,18 +18,26 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import type { SkillOption, Variant } from "../lib/api";
+import type {
+  AchievementDiaryOption,
+  QuestOption,
+  SkillOption,
+  Variant,
+} from "../lib/api";
 import { IconDotsVertical, IconX, IconChevronDown } from "@tabler/icons-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { IoItemsField } from "@/components/IoItemsField";
 import { XpSkillsField } from "@/components/XpSkillsField";
+import { RequirementsRecommendationsField } from "@/components/RequirementsRecommendationsField";
 
 interface VariantFormProps {
   onRemove: () => void;
   variant: Variant;
   skillOptions: SkillOption[];
+  questOptions: QuestOption[];
+  achievementDiaryOptions: AchievementDiaryOption[];
   onChange?: (updated: Variant) => void;
   onDuplicate?: () => void;
   isLabelDuplicate?: boolean;
@@ -39,6 +47,8 @@ export function VariantForm({
   onRemove,
   variant,
   skillOptions,
+  questOptions,
+  achievementDiaryOptions,
   onChange,
   onDuplicate,
   isLabelDuplicate,
@@ -56,12 +66,6 @@ export function VariantForm({
   );
   const [inputs, setInputs] = useState<Variant["inputs"]>(variant.inputs ?? []);
   const [outputs, setOutputs] = useState<Variant["outputs"]>(variant.outputs ?? []);
-  const [requirements, setRequirements] = useState<string>(
-    JSON.stringify(variant.requirements ?? {}, null, 2)
-  );
-  const [recommendations, setRecommendations] = useState<string>(
-    JSON.stringify(variant.recommendations ?? {}, null, 2)
-  );
 
   useEffect(() => {
     setLabel(variant.label);
@@ -72,8 +76,6 @@ export function VariantForm({
     setXpHour(variant.xpHour ?? []);
     setInputs(variant.inputs ?? []);
     setOutputs(variant.outputs ?? []);
-    setRequirements(JSON.stringify(variant.requirements ?? {}, null, 2));
-    setRecommendations(JSON.stringify(variant.recommendations ?? {}, null, 2));
   }, [variant]);
 
   return (
@@ -229,42 +231,20 @@ export function VariantForm({
               }}
             />
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium mb-2">Requirements</label>
-              <Textarea
-                className="min-h-[100px] font-mono"
-                value={requirements}
-                onChange={(e) => {
-                  const next = e.target.value;
-                  setRequirements(next);
-                  try {
-                    const parsed = JSON.parse(next);
-                    onChange?.({ ...variant, requirements: parsed });
-                  } catch {
-                    return;
-                  }
-                }}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Recommendations</label>
-              <Textarea
-                className="min-h-[100px] font-mono"
-                value={recommendations}
-                onChange={(e) => {
-                  const next = e.target.value;
-                  setRecommendations(next);
-                  try {
-                    const parsed = JSON.parse(next);
-                    onChange?.({ ...variant, recommendations: parsed });
-                  } catch {
-                    return;
-                  }
-                }}
-              />
-            </div>
-          </div>
+          <RequirementsRecommendationsField
+            requirements={variant.requirements}
+            recommendations={variant.recommendations}
+            skillOptions={skillOptions}
+            questOptions={questOptions}
+            achievementDiaryOptions={achievementDiaryOptions}
+            onChange={({ requirements: nextRequirements, recommendations }) => {
+              onChange?.({
+                ...variant,
+                requirements: nextRequirements,
+                recommendations,
+              });
+            }}
+          />
         </div>
       )}
     </div>

@@ -163,7 +163,14 @@ export function MethodEdit(_props: Props) {
           ? structuredClone(original)
           : (JSON.parse(JSON.stringify(original)) as Variant);
       const nextLabel = `copy of ${original.label ?? ""}`;
-      const nextVariant = { ...cloned, label: nextLabel };
+      // Duplicated variants must not keep persisted identity fields.
+      // Otherwise backend treats the copy as an update of the original variant.
+      const nextVariant: Variant = {
+        ...cloned,
+        id: undefined,
+        slug: undefined,
+        label: nextLabel,
+      };
       return [...v.slice(0, index + 1), nextVariant, ...v.slice(index + 1)];
     });
 
@@ -379,6 +386,8 @@ export function MethodEdit(_props: Props) {
                 onDuplicate={() => duplicateVariantAt(index)}
                 isLabelDuplicate={isVariantLabelDuplicate(variant.label ?? "")}
                 skillOptions={skillOptions}
+                questOptions={questOptions}
+                achievementDiaryOptions={achievementDiaryOptions}
                 variant={variant}
                 onChange={(v) => updateVariantAt(index, v)}
               />
