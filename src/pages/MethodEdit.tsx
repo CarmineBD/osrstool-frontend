@@ -378,6 +378,7 @@ export function MethodEdit(_props: Props) {
                 onRemove={() => removeVariant(index)}
                 onDuplicate={() => duplicateVariantAt(index)}
                 isLabelDuplicate={isVariantLabelDuplicate(variant.label ?? "")}
+                skillOptions={skillOptions}
                 variant={variant}
                 onChange={(v) => updateVariantAt(index, v)}
               />
