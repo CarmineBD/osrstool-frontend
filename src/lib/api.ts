@@ -71,9 +71,12 @@ type QuestRequirement = {
   reason?: string;
 };
 
+type DiaryTier = number | string;
+
 type DiaryRequirement = {
   name: string;
-  tier: number;
+  tier?: DiaryTier;
+  stage?: number;
   reason?: string;
 };
 
@@ -262,7 +265,7 @@ export interface AchievementDiaryOption {
   label: string;
   value: string;
   name: string;
-  tier: number;
+  tier?: DiaryTier;
 }
 
 export interface QuestOption {
@@ -432,21 +435,29 @@ function parseAchievementDiaryOptions(value: unknown): AchievementDiaryOption[] 
   for (const entry of entries) {
     if (!entry || typeof entry !== "object") continue;
     const record = entry as Record<string, unknown>;
-    const nameValue = record.name ?? record.diary ?? record.label;
+    const nameValue = record.region ?? record.name ?? record.diary ?? record.label;
     if (typeof nameValue !== "string" || !nameValue.trim()) continue;
 
-    const rawTier = record.tier ?? record.stage ?? record.level ?? 1;
-    const tier = Number(rawTier);
-    if (!Number.isFinite(tier)) continue;
-
     const name = nameValue.trim();
-    const label = `${name} ${tier}`;
-    const valueKey = `${name.toLowerCase()}::${tier}`;
+    const rawTier = record.tier ?? record.stage ?? record.level;
+    let tier: DiaryTier | undefined;
+    if (typeof rawTier === "number" && Number.isFinite(rawTier)) {
+      tier = rawTier;
+    } else if (typeof rawTier === "string" && rawTier.trim()) {
+      const trimmed = rawTier.trim();
+      const numeric = Number(trimmed);
+      tier = Number.isFinite(numeric) ? numeric : trimmed;
+    }
+
+    const tierLabel = tier === undefined ? "" : ` - ${String(tier)}`;
+    const tierKey = tier === undefined ? "" : `::${String(tier).toLowerCase()}`;
+    const label = `${name}${tierLabel}`;
+    const valueKey = `${name.toLowerCase()}${tierKey}`;
     unique.set(valueKey, {
       label,
       value: valueKey,
       name,
-      tier,
+      ...(tier !== undefined ? { tier } : {}),
     });
   }
 
