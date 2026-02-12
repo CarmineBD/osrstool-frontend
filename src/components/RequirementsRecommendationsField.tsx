@@ -934,34 +934,42 @@ export function RequirementsRecommendationsField({
                       >
                         <div className="flex items-center gap-2">
                           {option.kind === "item" && option.iconUrl ? (
-                            <img
-                              src={option.iconUrl}
-                              alt={option.label}
-                              className="h-5 w-5 object-contain"
-                            />
+                            <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
+                              <img
+                                src={option.iconUrl}
+                                alt={option.label}
+                                className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
+                              />
+                            </div>
                           ) : null}
                           {option.kind === "skill" &&
                           getUrlByType(option.skill) ? (
-                            <img
-                              src={getUrlByType(option.skill) ?? ""}
-                              alt={`${option.skill}_icon`}
-                              className="h-5 w-5 object-contain"
-                            />
+                            <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
+                              <img
+                                src={getUrlByType(option.skill) ?? ""}
+                                alt={`${option.skill}_icon`}
+                                className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
+                              />
+                            </div>
                           ) : null}
                           {option.kind === "quest" && questIconUrl ? (
-                            <img
-                              src={questIconUrl}
-                              alt="quests_icon"
-                              className="h-5 w-5 object-contain"
-                            />
+                            <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
+                              <img
+                                src={questIconUrl}
+                                alt="quests_icon"
+                                className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
+                              />
+                            </div>
                           ) : null}
                           {option.kind === "achievement_diary" &&
                           achievementDiaryIconUrl ? (
-                            <img
-                              src={achievementDiaryIconUrl}
-                              alt="achievement_diaries_icon"
-                              className="h-5 w-5 object-contain"
-                            />
+                            <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
+                              <img
+                                src={achievementDiaryIconUrl}
+                                alt="achievement_diaries_icon"
+                                className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
+                              />
+                            </div>
                           ) : null}
                           <span>{option.label}</span>
                           {isAdded ? (
@@ -1017,11 +1025,13 @@ export function RequirementsRecommendationsField({
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {getItemIcon(entry) ? (
-                          <img
-                            src={getItemIcon(entry)}
-                            alt={getItemName(entry)}
-                            className="h-6 w-6 object-contain"
-                          />
+                          <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
+                            <img
+                              src={getItemIcon(entry)}
+                              alt={getItemName(entry)}
+                              className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
+                            />
+                          </div>
                         ) : null}
                         <span>{getItemName(entry)}</span>
                       </div>
@@ -1118,11 +1128,13 @@ export function RequirementsRecommendationsField({
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {questIconUrl ? (
-                          <img
-                            src={questIconUrl}
-                            alt="quests_icon"
-                            className="h-6 w-6 object-contain"
-                          />
+                          <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
+                            <img
+                              src={questIconUrl}
+                              alt="quests_icon"
+                              className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
+                            />
+                          </div>
                         ) : null}
                         <span>{entry.name}</span>
                       </div>
@@ -1216,11 +1228,13 @@ export function RequirementsRecommendationsField({
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {achievementDiaryIconUrl ? (
-                          <img
-                            src={achievementDiaryIconUrl}
-                            alt="achievement_diaries_icon"
-                            className="h-6 w-6 object-contain"
-                          />
+                          <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
+                            <img
+                              src={achievementDiaryIconUrl}
+                              alt="achievement_diaries_icon"
+                              className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
+                            />
+                          </div>
                         ) : null}
                         <span>
                           {formatAchievementDiaryLabel(entry.name, entry.tier)}
@@ -1316,11 +1330,13 @@ export function RequirementsRecommendationsField({
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {getUrlByType(entry.skill) ? (
-                          <img
-                            src={getUrlByType(entry.skill) ?? ""}
-                            alt={`${entry.skill}_icon`}
-                            className="h-6 w-6 object-contain"
-                          />
+                          <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
+                            <img
+                              src={getUrlByType(entry.skill) ?? ""}
+                              alt={`${entry.skill}_icon`}
+                              className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
+                            />
+                          </div>
                         ) : null}
                         <span>{entry.skill}</span>
                       </div>
