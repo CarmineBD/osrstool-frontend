@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type UIEvent } from "react";
 import {
   fetchItems,
   searchItems,
   type IoItem,
   type Item,
+  type ItemSearchResponse,
   type ItemSearchResult,
 } from "@/lib/api";
 import {
@@ -29,6 +30,26 @@ import { cn } from "@/lib/utils";
 
 const SEARCH_LIMIT = 10;
 const DEBOUNCE_MS = 200;
+const SCROLL_BOTTOM_THRESHOLD_PX = 24;
+
+function hasMoreItemPages(
+  response: ItemSearchResponse,
+  requestedPage: number,
+  limit: number
+): boolean {
+  const resolvedPage = response.page ?? requestedPage;
+  if (response.pageCount !== undefined) {
+    return resolvedPage < response.pageCount;
+  }
+  if (
+    response.total !== undefined &&
+    response.perPage !== undefined &&
+    response.perPage > 0
+  ) {
+    return resolvedPage * response.perPage < response.total;
+  }
+  return response.items.length >= limit;
+}
 
 interface IoItemsFieldProps {
   label: string;
@@ -46,12 +67,22 @@ export function IoItemsField({
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ItemSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [hasMoreResults, setHasMoreResults] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [itemsMap, setItemsMap] = useState<Record<number, Item>>({});
   const [searchCache, setSearchCache] = useState<
     Record<number, ItemSearchResult>
   >({});
   const requestIdRef = useRef(0);
+  const loadMoreControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      loadMoreControllerRef.current?.abort();
+    };
+  }, []);
 
   const idsKey = useMemo(
     () => Array.from(new Set(items.map((item) => item.id))).join(","),
@@ -84,9 +115,15 @@ export function IoItemsField({
 
   useEffect(() => {
     const trimmed = query.trim();
+    loadMoreControllerRef.current?.abort();
+    loadMoreControllerRef.current = null;
+
     if (!trimmed) {
       setResults([]);
       setLoading(false);
+      setLoadingMore(false);
+      setCurrentPage(0);
+      setHasMoreResults(false);
       setError(null);
       return;
     }
@@ -95,6 +132,9 @@ export function IoItemsField({
     const controller = new AbortController();
 
     setLoading(true);
+    setLoadingMore(false);
+    setCurrentPage(0);
+    setHasMoreResults(false);
     setError(null);
     setResults([]);
 
@@ -102,11 +142,15 @@ export function IoItemsField({
       searchItems(trimmed, SEARCH_LIMIT, 1, controller.signal)
         .then((response) => {
           if (requestIdRef.current !== requestId) return;
-          setResults(response.items.slice(0, SEARCH_LIMIT));
+          const nextItems = response.items.slice(0, SEARCH_LIMIT);
+          const resolvedPage = response.page ?? 1;
+          setResults(nextItems);
+          setCurrentPage(resolvedPage);
+          setHasMoreResults(hasMoreItemPages(response, 1, SEARCH_LIMIT));
           setSearchCache((prev) => {
-            if (response.items.length === 0) return prev;
+            if (nextItems.length === 0) return prev;
             const next = { ...prev };
-            response.items.forEach((item) => {
+            nextItems.forEach((item) => {
               next[item.id] = item;
             });
             return next;
@@ -131,6 +175,74 @@ export function IoItemsField({
       clearTimeout(timeout);
     };
   }, [query]);
+
+  const loadMoreResults = useCallback(() => {
+    const trimmed = query.trim();
+    if (!trimmed || loading || loadingMore || !hasMoreResults) return;
+
+    const requestId = ++requestIdRef.current;
+    const nextPage = Math.max(1, currentPage + 1);
+    const controller = new AbortController();
+    loadMoreControllerRef.current = controller;
+
+    setLoadingMore(true);
+    setError(null);
+
+    searchItems(trimmed, SEARCH_LIMIT, nextPage, controller.signal)
+      .then((response) => {
+        if (requestIdRef.current !== requestId) return;
+        const nextItems = response.items.slice(0, SEARCH_LIMIT);
+        const resolvedPage = response.page ?? nextPage;
+
+        setResults((prev) => {
+          if (nextItems.length === 0) return prev;
+          const seen = new Set(prev.map((item) => item.id));
+          const merged = [...prev];
+          nextItems.forEach((item) => {
+            if (seen.has(item.id)) return;
+            merged.push(item);
+            seen.add(item.id);
+          });
+          return merged;
+        });
+        setCurrentPage(resolvedPage);
+        setHasMoreResults(hasMoreItemPages(response, nextPage, SEARCH_LIMIT));
+        setSearchCache((prev) => {
+          if (nextItems.length === 0) return prev;
+          const next = { ...prev };
+          nextItems.forEach((item) => {
+            next[item.id] = item;
+          });
+          return next;
+        });
+        setLoadingMore(false);
+      })
+      .catch((err) => {
+        if (controller.signal.aborted) return;
+        if (requestIdRef.current !== requestId) return;
+        console.error("Item search failed", err);
+        setLoadingMore(false);
+        setError(
+          err instanceof Error ? err.message : "No se pudieron cargar los items."
+        );
+      })
+      .finally(() => {
+        if (loadMoreControllerRef.current === controller) {
+          loadMoreControllerRef.current = null;
+        }
+      });
+  }, [currentPage, hasMoreResults, loading, loadingMore, query]);
+
+  const handleResultsScroll = useCallback(
+    (event: UIEvent<HTMLElement>) => {
+      const element = event.currentTarget;
+      const distanceToBottom =
+        element.scrollHeight - element.scrollTop - element.clientHeight;
+      if (distanceToBottom > SCROLL_BOTTOM_THRESHOLD_PX) return;
+      loadMoreResults();
+    },
+    [loadMoreResults]
+  );
 
   const handleAddItem = (item: ItemSearchResult | null) => {
     if (!item) return;
@@ -175,7 +287,7 @@ export function IoItemsField({
     itemsMap[id]?.iconUrl ?? searchCache[id]?.iconUrl;
 
   const emptyMessage = loading
-    ? "Buscando..."
+    ? "Loading..."
     : query.trim()
       ? "Sin resultados"
       : "Escribe para buscar";
@@ -201,7 +313,7 @@ export function IoItemsField({
           showClear={query.trim().length > 0}
         />
         <ComboboxContent>
-          <ComboboxList>
+          <ComboboxList onScroll={handleResultsScroll}>
             {results.map((item) => {
               const isAdded = items.some((entry) => entry.id === item.id);
               return (
@@ -224,6 +336,11 @@ export function IoItemsField({
                 </ComboboxItem>
               );
             })}
+            {loadingMore ? (
+              <div className="px-2 py-1 text-xs text-muted-foreground">
+                Loading...
+              </div>
+            ) : null}
           </ComboboxList>
           <ComboboxEmpty>{emptyMessage}</ComboboxEmpty>
           {error ? (
