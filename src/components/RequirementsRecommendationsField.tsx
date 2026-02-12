@@ -1,9 +1,18 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type UIEvent,
+} from "react";
 import {
   fetchItems,
   searchItems,
   type AchievementDiaryOption,
   type Item,
+  type ItemSearchResponse,
   type ItemSearchResult,
   type QuestOption,
   type SkillOption,
@@ -37,6 +46,26 @@ import { IconX } from "@tabler/icons-react";
 const ITEM_SEARCH_LIMIT = 5;
 const LOCAL_SEARCH_LIMIT = 5;
 const ITEM_SEARCH_DEBOUNCE_MS = 200;
+const SCROLL_BOTTOM_THRESHOLD_PX = 24;
+
+function hasMoreItemPages(
+  response: ItemSearchResponse,
+  requestedPage: number,
+  limit: number
+): boolean {
+  const resolvedPage = response.page ?? requestedPage;
+  if (response.pageCount !== undefined) {
+    return resolvedPage < response.pageCount;
+  }
+  if (
+    response.total !== undefined &&
+    response.perPage !== undefined &&
+    response.perPage > 0
+  ) {
+    return resolvedPage * response.perPage < response.total;
+  }
+  return response.items.length >= limit;
+}
 
 type StageRequirement = 1 | 2;
 type RequirementPayload = Variant["requirements"];
@@ -417,8 +446,18 @@ export function RequirementsRecommendationsField({
   >({});
   const [itemsMap, setItemsMap] = useState<Record<number, Item>>({});
   const [itemSearchLoading, setItemSearchLoading] = useState(false);
+  const [itemSearchLoadingMore, setItemSearchLoadingMore] = useState(false);
+  const [itemSearchPage, setItemSearchPage] = useState(0);
+  const [itemSearchHasMore, setItemSearchHasMore] = useState(false);
   const [itemSearchError, setItemSearchError] = useState<string | null>(null);
   const itemSearchRequestIdRef = useRef(0);
+  const itemSearchLoadControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      itemSearchLoadControllerRef.current?.abort();
+    };
+  }, []);
 
   const sourceSignature = useMemo(
     () => JSON.stringify({ requirements: requirements ?? {}, recommendations: recommendations ?? {} }),
@@ -473,9 +512,15 @@ export function RequirementsRecommendationsField({
 
   useEffect(() => {
     const trimmed = query.trim();
+    itemSearchLoadControllerRef.current?.abort();
+    itemSearchLoadControllerRef.current = null;
+
     if (!trimmed) {
       setItemSearchResults([]);
       setItemSearchLoading(false);
+      setItemSearchLoadingMore(false);
+      setItemSearchPage(0);
+      setItemSearchHasMore(false);
       setItemSearchError(null);
       return;
     }
@@ -483,6 +528,9 @@ export function RequirementsRecommendationsField({
     const requestId = ++itemSearchRequestIdRef.current;
     const controller = new AbortController();
     setItemSearchLoading(true);
+    setItemSearchLoadingMore(false);
+    setItemSearchPage(0);
+    setItemSearchHasMore(false);
     setItemSearchError(null);
     setItemSearchResults([]);
 
@@ -491,7 +539,10 @@ export function RequirementsRecommendationsField({
         .then((response) => {
           if (itemSearchRequestIdRef.current !== requestId) return;
           const nextItems = response.items.slice(0, ITEM_SEARCH_LIMIT);
+          const resolvedPage = response.page ?? 1;
           setItemSearchResults(nextItems);
+          setItemSearchPage(resolvedPage);
+          setItemSearchHasMore(hasMoreItemPages(response, 1, ITEM_SEARCH_LIMIT));
           setItemSearchCache((prev) => {
             if (nextItems.length === 0) return prev;
             const next = { ...prev };
@@ -520,6 +571,91 @@ export function RequirementsRecommendationsField({
       clearTimeout(timeout);
     };
   }, [query]);
+
+  const loadMoreItemSearchResults = useCallback(() => {
+    const trimmed = query.trim();
+    if (
+      !trimmed ||
+      itemSearchLoading ||
+      itemSearchLoadingMore ||
+      !itemSearchHasMore
+    ) {
+      return;
+    }
+
+    const requestId = ++itemSearchRequestIdRef.current;
+    const nextPage = Math.max(1, itemSearchPage + 1);
+    const controller = new AbortController();
+    itemSearchLoadControllerRef.current = controller;
+
+    setItemSearchLoadingMore(true);
+    setItemSearchError(null);
+
+    searchItems(trimmed, ITEM_SEARCH_LIMIT, nextPage, controller.signal)
+      .then((response) => {
+        if (itemSearchRequestIdRef.current !== requestId) return;
+        const nextItems = response.items.slice(0, ITEM_SEARCH_LIMIT);
+        const resolvedPage = response.page ?? nextPage;
+
+        setItemSearchResults((prev) => {
+          if (nextItems.length === 0) return prev;
+          const seen = new Set(prev.map((item) => item.id));
+          const merged = [...prev];
+          nextItems.forEach((item) => {
+            if (seen.has(item.id)) return;
+            merged.push(item);
+            seen.add(item.id);
+          });
+          return merged;
+        });
+        setItemSearchPage(resolvedPage);
+        setItemSearchHasMore(
+          hasMoreItemPages(response, nextPage, ITEM_SEARCH_LIMIT)
+        );
+        setItemSearchCache((prev) => {
+          if (nextItems.length === 0) return prev;
+          const next = { ...prev };
+          nextItems.forEach((item) => {
+            next[item.id] = item;
+          });
+          return next;
+        });
+        setItemSearchLoadingMore(false);
+      })
+      .catch((error) => {
+        if (controller.signal.aborted) return;
+        if (itemSearchRequestIdRef.current !== requestId) return;
+        console.error("Item search failed", error);
+        setItemSearchLoadingMore(false);
+        setItemSearchError(
+          error instanceof Error
+            ? error.message
+            : "No se pudieron cargar los items."
+        );
+      })
+      .finally(() => {
+        if (itemSearchLoadControllerRef.current === controller) {
+          itemSearchLoadControllerRef.current = null;
+        }
+      });
+  }, [
+    itemSearchHasMore,
+    itemSearchLoading,
+    itemSearchLoadingMore,
+    itemSearchPage,
+    query,
+  ]);
+
+  const handleSearchListScroll = useCallback(
+    (event: UIEvent<HTMLElement>) => {
+      const element = event.currentTarget;
+      const distanceToBottom =
+        element.scrollHeight - element.scrollTop - element.clientHeight;
+      if (distanceToBottom > SCROLL_BOTTOM_THRESHOLD_PX) return;
+      loadMoreItemSearchResults();
+    },
+    [loadMoreItemSearchResults]
+  );
 
   const trimmedQuery = query.trim().toLowerCase();
 
@@ -631,7 +767,6 @@ export function RequirementsRecommendationsField({
   const visibleSearchGroups = useMemo(
     () =>
       [
-        { id: "items", label: "Items", options: itemSearchOptions },
         { id: "quests", label: "Quests", options: questSearchOptions },
         {
           id: "achievement_diaries",
@@ -639,6 +774,7 @@ export function RequirementsRecommendationsField({
           options: achievementDiarySearchOptions,
         },
         { id: "skills", label: "Skills", options: skillSearchOptions },
+        { id: "items", label: "Items", options: itemSearchOptions },
       ].filter((group) => group.options.length > 0),
     [
       achievementDiarySearchOptions,
@@ -649,7 +785,7 @@ export function RequirementsRecommendationsField({
   );
 
   const emptyMessage = itemSearchLoading
-    ? "Buscando..."
+    ? "Loading..."
     : trimmedQuery
       ? "Sin resultados"
       : "Escribe para buscar";
@@ -782,7 +918,7 @@ export function RequirementsRecommendationsField({
           showClear={query.trim().length > 0}
         />
         <ComboboxContent>
-          <ComboboxList>
+          <ComboboxList onScroll={handleSearchListScroll}>
             {visibleSearchGroups.map((group, index) => (
               <Fragment key={group.id}>
                 {index > 0 ? <ComboboxSeparator /> : null}
@@ -840,6 +976,11 @@ export function RequirementsRecommendationsField({
                 </ComboboxGroup>
               </Fragment>
             ))}
+            {itemSearchLoadingMore ? (
+              <div className="px-2 py-1 text-xs text-muted-foreground">
+                Loading...
+              </div>
+            ) : null}
           </ComboboxList>
           <ComboboxEmpty>{emptyMessage}</ComboboxEmpty>
           {itemSearchError ? (
