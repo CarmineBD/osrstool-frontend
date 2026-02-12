@@ -320,11 +320,13 @@ export function IoItemsField({
                 <ComboboxItem key={item.id} value={item} disabled={isAdded}>
                   <div className="flex items-center gap-2">
                     {item.iconUrl ? (
-                      <img
-                        src={item.iconUrl}
-                        alt={item.name}
-                        className="h-5 w-5 object-contain"
-                      />
+                      <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
+                        <img
+                          src={item.iconUrl}
+                          alt={item.name}
+                          className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
+                        />
+                      </div>
                     ) : null}
                     <span>{item.name}</span>
                     {isAdded ? (
@@ -376,11 +378,13 @@ export function IoItemsField({
                   <TableCell>
                     <div className="flex items-center gap-2">
                       {iconUrl ? (
-                        <img
-                          src={iconUrl}
-                          alt={getItemName(entry.id)}
-                          className="h-6 w-6 object-contain"
-                        />
+                        <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
+                          <img
+                            src={iconUrl}
+                            alt={getItemName(entry.id)}
+                            className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
+                          />
+                        </div>
                       ) : null}
                       <span className={cn(!iconUrl && "pl-1")}>
                         {getItemName(entry.id)}
