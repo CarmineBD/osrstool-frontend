@@ -30,6 +30,7 @@ import { IconTrendingUp, IconTrendingDown } from "@tabler/icons-react";
 
 interface VariantHistoryChartProps {
   variantId: string;
+  timezone?: string;
   trendLastHour?: number;
   trendLast24h?: number;
   trendLastWeek?: number;
@@ -54,8 +55,24 @@ const chartConfig: ChartConfig = {
   highProfit: { label: "High Profit", color: "#22c55e" },
 };
 
+function createDateTimeFormatter(
+  options: Intl.DateTimeFormatOptions,
+  timezone?: string,
+  locale?: Intl.LocalesArgument
+) {
+  try {
+    return new Intl.DateTimeFormat(
+      locale,
+      timezone ? { ...options, timeZone: timezone } : options
+    );
+  } catch {
+    return new Intl.DateTimeFormat(locale, options);
+  }
+}
+
 export function VariantHistoryChart({
   variantId,
+  timezone,
   trendLastHour,
   trendLast24h,
   trendLastWeek,
@@ -66,6 +83,54 @@ export function VariantHistoryChart({
     useState<(typeof RANGE_OPTIONS)[number]["value"]>("24h");
   const granularity =
     RANGE_OPTIONS.find((r) => r.value === range)?.granularity ?? "1h";
+  const resolvedTimeZone = useMemo(
+    () => timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
+    [timezone]
+  );
+
+  const axisTimeFormatter = useMemo(
+    () =>
+      createDateTimeFormatter(
+        { hour: "2-digit", minute: "2-digit", hour12: false },
+        resolvedTimeZone
+      ),
+    [resolvedTimeZone]
+  );
+  const axisDateFormatter = useMemo(
+    () =>
+      createDateTimeFormatter(
+        range === "1y" || range === "all"
+          ? { month: "short", year: "2-digit" }
+          : { day: "2-digit", month: "short" },
+        resolvedTimeZone
+      ),
+    [range, resolvedTimeZone]
+  );
+  const tooltipDateTimeFormatter = useMemo(
+    () =>
+      createDateTimeFormatter(
+        {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        },
+        resolvedTimeZone,
+        "en-GB"
+      ),
+    [resolvedTimeZone]
+  );
+  const statsDateFormatter = useMemo(
+    () =>
+      createDateTimeFormatter(
+        { day: "2-digit", month: "short", year: "numeric" },
+        resolvedTimeZone,
+        "en-GB"
+      ),
+    [resolvedTimeZone]
+  );
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["variantHistory", variantId, range],
@@ -162,10 +227,10 @@ export function VariantHistoryChart({
                   domain={["dataMin", "dataMax"]}
                   padding={{ left: 0, right: 0 }}
                   tickFormatter={(value) => {
-                    const date = new Date(value);
+                    const date = new Date(Number(value));
                     return range === "24h"
-                      ? date.toLocaleTimeString()
-                      : date.toLocaleDateString();
+                      ? axisTimeFormatter.format(date)
+                      : axisDateFormatter.format(date);
                   }}
                 />
                 <YAxis domain={yDomain} hide />
@@ -177,30 +242,8 @@ export function VariantHistoryChart({
                         const ts = payload?.[0]?.payload?.timestamp as
                           | number
                           | undefined;
-                        if (!ts) return "";
-                        const tz = "Europe/Madrid";
-                        const d = new Date(ts);
-
-                        const time = d.toLocaleTimeString("en-GB", {
-                          timeZone: tz,
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          hour12: false,
-                        });
-                        const day = d.toLocaleString("en-GB", {
-                          day: "numeric",
-                          timeZone: tz,
-                        });
-                        const mon = d.toLocaleString("en-US", {
-                          month: "short",
-                          timeZone: tz,
-                        });
-                        const year = d.toLocaleString("en-GB", {
-                          year: "numeric",
-                          timeZone: tz,
-                        });
-
-                        return `${time} - ${day} ${mon} ${year}`;
+                        if (ts === undefined) return "";
+                        return tooltipDateTimeFormatter.format(new Date(ts));
                       }}
                     />
                   }
