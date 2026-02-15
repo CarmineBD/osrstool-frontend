@@ -7,6 +7,7 @@ import {
 } from "../lib/api";
 import { useParams, useNavigate } from "react-router-dom";
 import { getUrlByType, formatNumber, formatPercent } from "@/lib/utils";
+import { QUERY_REFETCH_INTERVAL_MS } from "@/lib/queryRefresh";
 import Markdown from "@/components/Markdown";
 import { useQuery } from "@tanstack/react-query";
 import { useUsername } from "@/contexts/UsernameContext";
@@ -61,6 +62,7 @@ export function MethodDetail(_props: Props) {
     queryKey: ["methodDetail", methodParam, username],
     queryFn: () => fetchMethodDetailBySlug(methodParam, username),
     enabled: !!methodParam,
+    refetchInterval: QUERY_REFETCH_INTERVAL_MS,
     retry: false,
   });
 
@@ -99,6 +101,7 @@ export function MethodDetail(_props: Props) {
     queryKey: ["items", itemIds],
     queryFn: () => fetchItems(itemIds),
     enabled: itemIds.length > 0,
+    refetchInterval: QUERY_REFETCH_INTERVAL_MS,
   });
 
   if (isLoading) return <p>Cargando método…</p>;
