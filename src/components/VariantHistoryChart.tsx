@@ -322,7 +322,7 @@ export function VariantHistoryChart({
                 </div>
                 {minPoint && (
                   <div className="text-muted-foreground">
-                    {new Date(minPoint.timestamp).toLocaleDateString("en-GB")}
+                    {statsDateFormatter.format(new Date(minPoint.timestamp))}
                   </div>
                 )}
               </div>
@@ -333,7 +333,7 @@ export function VariantHistoryChart({
                 </div>
                 {maxPoint && (
                   <div className="text-muted-foreground">
-                    {new Date(maxPoint.timestamp).toLocaleDateString("en-GB")}
+                    {statsDateFormatter.format(new Date(maxPoint.timestamp))}
                   </div>
                 )}
               </div>
