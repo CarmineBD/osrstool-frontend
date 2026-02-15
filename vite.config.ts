@@ -57,5 +57,10 @@ export default defineConfig(({ mode }) => {
           }
         : undefined,
     },
+    test: {
+      environment: "jsdom",
+      setupFiles: "./tests/setup.ts",
+      css: true,
+    },
   };
 });
