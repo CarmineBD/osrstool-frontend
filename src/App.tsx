@@ -7,6 +7,7 @@ import { AuthProvider } from "./auth/AuthProvider";
 import { LoginPage } from "./pages/LoginPage";
 import { AccountPage } from "./pages/AccountPage";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
+import { NotFoundPage } from "./pages/NotFoundPage";
 
 const LazyMethodDetail = lazy(() =>
   import("./pages/MethodDetail").then((module) => ({
@@ -58,6 +59,7 @@ function App() {
                   </Suspense>
                 }
               />
+              <Route path="*" element={<NotFoundPage />} />
             </Route>
           </Routes>
         </UsernameProvider>
