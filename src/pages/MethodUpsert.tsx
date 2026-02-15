@@ -25,7 +25,6 @@ import {
   type Variant,
 } from "@/lib/api";
 import { useUsername } from "@/contexts/UsernameContext";
-import { fetchMe } from "@/lib/me";
 import {
   Form,
   FormField,
@@ -85,16 +84,6 @@ export function MethodUpsert({ mode }: Props) {
   const { username, setUserError } = useUsername();
 
   const {
-    data: meData,
-    isLoading: isMeLoading,
-    error: meError,
-  } = useQuery({
-    queryKey: ["me"],
-    queryFn: fetchMe,
-    retry: false,
-  });
-
-  const {
     data,
     error,
     isLoading,
@@ -105,9 +94,6 @@ export function MethodUpsert({ mode }: Props) {
     retry: false,
   });
 
-  const isSuperAdmin = meData?.data?.role === "super_admin";
-  const shouldFetchSelectorCatalogs = isSuperAdmin;
-
   const {
     data: achievementDiaryOptions = [],
     isLoading: isAchievementDiariesLoading,
@@ -115,7 +101,7 @@ export function MethodUpsert({ mode }: Props) {
   } = useQuery({
     queryKey: ["methodEditCatalog", "achievement-diaries"],
     queryFn: fetchAchievementDiaries,
-    enabled: shouldFetchSelectorCatalogs,
+    enabled: true,
     staleTime: 0,
     gcTime: 5 * 60 * 1000,
     refetchOnMount: "always",
@@ -131,7 +117,7 @@ export function MethodUpsert({ mode }: Props) {
   } = useQuery({
     queryKey: ["methodEditCatalog", "quests"],
     queryFn: fetchQuests,
-    enabled: shouldFetchSelectorCatalogs,
+    enabled: true,
     staleTime: 0,
     gcTime: 5 * 60 * 1000,
     refetchOnMount: "always",
@@ -147,7 +133,7 @@ export function MethodUpsert({ mode }: Props) {
   } = useQuery({
     queryKey: ["methodEditCatalog", "skills"],
     queryFn: fetchSkills,
-    enabled: shouldFetchSelectorCatalogs,
+    enabled: true,
     staleTime: 0,
     gcTime: 5 * 60 * 1000,
     refetchOnMount: "always",
@@ -372,18 +358,8 @@ export function MethodUpsert({ mode }: Props) {
     }
   };
 
-  if (isMeLoading || (isEditMode && isLoading)) {
+  if (isEditMode && isLoading) {
     return <p>Cargando metodo...</p>;
-  }
-
-  if (meError || !isSuperAdmin) {
-    return (
-      <div className="max-w-5xl mx-auto p-4">
-        <p className="text-red-500">
-          No tienes permisos para {isEditMode ? "editar" : "crear"} metodos.
-        </p>
-      </div>
-    );
   }
 
   if (isEditMode && error) {
