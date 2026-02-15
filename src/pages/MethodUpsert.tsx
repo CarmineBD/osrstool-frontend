@@ -9,7 +9,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createMethodWithVariants,
   deleteMethod,
@@ -80,6 +80,7 @@ type Props = {
 export function MethodUpsert({ mode }: Props) {
   const isEditMode = mode === "edit";
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { slug: methodParam = "" } = useParams<{ slug: string }>();
   const { username, setUserError } = useUsername();
 
@@ -264,9 +265,31 @@ export function MethodUpsert({ mode }: Props) {
   }, [method, form, isEditMode]);
 
   const navigateToMethodDetail = (savedMethod: Method) => {
-    navigate(`/moneyMakingMethod/${savedMethod.slug}`, {
-      state: { methodId: savedMethod.id },
-    });
+    navigate(`/moneyMakingMethod/${savedMethod.slug}`);
+  };
+
+  const invalidateMethodCaches = async (
+    ...maybeSlugs: Array<string | undefined>
+  ) => {
+    const uniqueSlugs = Array.from(
+      new Set(
+        maybeSlugs
+          .map((slug) => slug?.trim())
+          .filter((slug): slug is string => Boolean(slug))
+      )
+    );
+
+    const invalidations: Array<Promise<unknown>> = [
+      queryClient.invalidateQueries({ queryKey: ["methods"] }),
+    ];
+
+    for (const slug of uniqueSlugs) {
+      invalidations.push(
+        queryClient.invalidateQueries({ queryKey: ["methodDetail", slug] })
+      );
+    }
+
+    await Promise.all(invalidations);
   };
 
   const submitWithEnabled = async (values: FormValues, enabledValue: boolean) => {
@@ -275,6 +298,7 @@ export function MethodUpsert({ mode }: Props) {
         { ...values, enabled: enabledValue },
         variants
       );
+      await invalidateMethodCaches(createdMethod.slug);
       navigateToMethodDetail(createdMethod);
       return;
     }
@@ -300,6 +324,7 @@ export function MethodUpsert({ mode }: Props) {
       });
     }
 
+    await invalidateMethodCaches(methodParam, updatedMethod.slug);
     navigateToMethodDetail(updatedMethod);
   };
 
@@ -344,6 +369,7 @@ export function MethodUpsert({ mode }: Props) {
     setIsDeleting(true);
     try {
       await deleteMethod(method.id);
+      await invalidateMethodCaches(methodParam, method.slug);
       setDeleteConfirmOpen(false);
       navigate("/");
     } catch (deleteError) {

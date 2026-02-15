@@ -1,6 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Link, useLocation, useParams } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useUsername } from "@/contexts/UsernameContext";
@@ -58,37 +57,11 @@ export function Nav({ hideInput }: Props) {
   const { username, setUsername, clearUsername, userError, setUserError } = useUsername();
   const { session, signOut } = useAuth();
   const [input, setInput] = useState<string>(username);
-  const [seconds, setSeconds] = useState(60);
   const [logoutError, setLogoutError] = useState<string | null>(null);
-  const location = useLocation();
-  const { id } = useParams<{ id?: string }>();
-  const queryClient = useQueryClient();
 
   useEffect(() => {
     setInput(username);
   }, [username]);
-
-  useEffect(() => {
-    setSeconds(60);
-    const interval = setInterval(() => {
-      setSeconds((s) => {
-        if (s <= 1) {
-          if (location.pathname === "/") {
-            queryClient.invalidateQueries({ queryKey: ["methods", username] });
-          } else if (id) {
-            queryClient.invalidateQueries({
-              queryKey: ["methodDetail", id, username],
-            });
-            queryClient.invalidateQueries({ queryKey: ["items"] });
-            queryClient.invalidateQueries({ queryKey: ["variantHistory"] });
-          }
-          return 60;
-        }
-        return s - 1;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [location.pathname, id, username, queryClient]);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -268,8 +241,6 @@ export function Nav({ hideInput }: Props) {
             {userError && <p className="text-sm text-red-500">{userError}</p>}
           </div>
         )}
-
-        <span className="text-sm text-gray-500">Actualizacion en: {seconds}s</span>
 
         {session ? (
           <div className="flex items-center gap-2">

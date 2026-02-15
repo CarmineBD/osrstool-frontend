@@ -18,6 +18,7 @@ import {
 } from "../../lib/api";
 import { useUsername } from "@/contexts/UsernameContext";
 import type { MeResponse } from "@/lib/me";
+import { QUERY_REFETCH_INTERVAL_MS } from "@/lib/queryRefresh";
 
 type ToggleLikeInput = {
   methodId: string;
@@ -111,6 +112,7 @@ export function useMethods(
     queryFn: () => fetchMethods(username, page, name, filters),
     placeholderData: (previousData) => previousData,
     staleTime: 30 * 1000,
+    refetchInterval: QUERY_REFETCH_INTERVAL_MS,
     retry: false,
   });
 
