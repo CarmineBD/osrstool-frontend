@@ -1,8 +1,10 @@
+import "@testing-library/jest-dom/vitest";
 import { render, screen } from "@testing-library/react";
+import type { ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { AppErrorBoundary } from "./AppErrorBoundary";
 
-function ThrowOnRender() {
+function ThrowOnRender(): ReactElement {
   throw new Error("boom");
 }
 
