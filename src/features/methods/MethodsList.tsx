@@ -89,7 +89,7 @@ export function MethodsList({
             }))
           : [];
       return {
-        id: `${method.id}-${variant.id ?? index}`,
+        id: `${method.slug}-${variant.slug ?? variant.id ?? index}`,
         methodId: method.id,
         methodSlug: method.slug,
         variantSlug: variant.slug ?? (variant.id ?? index).toString(),
@@ -251,7 +251,6 @@ export function MethodsList({
                       row.variantCount > 1 ? `/${row.variantSlug}` : ""
                     }`}
                     className="text-blue-600 hover:underline"
-                    state={{ methodId: row.methodId }}
                   >
                     {row.name}
                   </Link>

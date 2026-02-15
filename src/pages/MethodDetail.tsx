@@ -116,6 +116,7 @@ export function MethodDetail(_props: Props) {
   const firstTabSlug =
     method.variants[0]?.slug ?? (method.variants[0]?.id ?? 0).toString();
   const activeSlug = variantSlug ?? firstTabSlug;
+  const methodSlug = method.slug || methodParam;
   const hasMultiple = (method?.variants?.length ?? 0) > 1;
   const isSuperAdmin = meData?.data?.role === "super_admin";
   return (
@@ -125,11 +126,7 @@ export function MethodDetail(_props: Props) {
           variant="ghost"
           size="icon"
           className="absolute top-4 right-4"
-          onClick={() =>
-            navigate(`/moneyMakingMethod/${methodParam}/edit`, {
-              state: { methodId: method.id },
-            })
-          }
+          onClick={() => navigate(`/moneyMakingMethod/${methodSlug}/edit`)}
         >
           <IconPencil size={20} />
         </Button>
@@ -154,8 +151,7 @@ export function MethodDetail(_props: Props) {
         value={activeSlug}
         onValueChange={(v) =>
           navigate(
-            `/moneyMakingMethod/${methodParam}${hasMultiple ? `/${v}` : ""}`,
-            { state: { methodId: method.id } }
+            `/moneyMakingMethod/${methodSlug}${hasMultiple ? `/${v}` : ""}`
           )
         }
         className="w-full"
