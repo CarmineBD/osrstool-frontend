@@ -121,7 +121,7 @@ export function Nav({ hideInput }: Props) {
                     </Link>
                   </NavigationMenuLink>
                 </li>
-                <ListItem href="/docs" title="Hottest">
+                {/* <ListItem href="/docs" title="Hottest">
                   Money making methods that are trending now.
                 </ListItem>
                 <ListItem href="/docs/installation" title="Most favourited">
@@ -133,12 +133,12 @@ export function Nav({ hideInput }: Props) {
                   title="Community Money Making Methods"
                 >
                   Money making methods submitted by the community.
-                </ListItem>
+                </ListItem> */}
               </ul>
             </NavigationMenuContent>
           </NavigationMenuItem>
 
-          <NavigationMenuItem>
+          {/* <NavigationMenuItem>
             <NavigationMenuTrigger>Training methods</NavigationMenuTrigger>
             <NavigationMenuContent>
               <ul className="grid w-[400px] gap-2 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
@@ -153,9 +153,9 @@ export function Nav({ hideInput }: Props) {
                 ))}
               </ul>
             </NavigationMenuContent>
-          </NavigationMenuItem>
+          </NavigationMenuItem> */}
 
-          <NavigationMenuItem>
+          {/* <NavigationMenuItem>
             <NavigationMenuTrigger>Calculators</NavigationMenuTrigger>
             <NavigationMenuContent>
               <ul className="grid w-[300px] gap-4">
@@ -181,9 +181,9 @@ export function Nav({ hideInput }: Props) {
                 </li>
               </ul>
             </NavigationMenuContent>
-          </NavigationMenuItem>
+          </NavigationMenuItem> */}
 
-          <NavigationMenuItem>
+          {/* <NavigationMenuItem>
             <NavigationMenuTrigger>Useful tables</NavigationMenuTrigger>
             <NavigationMenuContent>
               <ul className="grid w-[300px] gap-4">
@@ -215,7 +215,7 @@ export function Nav({ hideInput }: Props) {
                 </li>
               </ul>
             </NavigationMenuContent>
-          </NavigationMenuItem>
+          </NavigationMenuItem> */}
         </NavigationMenuList>
       </NavigationMenu>
 
