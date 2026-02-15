@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from "react";
+import { lazy, Suspense, useMemo, useEffect } from "react";
 import {
   fetchItems,
   fetchMethodDetailBySlug,
@@ -39,11 +39,11 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import VariantHistoryChart from "@/components/VariantHistoryChart";
 import { Button } from "@/components/ui/button";
 import { LikeButton } from "@/features/methods/LikeButton";
 
 export type Props = Record<string, never>;
+const LazyVariantHistoryChart = lazy(() => import("@/components/VariantHistoryChart"));
 
 export function MethodDetail(_props: Props) {
   void _props;
@@ -768,14 +768,22 @@ export function MethodDetail(_props: Props) {
 
               {/* Gráfico */}
               {variant.id && (
-                <VariantHistoryChart
-                  variantId={variant.id}
-                  trendLastHour={variant.trendLastHour}
-                  trendLast24h={variant.trendLast24h}
-                  trendLastWeek={variant.trendLastWeek}
-                  trendLastMonth={variant.trendLastMonth}
-                  trendLastYear={variant.trendLastYear}
-                />
+                <Suspense
+                  fallback={
+                    <div className="mt-4 text-sm text-muted-foreground">
+                      Loading chart...
+                    </div>
+                  }
+                >
+                  <LazyVariantHistoryChart
+                    variantId={variant.id}
+                    trendLastHour={variant.trendLastHour}
+                    trendLast24h={variant.trendLast24h}
+                    trendLastWeek={variant.trendLastWeek}
+                    trendLastMonth={variant.trendLastMonth}
+                    trendLastYear={variant.trendLastYear}
+                  />
+                </Suspense>
               )}
             </div>
           </TabsContent>
