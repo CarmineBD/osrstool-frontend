@@ -633,7 +633,7 @@ async function fetchCatalog(path: string): Promise<unknown> {
     },
   });
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} â€“ Error fetching ${path}`);
+    throw new Error(`HTTP ${res.status} - Error fetching ${path}`);
   }
   return res.json();
 }
@@ -887,7 +887,7 @@ export async function updateMethodBasic(
     body: JSON.stringify(dto),
   });
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} â€“ Error updating method`);
+    throw new Error(`HTTP ${res.status} - Error updating method`);
   }
   const json: unknown = await res.json();
   const method =
