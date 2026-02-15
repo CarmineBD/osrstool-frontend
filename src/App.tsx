@@ -21,15 +21,14 @@ function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route element={<ProtectedRoute />}>
                 <Route path="/account" element={<AccountPage />} />
+              </Route>
+              <Route element={<ProtectedRoute requiredRole="super_admin" />}>
                 <Route path="/moneyMakingMethod/new" element={<MethodCreate />} />
+                <Route path="/moneyMakingMethod/:slug/edit" element={<MethodEdit />} />
               </Route>
               <Route
                 path="/moneyMakingMethod/:slug/:variantSlug?"
                 element={<MethodDetail />}
-              />
-              <Route
-                path="/moneyMakingMethod/:slug/edit"
-                element={<MethodEdit />}
               />
             </Route>
           </Routes>
