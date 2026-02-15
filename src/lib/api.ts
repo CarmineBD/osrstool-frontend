@@ -136,7 +136,27 @@ function parseWarnings(value: unknown): ApiWarning[] | undefined {
 export interface MethodsResponse {
   methods: Method[];
   warnings?: ApiWarning[];
+  page?: number;
+  perPage?: number;
+  total?: number;
+  hasNext?: boolean;
+  nextCursor?: string;
   pageCount?: number;
+}
+
+function toBoolean(value: unknown): boolean | undefined {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") {
+    if (value === 1) return true;
+    if (value === 0) return false;
+    return undefined;
+  }
+  if (typeof value !== "string") return undefined;
+
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "true") return true;
+  if (normalized === "false") return false;
+  return undefined;
 }
 
 export interface MethodsFilters {
@@ -157,11 +177,13 @@ export async function fetchMethods(
   username?: string,
   page?: number,
   name?: string,
-  filters?: MethodsFilters
+  filters?: MethodsFilters,
+  cursor?: string
 ): Promise<MethodsResponse> {
   const url = toApiUrl("/methods");
   if (username) url.searchParams.set("username", username);
   if (page !== undefined) url.searchParams.set("page", page.toString());
+  if (cursor) url.searchParams.set("cursor", cursor);
   if (name) url.searchParams.set("name", name);
   if (filters?.category) url.searchParams.set("category", filters.category);
   if (filters?.clickIntensity !== undefined) {
@@ -194,50 +216,131 @@ export async function fetchMethods(
     throw new Error(`HTTP ${res.status} – Error fetching methods`);
   }
   const json: unknown = await res.json();
+  const root =
+    json && typeof json === "object"
+      ? (json as Record<string, unknown>)
+      : undefined;
+  const data =
+    root?.data && typeof root.data === "object"
+      ? (root.data as Record<string, unknown>)
+      : undefined;
+  const meta =
+    root?.meta && typeof root.meta === "object"
+      ? (root.meta as Record<string, unknown>)
+      : undefined;
+  const dataMeta =
+    data?.meta && typeof data.meta === "object"
+      ? (data.meta as Record<string, unknown>)
+      : undefined;
+  const pagination =
+    (data?.pagination ??
+      dataMeta?.pagination ??
+      root?.pagination ??
+      meta?.pagination) as Record<string, unknown> | undefined;
+
   let methods: Method[] = [];
-  let pageCount: number | undefined;
   if (Array.isArray(json)) {
     methods = json as Method[];
-  } else {
-    const data = (
-      json as {
-        data?: {
-          methods?: Method[];
-          pageCount?: number;
-          pagination?: { pageCount?: number };
-        };
-      }
-    ).data;
-    methods = data?.methods ?? [];
-    pageCount =
-      (json as { pageCount?: number }).pageCount ??
-      data?.pageCount ??
-      (data?.pagination as { pageCount?: number } | undefined)?.pageCount ??
-      (json as { meta?: { pagination?: { pageCount?: number } } }).meta
-        ?.pagination?.pageCount;
+  } else if (Array.isArray(data?.methods)) {
+    methods = data.methods as Method[];
+  } else if (Array.isArray(root?.methods)) {
+    methods = root.methods as Method[];
+  }
 
-    // Derive pageCount from meta.total / meta.perPage when available
-    if (
-      pageCount === undefined &&
-      (json as { meta?: { total?: number; perPage?: number } }).meta?.total !==
-        undefined
-    ) {
-      const meta = (json as { meta?: { total?: number; perPage?: number } })
-        .meta;
-      const total = Number(meta?.total ?? 0);
-      const perPage = Number(meta?.perPage ?? 10);
-      if (
-        Number.isFinite(total) &&
-        total > 0 &&
-        Number.isFinite(perPage) &&
-        perPage > 0
-      ) {
-        pageCount = Math.max(1, Math.ceil(total / perPage));
-      }
+  const resolvedPage = toNumber(
+    data?.page ??
+      root?.page ??
+      pagination?.page ??
+      pagination?.currentPage ??
+      pagination?.current_page ??
+      meta?.page
+  );
+  const perPage = toNumber(
+    data?.perPage ??
+      data?.pageSize ??
+      root?.perPage ??
+      root?.pageSize ??
+      pagination?.perPage ??
+      pagination?.per_page ??
+      pagination?.pageSize ??
+      pagination?.limit ??
+      meta?.perPage ??
+      meta?.pageSize ??
+      root?.limit
+  );
+  const total = toNumber(
+    data?.total ??
+      root?.total ??
+      pagination?.total ??
+      pagination?.count ??
+      meta?.total ??
+      dataMeta?.total
+  );
+  const nextCursorValue =
+    data?.nextCursor ??
+    data?.next_cursor ??
+    root?.nextCursor ??
+    root?.next_cursor ??
+    pagination?.nextCursor ??
+    pagination?.next_cursor ??
+    meta?.nextCursor ??
+    meta?.next_cursor;
+  const nextCursor =
+    typeof nextCursorValue === "string" && nextCursorValue.trim() !== ""
+      ? nextCursorValue
+      : undefined;
+  const hasNext =
+    toBoolean(
+      data?.hasNext ??
+        data?.has_next ??
+        root?.hasNext ??
+        root?.has_next ??
+        pagination?.hasNext ??
+        pagination?.has_next ??
+        meta?.hasNext ??
+        meta?.has_next
+    ) ?? (nextCursor !== undefined ? true : undefined);
+
+  let pageCount = toNumber(
+    data?.pageCount ??
+      root?.pageCount ??
+      pagination?.pageCount ??
+      pagination?.page_count ??
+      pagination?.totalPages ??
+      pagination?.total_pages ??
+      meta?.pageCount ??
+      meta?.page_count
+  );
+
+  // Derive pageCount from total/perPage when available.
+  if (pageCount === undefined && total !== undefined) {
+    const effectivePerPage = perPage ?? 10;
+    if (effectivePerPage > 0) {
+      pageCount = Math.max(1, Math.ceil(total / effectivePerPage));
     }
   }
-  const warnings = parseWarnings((json as { warnings?: unknown }).warnings);
-  return { methods, warnings, pageCount };
+
+  // Fallback when only page/hasNext are available.
+  if (
+    pageCount === undefined &&
+    resolvedPage !== undefined &&
+    resolvedPage > 0 &&
+    hasNext !== undefined
+  ) {
+    pageCount = hasNext ? resolvedPage + 1 : resolvedPage;
+  }
+
+  const warnings = parseWarnings(root?.warnings);
+  return {
+    methods,
+    warnings,
+    page: resolvedPage,
+    perPage,
+    total,
+    hasNext,
+    nextCursor,
+    pageCount,
+  };
 }
 
 export interface Item {

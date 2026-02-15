@@ -104,12 +104,13 @@ export function useMethods(
   username?: string,
   page = 1,
   name?: string,
-  filters?: MethodsFilters
+  filters?: MethodsFilters,
+  cursor?: string
 ): UseQueryResult<MethodsResponse, Error> {
   const { setUserError } = useUsername();
   const query = useQuery<MethodsResponse, Error>({
-    queryKey: ["methods", username, name, page, filters],
-    queryFn: () => fetchMethods(username, page, name, filters),
+    queryKey: ["methods", username, name, page, filters, cursor],
+    queryFn: () => fetchMethods(username, page, name, filters, cursor),
     placeholderData: (previousData) => previousData,
     staleTime: 30 * 1000,
     refetchInterval: QUERY_REFETCH_INTERVAL_MS,

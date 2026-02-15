@@ -7,13 +7,13 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 
 function PaginationRoot({ className, ...props }: React.ComponentProps<"nav">) {
   return (
     <nav
       role="navigation"
-      aria-label="pagination"
+      aria-label="Pagination"
       data-slot="pagination"
       className={cn("mx-auto flex w-full justify-center", className)}
       {...props}
@@ -40,8 +40,11 @@ function PaginationItem({ ...props }: React.ComponentProps<"li">) {
 
 type PaginationLinkProps = {
   isActive?: boolean;
-} & Pick<React.ComponentProps<typeof Button>, "size"> &
-  React.ComponentProps<"a">;
+  size?: React.ComponentProps<typeof Button>["size"];
+} & Omit<
+  React.ComponentProps<typeof Button>,
+  "variant" | "size" | "type" | "aria-current"
+>;
 
 function PaginationLink({
   className,
@@ -50,18 +53,14 @@ function PaginationLink({
   ...props
 }: PaginationLinkProps) {
   return (
-    <a
+    <Button
+      type="button"
+      variant={isActive ? "outline" : "ghost"}
+      size={size}
       aria-current={isActive ? "page" : undefined}
       data-slot="pagination-link"
       data-active={isActive}
-      className={cn(
-        buttonVariants({
-          variant: isActive ? "outline" : "ghost",
-          size,
-        }),
-        "cursor-pointer",
-        className
-      )}
+      className={cn(className)}
       {...props}
     />
   );
@@ -118,30 +117,97 @@ function PaginationEllipsis({
   );
 }
 
-// Nuevo wrapper que acepta page, pageCount y onPageChange
 interface PaginationProps {
   page: number;
   pageCount: number;
+  hasNext?: boolean;
   onPageChange: (page: number) => void;
-  maxButtons?: number; // show up to this many page numbers at once
+  maxButtons?: number;
 }
 
-function Pagination({ page, pageCount, onPageChange, maxButtons = 10 }: PaginationProps) {
-  const windowStart = Math.floor((page - 1) / maxButtons) * maxButtons + 1;
-  const windowEnd = Math.min(windowStart + maxButtons - 1, pageCount);
-  const visiblePages = Array.from({ length: windowEnd - windowStart + 1 }, (_, i) => windowStart + i);
+function Pagination({
+  page,
+  pageCount,
+  hasNext,
+  onPageChange,
+  maxButtons = 10,
+}: PaginationProps) {
+  const currentPage = Math.max(1, Math.min(page, Math.max(1, pageCount)));
+  const safePageCount = Math.max(1, pageCount);
+  const canGoPrevious = currentPage > 1;
+  const canGoNext = hasNext ?? currentPage < safePageCount;
+
+  const goToPage = React.useCallback(
+    (nextPage: number) => {
+      const targetPage = Math.max(1, Math.min(nextPage, safePageCount));
+      if (targetPage !== currentPage) {
+        onPageChange(targetPage);
+      }
+    },
+    [currentPage, onPageChange, safePageCount]
+  );
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLUListElement>) => {
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+
+    if (event.key === "ArrowLeft" && canGoPrevious) {
+      event.preventDefault();
+      goToPage(currentPage - 1);
+      return;
+    }
+
+    if (event.key === "ArrowRight" && canGoNext) {
+      event.preventDefault();
+      goToPage(currentPage + 1);
+      return;
+    }
+
+    if (event.key === "Home" && currentPage !== 1) {
+      event.preventDefault();
+      goToPage(1);
+      return;
+    }
+
+    if (event.key === "End" && currentPage !== safePageCount) {
+      event.preventDefault();
+      goToPage(safePageCount);
+    }
+  };
+
+  const windowStart =
+    Math.floor((currentPage - 1) / maxButtons) * maxButtons + 1;
+  const windowEnd = Math.min(windowStart + maxButtons - 1, safePageCount);
+  const visiblePages = Array.from(
+    { length: windowEnd - windowStart + 1 },
+    (_, index) => windowStart + index
+  );
+
+  if (safePageCount <= 1 && !hasNext) {
+    return null;
+  }
 
   return (
     <PaginationRoot>
-      <PaginationContent>
+      <span className="sr-only" aria-live="polite">
+        {`Page ${currentPage} of ${safePageCount}`}
+      </span>
+      <PaginationContent onKeyDown={handleKeyDown}>
         <PaginationItem>
-          <PaginationPrevious onClick={() => onPageChange(Math.max(page - 1, 1))} />
+          <PaginationPrevious
+            disabled={!canGoPrevious}
+            aria-disabled={!canGoPrevious}
+            onClick={() => goToPage(currentPage - 1)}
+          />
         </PaginationItem>
 
         {windowStart > 1 && (
           <>
             <PaginationItem>
-              <PaginationLink isActive={page === 1} onClick={() => onPageChange(1)}>
+              <PaginationLink
+                isActive={currentPage === 1}
+                aria-label="Go to page 1"
+                onClick={() => goToPage(1)}
+              >
                 1
               </PaginationLink>
             </PaginationItem>
@@ -153,31 +219,47 @@ function Pagination({ page, pageCount, onPageChange, maxButtons = 10 }: Paginati
           </>
         )}
 
-        {visiblePages.map((p) => (
-          <PaginationItem key={p}>
-            <PaginationLink isActive={p === page} onClick={() => onPageChange(p)}>
-              {p}
+        {visiblePages.map((pageNumber) => (
+          <PaginationItem key={pageNumber}>
+            <PaginationLink
+              isActive={pageNumber === currentPage}
+              aria-label={
+                pageNumber === currentPage
+                  ? `Current page, page ${pageNumber}`
+                  : `Go to page ${pageNumber}`
+              }
+              onClick={() => goToPage(pageNumber)}
+            >
+              {pageNumber}
             </PaginationLink>
           </PaginationItem>
         ))}
 
-        {windowEnd < pageCount && (
+        {windowEnd < safePageCount && (
           <>
-            {windowEnd < pageCount - 1 && (
+            {windowEnd < safePageCount - 1 && (
               <PaginationItem>
                 <PaginationEllipsis />
               </PaginationItem>
             )}
             <PaginationItem>
-              <PaginationLink isActive={page === pageCount} onClick={() => onPageChange(pageCount)}>
-                {pageCount}
+              <PaginationLink
+                isActive={currentPage === safePageCount}
+                aria-label={`Go to page ${safePageCount}`}
+                onClick={() => goToPage(safePageCount)}
+              >
+                {safePageCount}
               </PaginationLink>
             </PaginationItem>
           </>
         )}
 
         <PaginationItem>
-          <PaginationNext onClick={() => onPageChange(Math.min(page + 1, pageCount))} />
+          <PaginationNext
+            disabled={!canGoNext}
+            aria-disabled={!canGoNext}
+            onClick={() => goToPage(currentPage + 1)}
+          />
         </PaginationItem>
       </PaginationContent>
     </PaginationRoot>

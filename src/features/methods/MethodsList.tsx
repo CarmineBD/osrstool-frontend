@@ -58,16 +58,31 @@ export function MethodsList({
 }: Props) {
   const SKELETON_ROW_COUNT = 8;
   const [page, setPage] = useState(1);
+  const [cursorByPage, setCursorByPage] = useState<
+    Record<number, string | undefined>
+  >({ 1: undefined });
+  const cursor = page > 1 ? cursorByPage[page] : undefined;
   const { data, error, isFetching } = useMethods(
     username,
     page,
     name,
-    filters
+    filters,
+    cursor
   );
 
   useEffect(() => {
     setPage(1);
+    setCursorByPage({ 1: undefined });
   }, [username, name, filters]);
+
+  useEffect(() => {
+    if (data?.hasNext !== true || !data.nextCursor) return;
+    const nextPage = page + 1;
+    setCursorByPage((previous) => {
+      if (previous[nextPage] === data.nextCursor) return previous;
+      return { ...previous, [nextPage]: data.nextCursor };
+    });
+  }, [data?.hasNext, data?.nextCursor, page]);
 
   const rows: Row[] = (data?.methods ?? []).flatMap((method: Method) =>
     method.variants.map((variant: Variant, index: number) => {
@@ -110,8 +125,18 @@ export function MethodsList({
     })
   );
 
-  const pageCount =
-    data?.pageCount ?? (data?.methods.length === 10 ? page + 1 : page);
+  const calculatedPageCount =
+    data?.total !== undefined &&
+    data?.perPage !== undefined &&
+    data.perPage > 0
+      ? Math.max(1, Math.ceil(data.total / data.perPage))
+      : undefined;
+
+  const pageCount = Math.max(
+    page,
+    data?.pageCount ?? calculatedPageCount ?? (data?.hasNext ? page + 1 : page)
+  );
+  const hasNextPage = data?.hasNext ?? page < pageCount;
 
   const getSortIcon = (key: SortBy) => {
     if (sortBy !== key || !order) {
@@ -334,7 +359,12 @@ export function MethodsList({
           )}
         </TableBody>
       </Table>
-      <Pagination page={page} pageCount={pageCount} onPageChange={setPage} />
+      <Pagination
+        page={page}
+        pageCount={pageCount}
+        hasNext={hasNextPage}
+        onPageChange={setPage}
+      />
     </div>
   );
 }
