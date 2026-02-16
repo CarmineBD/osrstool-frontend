@@ -71,9 +71,7 @@ export function MethodsList({
   const [cursorByPage, setCursorByPage] = useState<
     Record<number, string | undefined>
   >({ 1: undefined });
-  const hoverPrefetchTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(
-    null
-  );
+  const hoverPrefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hoveredSlugRef = useRef<string | null>(null);
   const cursor = page > 1 ? cursorByPage[page] : undefined;
   const { data, error, isFetching } = useMethods(
@@ -181,7 +179,7 @@ export function MethodsList({
   };
   const clearPrefetchTimer = useCallback(() => {
     if (hoverPrefetchTimerRef.current === null) return;
-    window.clearTimeout(hoverPrefetchTimerRef.current);
+    clearTimeout(hoverPrefetchTimerRef.current);
     hoverPrefetchTimerRef.current = null;
     hoveredSlugRef.current = null;
   }, []);
@@ -221,7 +219,7 @@ export function MethodsList({
     (methodSlug: string) => {
       clearPrefetchTimer();
       hoveredSlugRef.current = methodSlug;
-      hoverPrefetchTimerRef.current = window.setTimeout(() => {
+      hoverPrefetchTimerRef.current = setTimeout(() => {
         if (hoveredSlugRef.current !== methodSlug) return;
         prefetchMethodDetail(methodSlug);
         hoverPrefetchTimerRef.current = null;
