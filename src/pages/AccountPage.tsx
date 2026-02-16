@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff } from "lucide-react";
+import { QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
 
 function maskEmail(email: string) {
   const atIndex = email.indexOf("@");
@@ -44,6 +45,7 @@ export function AccountPage() {
   const { data: meData, error: meError, isLoading: isMeLoading } = useQuery({
     queryKey: ["me"],
     queryFn: fetchMe,
+    staleTime: QUERY_STALE_TIME_MS,
     retry: false,
   });
 

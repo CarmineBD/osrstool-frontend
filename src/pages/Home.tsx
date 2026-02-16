@@ -18,6 +18,7 @@ import { Slider } from "@/components/ui/slider";
 import type { MethodsFilters } from "@/lib/api";
 import { getUrlByType } from "@/lib/utils";
 import { fetchMe } from "@/lib/me";
+import { QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
 
 export type Props = Record<string, never>;
 const LOGIN_REQUIRED_MESSAGE = "sign-in/login to fetch data by osrs usernames";
@@ -83,6 +84,7 @@ export function Home(_props: Props) {
     queryKey: ["me"],
     queryFn: fetchMe,
     enabled: !!session,
+    staleTime: QUERY_STALE_TIME_MS,
     retry: false,
   });
   const isSuperAdmin = meData?.data?.role === "super_admin";

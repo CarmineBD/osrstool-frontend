@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { fetchMe } from "@/lib/me";
-import { QUERY_REFETCH_INTERVAL_MS } from "@/lib/queryRefresh";
+import { QUERY_REFETCH_INTERVAL_MS, QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
 import { useUsername } from "@/contexts/UsernameContext";
 import {
   fetchItems,
@@ -42,6 +42,7 @@ export function useMethodDetail(): UseMethodDetailResult {
     queryKey: ["methodDetail", methodParam, username],
     queryFn: () => fetchMethodDetailBySlug(methodParam, username),
     enabled: !!methodParam,
+    staleTime: QUERY_STALE_TIME_MS,
     refetchInterval: QUERY_REFETCH_INTERVAL_MS,
     retry: false,
   });
@@ -49,6 +50,7 @@ export function useMethodDetail(): UseMethodDetailResult {
   const { data: meData } = useQuery({
     queryKey: ["me"],
     queryFn: fetchMe,
+    staleTime: QUERY_STALE_TIME_MS,
     retry: false,
   });
 
@@ -80,6 +82,7 @@ export function useMethodDetail(): UseMethodDetailResult {
     queryKey: ["items", itemIds],
     queryFn: () => fetchItems(itemIds),
     enabled: itemIds.length > 0,
+    staleTime: QUERY_STALE_TIME_MS,
     refetchInterval: QUERY_REFETCH_INTERVAL_MS,
   });
 
