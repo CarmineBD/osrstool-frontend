@@ -60,6 +60,7 @@ Copy-Item .env.example .env
 | `VITE_API_PROXY_TARGET` | No | Target del proxy de Vite (ej. `http://localhost:3000`). |
 | `VITE_API_USE_PROXY` | No | `true` por defecto en dev. En `false` llama directo a `VITE_API_URL`. |
 | `VITE_QUERY_REFETCH_INTERVAL_MS` | No | Intervalo de refetch para React Query (default `60000`). |
+| `VITE_QUERY_STALE_TIME_MS` | No | Ventana de frescura de cache para queries dinamicas. Si no se define, usa un margen automatico (20% del intervalo, maximo 5000ms). |
 
 ### 4) Levantar app
 

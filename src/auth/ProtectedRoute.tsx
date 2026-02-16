@@ -3,6 +3,7 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@/auth/AuthProvider";
 import { fetchMe } from "@/lib/me";
 import { ForbiddenPage } from "@/pages/ForbiddenPage";
+import { QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
 
 type ProtectedRouteProps = {
   requiredRole?: string;
@@ -20,6 +21,7 @@ export function ProtectedRoute({ requiredRole }: ProtectedRouteProps) {
     queryKey: ["me"],
     queryFn: fetchMe,
     enabled: !!session && requiresRole,
+    staleTime: QUERY_STALE_TIME_MS,
     retry: false,
   });
 

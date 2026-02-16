@@ -19,6 +19,7 @@ import {
   type MethodDetailResponse,
   type Variant,
 } from "@/lib/api";
+import { QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
 
 export type MethodUpsertMode = "create" | "edit";
 
@@ -64,6 +65,7 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
     queryKey: ["methodDetail", methodParam, username],
     queryFn: () => fetchMethodDetailBySlug(methodParam, username),
     enabled: isEditMode && !!methodParam,
+    staleTime: QUERY_STALE_TIME_MS,
     retry: false,
   });
 

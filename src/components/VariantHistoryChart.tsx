@@ -24,7 +24,7 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { fetchVariantHistory } from "@/lib/api";
-import { QUERY_REFETCH_INTERVAL_MS } from "@/lib/queryRefresh";
+import { QUERY_REFETCH_INTERVAL_MS, QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
 import { formatNumber, formatPercent } from "@/lib/utils";
 import { IconTrendingUp, IconTrendingDown } from "@tabler/icons-react";
 
@@ -136,6 +136,7 @@ export function VariantHistoryChart({
     queryKey: ["variantHistory", variantId, range],
     queryFn: () => fetchVariantHistory(variantId, range, granularity),
     enabled: !!variantId,
+    staleTime: QUERY_STALE_TIME_MS,
     refetchInterval: QUERY_REFETCH_INTERVAL_MS,
   });
 
@@ -143,6 +144,7 @@ export function VariantHistoryChart({
     queryKey: ["variantHistory", variantId, "all"],
     queryFn: () => fetchVariantHistory(variantId, "all", "1d"),
     enabled: !!variantId,
+    staleTime: QUERY_STALE_TIME_MS,
     refetchInterval: QUERY_REFETCH_INTERVAL_MS,
   });
 
