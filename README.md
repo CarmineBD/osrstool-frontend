@@ -105,6 +105,19 @@ tests/
 - `npm run test:e2e`: corre tests E2E con Playwright.
 - `npm run test:e2e:ui`: Playwright en modo UI.
 
+## CI (GitHub Actions)
+
+- Workflow: `.github/workflows/ci.yml`
+- Triggers: `push` y `pull_request`
+- Pasos: `npm ci`, `npm run lint`, `npm run test`, `npm run build`
+
+Para marcarlo como required status check en GitHub:
+
+1. Ir a `Settings > Branches` del repo.
+2. Editar (o crear) la branch protection rule de `main`.
+3. Activar `Require status checks to pass before merging`.
+4. Seleccionar el check `CI / quality`.
+
 ## Links
 
 - Frontend repo: [github.com/CarmineBD/osrstool-frontend](https://github.com/CarmineBD/osrstool-frontend)
