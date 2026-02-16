@@ -16,6 +16,7 @@ import {
   fetchItems,
   fetchMethodDetailBySlug,
   type Item,
+  type Method,
   type MethodDetailResponse,
   type Variant,
 } from "@/lib/api";

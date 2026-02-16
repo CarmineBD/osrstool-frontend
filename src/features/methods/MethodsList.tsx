@@ -217,7 +217,8 @@ export function MethodsList({
           queryFn: () => fetchMethodDetailBySlug(normalizedSlug, normalizedUsername),
           staleTime: QUERY_STALE_TIME_MS,
         })
-        .then((detail) => {
+        .then(() => {
+          const detail = queryClient.getQueryData<MethodDetailResponse>(queryKey);
           const itemIds = getMethodItemIds(detail?.method);
           if (itemIds.length === 0) return;
 
