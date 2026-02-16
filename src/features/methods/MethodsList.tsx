@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useMethods } from "./hooks";
 import { Link } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Table,
   TableHeader,
@@ -12,12 +13,20 @@ import {
 import { Pagination } from "@/components/ui/pagination";
 import { formatNumber, getUrlByType } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import type { Method, MethodsFilters, Variant } from "@/lib/api";
+import {
+  fetchMethodDetailBySlug,
+  type Method,
+  type MethodDetailResponse,
+  type MethodsFilters,
+  type Variant,
+} from "@/lib/api";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { LikeButton } from "./LikeButton";
+import { QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
 
 type SortBy = NonNullable<MethodsFilters["sortBy"]>;
 type SortOrder = NonNullable<MethodsFilters["order"]>;
+const DETAIL_PREFETCH_HOVER_DELAY_MS = 200;
 
 export type Props = {
   username: string;
@@ -56,11 +65,16 @@ export function MethodsList({
   order,
   onSortChange,
 }: Props) {
+  const queryClient = useQueryClient();
   const SKELETON_ROW_COUNT = 8;
   const [page, setPage] = useState(1);
   const [cursorByPage, setCursorByPage] = useState<
     Record<number, string | undefined>
   >({ 1: undefined });
+  const hoverPrefetchTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(
+    null
+  );
+  const hoveredSlugRef = useRef<string | null>(null);
   const cursor = page > 1 ? cursorByPage[page] : undefined;
   const { data, error, isFetching } = useMethods(
     username,
@@ -165,6 +179,58 @@ export function MethodsList({
 
     onSortChange(undefined, undefined);
   };
+  const clearPrefetchTimer = useCallback(() => {
+    if (hoverPrefetchTimerRef.current === null) return;
+    window.clearTimeout(hoverPrefetchTimerRef.current);
+    hoverPrefetchTimerRef.current = null;
+    hoveredSlugRef.current = null;
+  }, []);
+
+  const prefetchMethodDetail = useCallback(
+    (methodSlug: string) => {
+      const normalizedSlug = methodSlug.trim();
+      if (!normalizedSlug) return;
+
+      const normalizedUsername = username?.trim() || undefined;
+      const queryKey = [
+        "methodDetail",
+        normalizedSlug,
+        normalizedUsername,
+      ] as const;
+      const existingState = queryClient.getQueryState<MethodDetailResponse>(queryKey);
+
+      if (existingState?.fetchStatus === "fetching") return;
+
+      if (
+        existingState?.dataUpdatedAt &&
+        Date.now() - existingState.dataUpdatedAt < QUERY_STALE_TIME_MS
+      ) {
+        return;
+      }
+
+      void queryClient.prefetchQuery({
+        queryKey,
+        queryFn: () => fetchMethodDetailBySlug(normalizedSlug, normalizedUsername),
+        staleTime: QUERY_STALE_TIME_MS,
+      });
+    },
+    [queryClient, username]
+  );
+
+  const scheduleMethodPrefetch = useCallback(
+    (methodSlug: string) => {
+      clearPrefetchTimer();
+      hoveredSlugRef.current = methodSlug;
+      hoverPrefetchTimerRef.current = window.setTimeout(() => {
+        if (hoveredSlugRef.current !== methodSlug) return;
+        prefetchMethodDetail(methodSlug);
+        hoverPrefetchTimerRef.current = null;
+      }, DETAIL_PREFETCH_HOVER_DELAY_MS);
+    },
+    [clearPrefetchTimer, prefetchMethodDetail]
+  );
+
+  useEffect(() => clearPrefetchTimer, [clearPrefetchTimer]);
 
   return (
     <div className="space-y-4">
@@ -276,6 +342,12 @@ export function MethodsList({
                       row.variantCount > 1 ? `/${row.variantSlug}` : ""
                     }`}
                     className="text-blue-600 hover:underline"
+                    onMouseEnter={() => scheduleMethodPrefetch(row.methodSlug)}
+                    onMouseLeave={clearPrefetchTimer}
+                    onFocus={() => scheduleMethodPrefetch(row.methodSlug)}
+                    onBlur={clearPrefetchTimer}
+                    onMouseDown={() => prefetchMethodDetail(row.methodSlug)}
+                    onTouchStart={() => prefetchMethodDetail(row.methodSlug)}
                   >
                     {row.name}
                   </Link>
