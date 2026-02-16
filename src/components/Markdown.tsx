@@ -14,7 +14,7 @@ export function Markdown({ content = "", items }: MarkdownProps) {
     return content.replace(/\{\{item_(\d+)\}\}/g, (_, id) => {
       const item = items[Number(id)];
       const price = item?.lowPrice ?? item?.highPrice;
-      return price !== undefined ? formatNumber(price) : "null";
+      return price !== undefined ? formatNumber(price) : "...";
     });
   }, [content, items]);
 

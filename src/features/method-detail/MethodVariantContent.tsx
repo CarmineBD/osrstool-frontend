@@ -34,8 +34,9 @@ interface MethodVariantContentProps {
   variant: Variant;
   itemsMap: Record<number, Item>;
   username?: string;
-  inputsTotal: number;
-  outputsTotal: number;
+  inputsTotal?: number;
+  outputsTotal?: number;
+  isItemsLoading?: boolean;
 }
 
 function focusUsernameInput() {
@@ -241,7 +242,7 @@ function IoItemsGrid({
   itemsMap,
 }: {
   title: string;
-  total: number;
+  total?: number;
   items: Variant["inputs"];
   itemsMap: Record<number, Item>;
 }) {
@@ -250,7 +251,9 @@ function IoItemsGrid({
       <h3 className="text-sm font-semibold">
         {title}{" "}
         <span className="text-xs font-normal text-muted-foreground">
-          ({formatNumber(total)} gp)
+          {typeof total === "number"
+            ? `(${formatNumber(total)} gp)`
+            : "(loading prices...)"}
         </span>
       </h3>
       <div className="mt-3 min-h-14 w-full rounded bg-[#494034] p-4 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)]">
@@ -369,10 +372,16 @@ export function MethodVariantContent({
   username,
   inputsTotal,
   outputsTotal,
+  isItemsLoading = false,
 }: MethodVariantContentProps) {
   return (
     <div className="mx-auto max-w-6xl p-4 lg:p-6">
       <MissingRequirementsNotice variant={variant} username={username} />
+      {isItemsLoading ? (
+        <div className="mb-3 text-sm text-muted-foreground">
+          Loading item prices and requirements...
+        </div>
+      ) : null}
 
       <div className="grid gap-3 lg:grid-cols-12">
         <MetricsCards variant={variant} />

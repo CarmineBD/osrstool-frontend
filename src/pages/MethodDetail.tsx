@@ -68,8 +68,17 @@ export function MethodDetail(_props: Props) {
               variant={variant}
               itemsMap={state.itemsMap}
               username={username}
-              inputsTotal={state.getItemsTotal(variant.inputs)}
-              outputsTotal={state.getItemsTotal(variant.outputs)}
+              inputsTotal={
+                state.isItemsLoading
+                  ? undefined
+                  : state.getItemsTotal(variant.inputs)
+              }
+              outputsTotal={
+                state.isItemsLoading
+                  ? undefined
+                  : state.getItemsTotal(variant.outputs)
+              }
+              isItemsLoading={state.isItemsLoading}
             />
           </TabsContent>
         ))}
