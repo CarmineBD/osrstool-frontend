@@ -6,6 +6,11 @@ import { z } from "zod";
 import { useNavigate, useParams } from "react-router-dom";
 import { useUsername } from "@/contexts/UsernameContext";
 import {
+  getMethodDetailQueryKey,
+  normalizeMethodSlug,
+  normalizeUsername,
+} from "@/lib/queryKeys";
+import {
   createMethodWithVariants,
   deleteMethod,
   fetchAchievementDiaries,
@@ -56,15 +61,18 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
   const queryClient = useQueryClient();
   const { slug: methodParam = "" } = useParams<{ slug: string }>();
   const { username, setUserError } = useUsername();
+  const normalizedMethodSlug = normalizeMethodSlug(methodParam);
+  const normalizedUsername = normalizeUsername(username);
 
   const {
     data,
     error,
     isLoading,
   } = useQuery<MethodDetailResponse, Error>({
-    queryKey: ["methodDetail", methodParam, username],
-    queryFn: () => fetchMethodDetailBySlug(methodParam, username),
-    enabled: isEditMode && !!methodParam,
+    queryKey: getMethodDetailQueryKey(normalizedMethodSlug, normalizedUsername),
+    queryFn: () =>
+      fetchMethodDetailBySlug(normalizedMethodSlug, normalizedUsername),
+    enabled: isEditMode && !!normalizedMethodSlug,
     staleTime: QUERY_STALE_TIME_MS,
     retry: false,
   });
@@ -218,7 +226,9 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
 
     for (const slug of uniqueSlugs) {
       invalidations.push(
-        queryClient.invalidateQueries({ queryKey: ["methodDetail", slug] })
+        queryClient.invalidateQueries({
+          queryKey: ["methodDetail", normalizeMethodSlug(slug)],
+        })
       );
     }
 
@@ -260,7 +270,7 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
       });
     }
 
-    await invalidateMethodCaches(methodParam, updatedMethod.slug);
+    await invalidateMethodCaches(normalizedMethodSlug, updatedMethod.slug);
     navigateToMethodDetail(updatedMethod);
   };
 
@@ -305,7 +315,7 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
     setIsDeleting(true);
     try {
       await deleteMethod(method.id);
-      await invalidateMethodCaches(methodParam, method.slug);
+      await invalidateMethodCaches(normalizedMethodSlug, method.slug);
       setDeleteConfirmOpen(false);
       navigate("/");
     } catch (deleteError) {
