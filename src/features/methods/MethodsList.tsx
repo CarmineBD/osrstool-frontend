@@ -14,15 +14,24 @@ import { Pagination } from "@/components/ui/pagination";
 import { formatNumber, getUrlByType } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import {
+  fetchItems,
   fetchMethodDetailBySlug,
   type Method,
   type MethodDetailResponse,
   type MethodsFilters,
+  type Item,
   type Variant,
 } from "@/lib/api";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { LikeButton } from "./LikeButton";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
+import {
+  getItemsQueryKey,
+  getMethodDetailQueryKey,
+  getMethodItemIds,
+  normalizeMethodSlug,
+  normalizeUsername,
+} from "@/lib/queryKeys";
 
 type SortBy = NonNullable<MethodsFilters["sortBy"]>;
 type SortOrder = NonNullable<MethodsFilters["order"]>;
@@ -186,15 +195,11 @@ export function MethodsList({
 
   const prefetchMethodDetail = useCallback(
     (methodSlug: string) => {
-      const normalizedSlug = methodSlug.trim();
+      const normalizedSlug = normalizeMethodSlug(methodSlug);
       if (!normalizedSlug) return;
 
-      const normalizedUsername = username?.trim() || undefined;
-      const queryKey = [
-        "methodDetail",
-        normalizedSlug,
-        normalizedUsername,
-      ] as const;
+      const normalizedUsername = normalizeUsername(username);
+      const queryKey = getMethodDetailQueryKey(normalizedSlug, normalizedUsername);
       const existingState = queryClient.getQueryState<MethodDetailResponse>(queryKey);
 
       if (existingState?.fetchStatus === "fetching") return;
@@ -206,11 +211,36 @@ export function MethodsList({
         return;
       }
 
-      void queryClient.prefetchQuery({
-        queryKey,
-        queryFn: () => fetchMethodDetailBySlug(normalizedSlug, normalizedUsername),
-        staleTime: QUERY_STALE_TIME_MS,
-      });
+      void queryClient
+        .prefetchQuery({
+          queryKey,
+          queryFn: () => fetchMethodDetailBySlug(normalizedSlug, normalizedUsername),
+          staleTime: QUERY_STALE_TIME_MS,
+        })
+        .then((detail) => {
+          const itemIds = getMethodItemIds(detail?.method);
+          if (itemIds.length === 0) return;
+
+          const itemsQueryKey = getItemsQueryKey(itemIds);
+          const existingItemsState =
+            queryClient.getQueryState<Record<number, Item>>(itemsQueryKey);
+
+          if (existingItemsState?.fetchStatus === "fetching") return;
+
+          if (
+            existingItemsState?.dataUpdatedAt &&
+            Date.now() - existingItemsState.dataUpdatedAt < QUERY_STALE_TIME_MS
+          ) {
+            return;
+          }
+
+          void queryClient.prefetchQuery({
+            queryKey: itemsQueryKey,
+            queryFn: () => fetchItems(itemIds),
+            staleTime: QUERY_STALE_TIME_MS,
+          });
+        })
+        .catch(() => undefined);
     },
     [queryClient, username]
   );

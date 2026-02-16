@@ -4,11 +4,18 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchMe } from "@/lib/me";
 import { QUERY_REFETCH_INTERVAL_MS, QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
 import { useUsername } from "@/contexts/UsernameContext";
+import { useAuth } from "@/auth/AuthProvider";
+import {
+  getItemsQueryKey,
+  getMethodDetailQueryKey,
+  getMethodItemIds,
+  normalizeMethodSlug,
+  normalizeUsername,
+} from "@/lib/queryKeys";
 import {
   fetchItems,
   fetchMethodDetailBySlug,
   type Item,
-  type Method,
   type MethodDetailResponse,
   type Variant,
 } from "@/lib/api";
@@ -19,6 +26,7 @@ export interface UseMethodDetailResult {
   method?: Method;
   error: Error | null;
   isLoading: boolean;
+  isItemsLoading: boolean;
   itemsMap: Record<number, Item>;
   activeSlug: string;
   methodSlug: string;
@@ -33,15 +41,19 @@ export function useMethodDetail(): UseMethodDetailResult {
     variantSlug?: string;
   }>();
   const { username, setUserError } = useUsername();
+  const { session } = useAuth();
+  const normalizedMethodSlug = normalizeMethodSlug(methodParam);
+  const normalizedUsername = normalizeUsername(username);
 
   const {
     data,
     error,
     isLoading,
   } = useQuery<MethodDetailResponse, Error>({
-    queryKey: ["methodDetail", methodParam, username],
-    queryFn: () => fetchMethodDetailBySlug(methodParam, username),
-    enabled: !!methodParam,
+    queryKey: getMethodDetailQueryKey(normalizedMethodSlug, normalizedUsername),
+    queryFn: () =>
+      fetchMethodDetailBySlug(normalizedMethodSlug, normalizedUsername),
+    enabled: !!normalizedMethodSlug,
     staleTime: QUERY_STALE_TIME_MS,
     refetchInterval: QUERY_REFETCH_INTERVAL_MS,
     retry: false,
@@ -50,6 +62,7 @@ export function useMethodDetail(): UseMethodDetailResult {
   const { data: meData } = useQuery({
     queryKey: ["me"],
     queryFn: fetchMe,
+    enabled: !!session,
     staleTime: QUERY_STALE_TIME_MS,
     retry: false,
   });
@@ -66,20 +79,10 @@ export function useMethodDetail(): UseMethodDetailResult {
 
   const method = data?.method;
 
-  const itemIds = useMemo(() => {
-    if (!method) return [] as number[];
-    const ids = new Set<number>();
-    method.variants.forEach((variant) => {
-      variant.inputs.forEach((item) => ids.add(item.id));
-      variant.outputs.forEach((item) => ids.add(item.id));
-      variant.requirements?.items?.forEach((item) => ids.add(item.id));
-      variant.recommendations?.items?.forEach((item) => ids.add(item.id));
-    });
-    return Array.from(ids);
-  }, [method]);
+  const itemIds = useMemo(() => getMethodItemIds(method), [method]);
 
-  const { data: itemsData } = useQuery({
-    queryKey: ["items", itemIds],
+  const { data: itemsData, isLoading: isItemsLoading } = useQuery({
+    queryKey: getItemsQueryKey(itemIds),
     queryFn: () => fetchItems(itemIds),
     enabled: itemIds.length > 0,
     staleTime: QUERY_STALE_TIME_MS,
@@ -91,7 +94,7 @@ export function useMethodDetail(): UseMethodDetailResult {
   const firstTabSlug =
     method?.variants[0]?.slug ?? (method?.variants[0]?.id ?? "0").toString();
   const activeSlug = variantSlug ?? firstTabSlug;
-  const methodSlug = method?.slug || methodParam;
+  const methodSlug = method?.slug || normalizedMethodSlug;
   const hasMultipleVariants = (method?.variants?.length ?? 0) > 1;
   const isSuperAdmin = meData?.data?.role === "super_admin";
 
@@ -107,6 +110,7 @@ export function useMethodDetail(): UseMethodDetailResult {
     method,
     error,
     isLoading,
+    isItemsLoading,
     itemsMap,
     activeSlug,
     methodSlug,
