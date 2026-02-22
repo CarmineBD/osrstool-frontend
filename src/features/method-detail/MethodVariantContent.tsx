@@ -47,11 +47,13 @@ function formatLiquidityScore(score?: number): string {
 function formatItemQuantity(quantity: number): {
   label: string;
   color?: string;
+  showExactQuantity: boolean;
 } {
   if (quantity > 999_999_999) {
     return {
       label: `${(quantity / 1_000_000_000).toFixed(1).replace(/\.0$/, "")}M`,
       color: "#00FF80",
+      showExactQuantity: true,
     };
   }
 
@@ -59,6 +61,7 @@ function formatItemQuantity(quantity: number): {
     return {
       label: `${Math.floor(quantity / 1_000_000)}M`,
       color: "#00FF80",
+      showExactQuantity: true,
     };
   }
 
@@ -66,11 +69,13 @@ function formatItemQuantity(quantity: number): {
     return {
       label: `${Math.floor(quantity / 1_000)}k`,
       color: "#FFFFFF",
+      showExactQuantity: true,
     };
   }
 
   return {
     label: String(quantity),
+    showExactQuantity: false,
   };
 }
 
@@ -330,7 +335,15 @@ function IoItemsGrid({
                 </TooltipTrigger>
                 <TooltipContent>
                   <div className="flex flex-col">
-                    <span>{item.name}</span>
+                    <span>
+                      {item.name}
+                      {quantityDisplay.showExactQuantity ? (
+                        <span className="text-muted-foreground">
+                          {" "}
+                          ({formatNumber(entry.quantity)})
+                        </span>
+                      ) : null}
+                    </span>
                     {reasonLabel ? (
                       <span className="text-muted-foreground">{reasonLabel}</span>
                     ) : null}
