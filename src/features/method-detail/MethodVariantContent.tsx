@@ -44,6 +44,41 @@ function formatLiquidityScore(score?: number): string {
   return `${(score * 100).toFixed(2).replace(/\.?0+$/, "")}%`;
 }
 
+function formatItemQuantity(quantity: number): {
+  label: string;
+  color?: string;
+  showExactQuantity: boolean;
+} {
+  if (quantity > 999_999_999) {
+    return {
+      label: `${(quantity / 1_000_000_000).toFixed(1).replace(/\.0$/, "")}M`,
+      color: "#00FF80",
+      showExactQuantity: true,
+    };
+  }
+
+  if (quantity > 9_999_999) {
+    return {
+      label: `${Math.floor(quantity / 1_000_000)}M`,
+      color: "#00FF80",
+      showExactQuantity: true,
+    };
+  }
+
+  if (quantity > 99_999) {
+    return {
+      label: `${Math.floor(quantity / 1_000)}k`,
+      color: "#FFFFFF",
+      showExactQuantity: true,
+    };
+  }
+
+  return {
+    label: String(quantity),
+    showExactQuantity: false,
+  };
+}
+
 function focusUsernameInput() {
   const usernameInput = document.getElementById(
     "username-input"
@@ -271,6 +306,7 @@ function IoItemsGrid({
             const item = itemsMap[entry.id];
             if (!item) return null;
             const reasonLabel = entry.reason?.trim();
+            const quantityDisplay = formatItemQuantity(entry.quantity);
             return (
               <Tooltip key={`${title}-${entry.id}`}>
                 <TooltipTrigger asChild>
@@ -284,15 +320,30 @@ function IoItemsGrid({
                     </figure>
 
                     {entry.quantity > 0 ? (
-                      <span className="osrs-num osrs-num-2x pointer-events-none absolute -top-0.5 -left-0.5 px-0.5">
-                        {entry.quantity}
+                      <span
+                        className="osrs-num osrs-num-2x pointer-events-none absolute -top-0.5 -left-0.5 px-0.5"
+                        style={
+                          quantityDisplay.color
+                            ? { color: quantityDisplay.color }
+                            : undefined
+                        }
+                      >
+                        {quantityDisplay.label}
                       </span>
                     ) : null}
                   </div>
                 </TooltipTrigger>
                 <TooltipContent>
                   <div className="flex flex-col">
-                    <span>{item.name}</span>
+                    <span>
+                      {item.name}
+                      {quantityDisplay.showExactQuantity ? (
+                        <span className="text-muted-foreground">
+                          {" "}
+                          ({formatNumber(entry.quantity)})
+                        </span>
+                      ) : null}
+                    </span>
                     {reasonLabel ? (
                       <span className="text-muted-foreground">{reasonLabel}</span>
                     ) : null}
