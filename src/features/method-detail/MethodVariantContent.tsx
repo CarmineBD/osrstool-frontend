@@ -25,6 +25,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import Markdown from "@/components/Markdown";
+import OsrsQuantitySprite from "@/components/OsrsQuantitySprite";
 import { formatNumber, formatPercent, getUrlByType } from "@/lib/utils";
 import type { Item, Variant } from "@/lib/api";
 
@@ -46,13 +47,13 @@ function formatLiquidityScore(score?: number): string {
 
 function formatItemQuantity(quantity: number): {
   label: string;
-  color?: string;
+  color: "yellow" | "white" | "green";
   showExactQuantity: boolean;
 } {
   if (quantity > 999_999_999) {
     return {
-      label: `${(quantity / 1_000_000_000).toFixed(1).replace(/\.0$/, "")}M`,
-      color: "#00FF80",
+      label: `${(quantity / 1_000_000_000).toFixed(1).replace(/\.0$/, "")}B`,
+      color: "green",
       showExactQuantity: true,
     };
   }
@@ -60,7 +61,7 @@ function formatItemQuantity(quantity: number): {
   if (quantity > 9_999_999) {
     return {
       label: `${Math.floor(quantity / 1_000_000)}M`,
-      color: "#00FF80",
+      color: "green",
       showExactQuantity: true,
     };
   }
@@ -68,13 +69,14 @@ function formatItemQuantity(quantity: number): {
   if (quantity > 99_999) {
     return {
       label: `${Math.floor(quantity / 1_000)}k`,
-      color: "#FFFFFF",
+      color: "white",
       showExactQuantity: true,
     };
   }
 
   return {
     label: String(quantity),
+    color: "yellow",
     showExactQuantity: false,
   };
 }
@@ -320,16 +322,12 @@ function IoItemsGrid({
                     </figure>
 
                     {entry.quantity > 0 ? (
-                      <span
-                        className="osrs-num osrs-num-2x pointer-events-none absolute -top-0.5 -left-0.5 px-0.5"
-                        style={
-                          quantityDisplay.color
-                            ? { color: quantityDisplay.color }
-                            : undefined
-                        }
-                      >
-                        {quantityDisplay.label}
-                      </span>
+                      <OsrsQuantitySprite
+                        text={quantityDisplay.label}
+                        color={quantityDisplay.color}
+                        scale={1}
+                        className="pointer-events-none absolute top-0 left-[2px]"
+                      />
                     ) : null}
                   </div>
                 </TooltipTrigger>
