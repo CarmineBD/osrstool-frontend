@@ -102,6 +102,8 @@ export interface Variant {
   recommendations?: Requirement;
   highProfit?: number;
   lowProfit?: number;
+  marketImpactInstant?: number;
+  marketImpactSlow?: number;
   trendLastHour?: number;
   trendLast24h?: number;
   trendLastWeek?: number;
@@ -948,5 +950,3 @@ export async function createMethodWithVariants(
   }
   return method;
 }
-
-

@@ -39,6 +39,11 @@ interface MethodVariantContentProps {
   isItemsLoading?: boolean;
 }
 
+function formatLiquidityScore(score?: number): string {
+  if (typeof score !== "number") return "N/A";
+  return `${(score * 100).toFixed(2).replace(/\.?0+$/, "")}%`;
+}
+
 function focusUsernameInput() {
   const usernameInput = document.getElementById(
     "username-input"
@@ -185,6 +190,10 @@ function MetricsCards({ variant }: { variant: Variant }) {
             {variant.lowProfit !== undefined
               ? `${formatNumber(variant.lowProfit)} (lowest profit)`
               : "N/A"}
+          </div>
+          <div>Patient liquidity: {formatLiquidityScore(variant.marketImpactSlow)}</div>
+          <div className="text-muted-foreground">
+            Instant liquidity: {formatLiquidityScore(variant.marketImpactInstant)}
           </div>
         </CardFooter>
       </Card>
