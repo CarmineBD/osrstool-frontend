@@ -62,8 +62,15 @@ interface Row {
   levels: { skill: string; level: number }[];
   lowProfit?: number;
   highProfit?: number;
+  marketImpactInstant?: number;
+  marketImpactSlow?: number;
   likes?: number;
   likedByMe?: boolean;
+}
+
+function formatLiquidityScore(score?: number): string {
+  if (typeof score !== "number") return "N/A";
+  return `${(score * 100).toFixed(2).replace(/\.?0+$/, "")}%`;
 }
 
 export function MethodsList({
@@ -140,6 +147,8 @@ export function MethodsList({
         levels,
         lowProfit: variant.lowProfit,
         highProfit: variant.highProfit,
+        marketImpactInstant: variant.marketImpactInstant,
+        marketImpactSlow: variant.marketImpactSlow,
         likes: method.likes,
         likedByMe: method.likedByMe,
       };
@@ -266,8 +275,8 @@ export function MethodsList({
       <Table className="table-fixed">
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[24%]">Method Name</TableHead>
-            <TableHead className="w-[13%]">
+            <TableHead className="w-[21%]">Method Name</TableHead>
+            <TableHead className="w-[12%]">
               <button
                 type="button"
                 className="inline-flex w-full items-center gap-1 font-medium text-left"
@@ -277,7 +286,8 @@ export function MethodsList({
                 {getSortIcon("highProfit")}
               </button>
             </TableHead>
-            <TableHead className="w-[17%]">
+            <TableHead className="w-[12%]">Liquidity score</TableHead>
+            <TableHead className="w-[15%]">
               <button
                 type="button"
                 className="inline-flex w-full items-center gap-1 font-medium text-left"
@@ -287,7 +297,7 @@ export function MethodsList({
                 {getSortIcon("xpHour")}
               </button>
             </TableHead>
-            <TableHead className="w-[14%]">
+            <TableHead className="w-[12%]">
               <button
                 type="button"
                 className="inline-flex w-full items-center gap-1 font-medium text-left"
@@ -307,8 +317,8 @@ export function MethodsList({
                 {getSortIcon("afkiness")}
               </button>
             </TableHead>
-            <TableHead className="w-[14%]">Requirements</TableHead>
-            <TableHead className="w-[10%]">
+            <TableHead className="w-[12%]">Requirements</TableHead>
+            <TableHead className="w-[8%]">
               <button
                 type="button"
                 className="inline-flex w-full items-center gap-1 font-medium text-left"
@@ -346,19 +356,22 @@ export function MethodsList({
                   <div className="h-6 w-20 animate-pulse rounded bg-muted" />
                 </TableCell>
                 <TableCell>
+                  <div className="h-6 w-20 animate-pulse rounded bg-muted" />
+                </TableCell>
+                <TableCell>
                   <div className="h-4 w-14 animate-pulse rounded bg-muted" />
                 </TableCell>
               </TableRow>
             ))
           ) : error && !data ? (
             <TableRow>
-              <TableCell colSpan={7} className="text-red-500">
+              <TableCell colSpan={8} className="text-red-500">
                 Error: {`${error}`}
               </TableCell>
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7} className="text-muted-foreground">
+              <TableCell colSpan={8} className="text-muted-foreground">
                 No methods found.
               </TableCell>
             </TableRow>
@@ -393,6 +406,15 @@ export function MethodsList({
                       {row.lowProfit !== undefined
                         ? formatNumber(row.lowProfit)
                         : "N/A"}
+                    </span>
+                  </div>
+                </TableCell>
+
+                <TableCell>
+                  <div className="flex flex-col leading-tight">
+                    <span>{formatLiquidityScore(row.marketImpactSlow)}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatLiquidityScore(row.marketImpactInstant)}
                     </span>
                   </div>
                 </TableCell>
