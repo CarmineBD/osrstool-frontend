@@ -17,7 +17,8 @@ export type Props = { hideInput?: boolean };
 const LOGIN_REQUIRED_MESSAGE = "sign-in/login to fetch data by osrs usernames";
 
 export function Nav({ hideInput }: Props) {
-  const { username, setUsername, clearUsername, userError, setUserError } = useUsername();
+  const { username, setUsername, clearUsername, userError, setUserError } =
+    useUsername();
   const { session, signOut } = useAuth();
   const [input, setInput] = useState<string>(username);
   const [logoutError, setLogoutError] = useState<string | null>(null);
@@ -68,18 +69,18 @@ export function Nav({ hideInput }: Props) {
           <NavigationMenuItem>
             <NavigationMenuTrigger>Money making methods</NavigationMenuTrigger>
             <NavigationMenuContent>
-              <ul className="grid gap-2 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
-                <li className="row-span-3">
+              <ul className="grid gap-2 p-2 md:w-[420px]">
+                <li>
                   <NavigationMenuLink asChild>
                     <Link
                       className="from-muted/50 to-muted flex h-full w-full flex-col justify-end rounded-md bg-linear-to-b p-6 no-underline outline-hidden select-none focus:shadow-md"
-                      to="/"
+                      to="/allMethods"
                     >
                       <div className="mt-4 mb-2 text-lg font-medium">
                         All methods
                       </div>
                       <p className="text-muted-foreground text-sm leading-tight">
-                        All official money making methods.
+                        All official money making methods in one place.
                       </p>
                     </Link>
                   </NavigationMenuLink>

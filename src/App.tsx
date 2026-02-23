@@ -8,6 +8,8 @@ import { LoginPage } from "./pages/LoginPage";
 import { AccountPage } from "./pages/AccountPage";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { LandingPage } from "./pages/LandingPage";
+import { ChangelogDetailPage } from "./pages/ChangelogDetailPage";
 
 const LazyMethodDetail = lazy(() =>
   import("./pages/MethodDetail").then((module) => ({
@@ -28,7 +30,9 @@ function App() {
         <UsernameProvider>
           <Routes>
             <Route element={<Layout />}>
-              <Route path="/" element={<Home />} />
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/allMethods" element={<Home />} />
+              <Route path="/changelog/:slug" element={<ChangelogDetailPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route element={<ProtectedRoute />}>
                 <Route path="/account" element={<AccountPage />} />

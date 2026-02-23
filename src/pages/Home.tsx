@@ -19,6 +19,7 @@ import type { MethodsFilters } from "@/lib/api";
 import { getUrlByType } from "@/lib/utils";
 import { fetchMe } from "@/lib/me";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
+import { useSeo } from "@/hooks/useSeo";
 
 export type Props = Record<string, never>;
 const LOGIN_REQUIRED_MESSAGE = "sign-in/login to fetch data by osrs usernames";
@@ -57,6 +58,14 @@ const SKILL_OPTIONS = [
 
 export function Home(_props: Props) {
   void _props;
+  useSeo({
+    title: "All Methods | OSRSTool",
+    description:
+      "Listado completo de metodos de money making para OSRS con filtros por categoria, riesgo, AFK y skills.",
+    path: "/allMethods",
+    keywords: "all methods osrs, osrs moneymaking list, osrstool methods",
+  });
+
   const { username, setUsername, userError, setUserError } = useUsername();
   const { session, isLoading } = useAuth();
   const effectiveUsername = session ? username : "";
