@@ -6,7 +6,8 @@ export type Props = Record<string, never>;
 export function Layout(_props: Props) {
   void _props;
   const location = useLocation();
-  const hideInput = location.pathname === "/";
+  const hideInput =
+    location.pathname === "/" || location.pathname === "/allMethods";
   return (
     <div className="min-h-screen flex flex-col">
       <Nav hideInput={hideInput} />
