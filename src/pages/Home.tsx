@@ -20,51 +20,44 @@ import { getUrlByType } from "@/lib/utils";
 import { fetchMe } from "@/lib/me";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
 import { useSeo } from "@/hooks/useSeo";
+import { OSRS_SKILLS, formatSkillName } from "@/lib/skills";
 
-export type Props = Record<string, never>;
+type SeoConfig = {
+  title: string;
+  description: string;
+  path: string;
+  keywords?: string;
+};
+
+export type Props = {
+  lockedSkill?: string;
+  pageTitle?: string;
+  seo?: SeoConfig;
+};
 const LOGIN_REQUIRED_MESSAGE = "sign-in/login to fetch data by osrs usernames";
 type SortConfig = {
   sortBy?: MethodsFilters["sortBy"];
   order?: MethodsFilters["order"];
 };
 
-const SKILL_OPTIONS = [
-  "combat",
-  "attack",
-  "strength",
-  "defence",
-  "ranged",
-  "prayer",
-  "magic",
-  "runecraft",
-  "construction",
-  "hitpoints",
-  "agility",
-  "herblore",
-  "thieving",
-  "crafting",
-  "fletching",
-  "slayer",
-  "hunter",
-  "mining",
-  "smithing",
-  "fishing",
-  "cooking",
-  "firemaking",
-  "woodcutting",
-  "farming",
-  "sailing",
-] as const;
+const SKILL_OPTIONS = ["combat", ...OSRS_SKILLS] as const;
+const DEFAULT_SEO: SeoConfig = {
+  title: "All Methods | OSRSTool",
+  description:
+    "Listado completo de metodos de money making para OSRS con filtros por categoria, riesgo, AFK y skills.",
+  path: "/allMethods",
+  keywords: "all methods osrs, osrs moneymaking list, osrstool methods",
+};
 
-export function Home(_props: Props) {
-  void _props;
-  useSeo({
-    title: "All Methods | OSRSTool",
-    description:
-      "Listado completo de metodos de money making para OSRS con filtros por categoria, riesgo, AFK y skills.",
-    path: "/allMethods",
-    keywords: "all methods osrs, osrs moneymaking list, osrstool methods",
-  });
+export function Home({ lockedSkill, pageTitle, seo }: Props) {
+  const normalizedLockedSkill = lockedSkill?.trim().toLowerCase();
+  const hasLockedSkill = !!normalizedLockedSkill;
+  const lockedSkillLabel = normalizedLockedSkill
+    ? formatSkillName(normalizedLockedSkill)
+    : "";
+  const seoConfig = seo ?? DEFAULT_SEO;
+
+  useSeo(seoConfig);
 
   const { username, setUsername, userError, setUserError } = useUsername();
   const { session, isLoading } = useAuth();
@@ -80,15 +73,18 @@ export function Home(_props: Props) {
   const [givesExperience, setGivesExperience] = useState<boolean | undefined>(
     undefined
   );
-  const [skill, setSkill] = useState<string>("");
+  const [skill, setSkill] = useState<string>(normalizedLockedSkill ?? "");
   const [showProfitables, setShowProfitables] = useState<
     boolean | undefined
   >(undefined);
   const [enabled, setEnabled] = useState<boolean>(true);
   const [sortConfig, setSortConfig] = useState<SortConfig>({});
-  const [filters, setFilters] = useState<MethodsFilters>({
+  const [filters, setFilters] = useState<MethodsFilters>(() => ({
     enabled: true,
-  });
+    ...(normalizedLockedSkill
+      ? { skill: normalizedLockedSkill, variants: "all" }
+      : {}),
+  }));
   const { data: meData } = useQuery({
     queryKey: ["me"],
     queryFn: fetchMe,
@@ -102,6 +98,17 @@ export function Home(_props: Props) {
     if (isLoading) return;
     setInput(effectiveUsername);
   }, [effectiveUsername, isLoading]);
+
+  useEffect(() => {
+    if (!normalizedLockedSkill) return;
+
+    setSkill(normalizedLockedSkill);
+    setFilters((previous) => ({
+      ...previous,
+      skill: normalizedLockedSkill,
+      variants: "all",
+    }));
+  }, [normalizedLockedSkill]);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -151,7 +158,8 @@ export function Home(_props: Props) {
       riskLevel: boundedRiskLevel,
       givesExperience,
       enabled: isSuperAdmin ? enabled : undefined,
-      skill: skill || undefined,
+      skill: normalizedLockedSkill ?? (skill || undefined),
+      variants: normalizedLockedSkill ? "all" : undefined,
       showProfitables,
     });
 
@@ -180,7 +188,9 @@ export function Home(_props: Props) {
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto p-8 space-y-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <h1 className="text-3xl font-bold">OSRS Moneymaking Methods</h1>
+          <h1 className="text-3xl font-bold">
+            {pageTitle ?? "OSRS Moneymaking Methods"}
+          </h1>
           {isSuperAdmin && (
             <Button asChild>
               <Link to="/moneyMakingMethod/new">Add new method</Link>
@@ -267,39 +277,45 @@ export function Home(_props: Props) {
                 onChange={(e) => setRiskLevel(e.target.value)}
               />
 
-              <Select
-                value={skill}
-                onValueChange={(value) =>
-                  setSkill(value === "__none__" ? "" : value)
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Skill" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Sin filtro</SelectItem>
-                  {SKILL_OPTIONS.map((skillOption) => {
-                    const iconUrl = getUrlByType(skillOption);
-                    return (
-                      <SelectItem key={skillOption} value={skillOption}>
-                        <span className="flex items-center gap-2">
-                          {iconUrl ? (
-                            <span className="flex h-4 w-4 shrink-0 items-center justify-center">
-                              <img
-                                src={iconUrl}
-                                alt={`${skillOption}_icon`}
-                                className="max-h-full max-w-full object-contain"
-                                loading="lazy"
-                              />
-                            </span>
-                          ) : null}
-                          <span>{skillOption}</span>
-                        </span>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
+              {hasLockedSkill ? (
+                <div className="flex items-center rounded-md border bg-background px-3 py-2 text-sm">
+                  Skill locked: {lockedSkillLabel}
+                </div>
+              ) : (
+                <Select
+                  value={skill}
+                  onValueChange={(value) =>
+                    setSkill(value === "__none__" ? "" : value)
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Skill" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Sin filtro</SelectItem>
+                    {SKILL_OPTIONS.map((skillOption) => {
+                      const iconUrl = getUrlByType(skillOption);
+                      return (
+                        <SelectItem key={skillOption} value={skillOption}>
+                          <span className="flex items-center gap-2">
+                            {iconUrl ? (
+                              <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+                                <img
+                                  src={iconUrl}
+                                  alt={`${skillOption}_icon`}
+                                  className="max-h-full max-w-full object-contain"
+                                  loading="lazy"
+                                />
+                              </span>
+                            ) : null}
+                            <span>{skillOption}</span>
+                          </span>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              )}
 
               <div className="flex items-center gap-2">
                 <Switch
@@ -348,6 +364,8 @@ export function Home(_props: Props) {
           username={effectiveUsername}
           name={methodName}
           filters={appliedFilters}
+          isSkillTable={hasLockedSkill}
+          highlightSkill={normalizedLockedSkill}
           sortBy={sortConfig.sortBy}
           order={sortConfig.order}
           onSortChange={handleSortChange}

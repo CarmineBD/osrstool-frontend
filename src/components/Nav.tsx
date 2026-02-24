@@ -11,6 +11,7 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
+  navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 
 export type Props = { hideInput?: boolean };
@@ -100,6 +101,13 @@ export function Nav({ hideInput }: Props) {
                 </ListItem> */}
               </ul>
             </NavigationMenuContent>
+          </NavigationMenuItem>
+          <NavigationMenuItem>
+            <NavigationMenuLink asChild>
+              <Link to="/skilling" className={navigationMenuTriggerStyle()}>
+                Skilling
+              </Link>
+            </NavigationMenuLink>
           </NavigationMenuItem>
 
           {/* <NavigationMenuItem>

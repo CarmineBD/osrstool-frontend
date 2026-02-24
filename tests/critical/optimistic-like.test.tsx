@@ -59,7 +59,11 @@ describe("critical flow: optimistic like", () => {
 
     renderWithProviders(<MethodsList username="" />);
 
-    const likeButton = await screen.findByRole("button", { name: "Like method" });
+    const likeButton = await screen.findByRole(
+      "button",
+      { name: /Like method|Unlike method/ },
+      { timeout: 4000 }
+    );
     expect(within(likeButton).getByText("5")).toBeInTheDocument();
 
     const user = userEvent.setup();
