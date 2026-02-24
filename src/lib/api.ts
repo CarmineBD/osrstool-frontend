@@ -102,6 +102,8 @@ export interface Variant {
   recommendations?: Requirement;
   highProfit?: number;
   lowProfit?: number;
+  gpPerXpHigh?: number;
+  gpPerXpLow?: number;
   marketImpactInstant?: number;
   marketImpactSlow?: number;
   trendLastHour?: number;
@@ -169,9 +171,17 @@ export interface MethodsFilters {
   givesExperience?: boolean;
   enabled?: boolean;
   skill?: string;
+  variants?: "all";
   showProfitables?: boolean;
   likedByMe?: boolean;
-  sortBy?: "clickIntensity" | "afkiness" | "xpHour" | "highProfit" | "likes";
+  sortBy?:
+    | "clickIntensity"
+    | "afkiness"
+    | "xpHour"
+    | "highProfit"
+    | "likes"
+    | "gpPerXpHigh"
+    | "gpPerXpLow";
   order?: "asc" | "desc";
 }
 
@@ -204,6 +214,7 @@ export async function fetchMethods(
     url.searchParams.set("enabled", String(filters.enabled));
   }
   if (filters?.skill) url.searchParams.set("skill", filters.skill);
+  if (filters?.variants) url.searchParams.set("variants", filters.variants);
   if (filters?.showProfitables !== undefined) {
     url.searchParams.set("showProfitables", String(filters.showProfitables));
   }
@@ -384,6 +395,30 @@ export interface SkillOption {
   label: string;
   value: string;
   name: string;
+}
+
+export type SkillSummaryMethod = {
+  id: string;
+  slug?: string;
+  name: string;
+  variantCount?: number;
+  likes?: number;
+  likedByMe?: boolean;
+  variants: Variant[];
+};
+
+export type SkillSummaryEntry = {
+  bestProfit?: SkillSummaryMethod | null;
+  bestAfk?: SkillSummaryMethod | null;
+  bestXp?: SkillSummaryMethod | null;
+};
+
+export interface MethodsSkillsSummaryResponse {
+  data: Record<string, SkillSummaryEntry>;
+  meta?: {
+    username?: string;
+    computedAt?: number;
+  };
 }
 
 export async function fetchItems(ids: number[]): Promise<Record<number, Item>> {
@@ -664,6 +699,39 @@ export async function fetchQuests(): Promise<QuestOption[]> {
 export async function fetchSkills(): Promise<SkillOption[]> {
   const json = await fetchCatalog("/skills");
   return parseSkillOptions(json);
+}
+
+export async function fetchMethodsSkillsSummary(
+  username?: string,
+  enabled = false
+): Promise<MethodsSkillsSummaryResponse> {
+  const url = toApiUrl("/methods/skills/summary");
+  const normalizedUsername = username?.trim();
+  if (normalizedUsername) {
+    url.searchParams.set("username", normalizedUsername);
+  }
+  url.searchParams.set("enabled", String(enabled));
+
+  const res = await apiFetch(url.toString());
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status} - Error fetching methods skills summary`);
+  }
+
+  const json: unknown = await res.json();
+  const root =
+    json && typeof json === "object"
+      ? (json as Record<string, unknown>)
+      : undefined;
+  const data =
+    root?.data && typeof root.data === "object"
+      ? (root.data as Record<string, SkillSummaryEntry>)
+      : {};
+  const meta =
+    root?.meta && typeof root.meta === "object"
+      ? (root.meta as MethodsSkillsSummaryResponse["meta"])
+      : undefined;
+
+  return { data, meta };
 }
 
 export async function searchItems(
