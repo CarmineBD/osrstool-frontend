@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUsername } from "@/contexts/UsernameContext";
 import { MethodDetailHeader } from "@/features/method-detail/MethodDetailHeader";
+import { MethodDetailSkeleton } from "@/features/method-detail/MethodDetailSkeleton";
 import { MethodVariantContent } from "@/features/method-detail/MethodVariantContent";
 import { useMethodDetail } from "@/features/method-detail/useMethodDetail";
 import type { Variant } from "@/lib/api";
@@ -19,9 +20,23 @@ export function MethodDetail(_props: Props) {
   const { username } = useUsername();
   const state = useMethodDetail();
 
-  if (state.isLoading) return <p>Cargando m&eacute;todo&hellip;</p>;
-  if (state.error) return <p className="text-red-500">❌ {`${state.error}`}</p>;
-  if (!state.method) return <p>No se encontr&oacute; el m&eacute;todo.</p>;
+  if (state.isLoading) return <MethodDetailSkeleton />;
+
+  if (state.error) {
+    return (
+      <div className="mx-auto max-w-5xl rounded border border-destructive/30 bg-destructive/10 p-6 text-sm text-destructive">
+        Error: {`${state.error}`}
+      </div>
+    );
+  }
+
+  if (!state.method) {
+    return (
+      <div className="mx-auto max-w-5xl rounded border p-6 text-sm text-muted-foreground">
+        No se encontro el metodo.
+      </div>
+    );
+  }
 
   return (
     <div className="relative mx-auto max-w-5xl rounded bg-white p-6 shadow">
@@ -32,7 +47,9 @@ export function MethodDetail(_props: Props) {
         onEditClick={() => navigate(`/moneyMakingMethod/${state.methodSlug}/edit`)}
       />
 
-      {state.hasMultipleVariants ? <h3 className="mb-2 font-semibold">Variants:</h3> : null}
+      {state.hasMultipleVariants ? (
+        <h3 className="mb-2 font-semibold">Variants:</h3>
+      ) : null}
 
       <Tabs
         value={state.activeSlug}
