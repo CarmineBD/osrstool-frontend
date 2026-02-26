@@ -52,6 +52,7 @@ export interface UseRequirementsRecommendationsResult {
   setQuery: (value: string) => void;
   emptyMessage: string;
   itemSearchError: string | null;
+  itemSearchLoading: boolean;
   itemSearchLoadingMore: boolean;
   questIconUrl: string | undefined;
   achievementDiaryIconUrl: string | undefined;
@@ -447,11 +448,7 @@ export function useRequirementsRecommendations({
     ]
   );
 
-  const emptyMessage = itemSearchLoading
-    ? "Loading..."
-    : trimmedQuery
-      ? "Sin resultados"
-      : "Escribe para buscar";
+  const emptyMessage = trimmedQuery ? "Sin resultados" : "Escribe para buscar";
 
   const updateEntry = useCallback(
     (entryKey: string, updater: EntryUpdater) => {
@@ -581,6 +578,7 @@ export function useRequirementsRecommendations({
     setQuery,
     emptyMessage,
     itemSearchError,
+    itemSearchLoading,
     itemSearchLoadingMore,
     questIconUrl,
     achievementDiaryIconUrl,

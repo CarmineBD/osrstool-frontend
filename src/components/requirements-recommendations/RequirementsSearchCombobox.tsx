@@ -11,6 +11,7 @@ import {
   ComboboxList,
   ComboboxSeparator,
 } from "@/components/ui/combobox";
+import { Skeleton } from "@/components/ui/skeleton";
 import type {
   SearchOption,
   SearchOptionGroup,
@@ -24,6 +25,7 @@ interface RequirementsSearchComboboxProps {
   selectedEntryKeys: Set<string>;
   emptyMessage: string;
   itemSearchError: string | null;
+  itemSearchLoading: boolean;
   itemSearchLoadingMore: boolean;
   onSearchListScroll: (event: UIEvent<HTMLElement>) => void;
   questIconUrl?: string;
@@ -38,6 +40,7 @@ export function RequirementsSearchCombobox({
   selectedEntryKeys,
   emptyMessage,
   itemSearchError,
+  itemSearchLoading,
   itemSearchLoadingMore,
   onSearchListScroll,
   questIconUrl,
@@ -70,6 +73,8 @@ export function RequirementsSearchCombobox({
                 <ComboboxLabel>{group.label}</ComboboxLabel>
                 {group.options.map((option) => {
                   const isAdded = selectedEntryKeys.has(option.entryKey);
+                  const skillIconUrl =
+                    option.kind === "skill" ? getUrlByType(option.skill) : null;
                   return (
                     <ComboboxItem key={option.key} value={option} disabled={isAdded}>
                       <div className="flex items-center gap-2">
@@ -82,10 +87,10 @@ export function RequirementsSearchCombobox({
                             />
                           </div>
                         ) : null}
-                        {option.kind === "skill" && getUrlByType(option.skill) ? (
+                        {option.kind === "skill" && skillIconUrl ? (
                           <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
                             <img
-                              src={getUrlByType(option.skill) ?? ""}
+                              src={skillIconUrl}
                               alt={`${option.skill}_icon`}
                               className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
                             />
@@ -121,8 +126,29 @@ export function RequirementsSearchCombobox({
               </ComboboxGroup>
             </Fragment>
           ))}
+          {itemSearchLoading ? (
+            <div className="px-2 py-1.5">
+              <Skeleton className="mb-2 h-3 w-24" />
+              <div className="space-y-1.5">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <div
+                    key={`requirements-item-skeleton-${index}`}
+                    className="flex items-center gap-2"
+                  >
+                    <Skeleton className="h-[30px] w-[30px]" />
+                    <Skeleton className="h-4 w-48" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
           {itemSearchLoadingMore ? (
-            <div className="px-2 py-1 text-xs text-muted-foreground">Loading...</div>
+            <div className="px-2 py-1.5">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-[30px] w-[30px]" />
+                <Skeleton className="h-4 w-40" />
+              </div>
+            </div>
           ) : null}
         </ComboboxList>
         <ComboboxEmpty>{emptyMessage}</ComboboxEmpty>

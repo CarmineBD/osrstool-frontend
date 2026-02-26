@@ -14,13 +14,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Eye, EyeOff } from "lucide-react";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
 
 function maskEmail(email: string) {
   const atIndex = email.indexOf("@");
   if (atIndex <= 0) {
-    return email.length <= 1 ? email : `${email[0]}${"*".repeat(email.length - 1)}`;
+    return email.length <= 1
+      ? email
+      : `${email[0]}${"*".repeat(email.length - 1)}`;
   }
 
   const localPart = email.slice(0, atIndex);
@@ -80,13 +83,19 @@ export function AccountPage() {
       <Card>
         <CardHeader>
           <CardTitle>Mi cuenta</CardTitle>
-          <CardDescription>Gestiona tu sesión y tus métodos likeados.</CardDescription>
+          <CardDescription>Gestiona tu sesion y tus metodos likeados.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 text-sm">
           <div>
             <p className="text-muted-foreground">Email</p>
             <div className="flex items-center gap-2">
-              <p className="font-medium">{user?.email ? (showEmail ? user.email : maskEmail(user.email)) : "Sin email"}</p>
+              <p className="font-medium">
+                {user?.email
+                  ? showEmail
+                    ? user.email
+                    : maskEmail(user.email)
+                  : "Sin email"}
+              </p>
               {user?.email ? (
                 <Button
                   aria-label={showEmail ? "Ocultar correo" : "Mostrar correo"}
@@ -100,28 +109,28 @@ export function AccountPage() {
               ) : null}
             </div>
           </div>
+
           <div>
             <p className="text-muted-foreground">User ID</p>
             <p className="break-all font-mono text-xs">{user?.id ?? "Sin ID"}</p>
           </div>
+
           <div>
             <p className="text-muted-foreground">Likes totales</p>
-            <p className="font-semibold text-lg">
-              {isMeLoading ? "Cargando..." : likesCount}
-            </p>
+            {isMeLoading ? (
+              <Skeleton className="mt-1 h-8 w-16" />
+            ) : (
+              <p className="text-lg font-semibold">{likesCount}</p>
+            )}
           </div>
+
           {meError ? (
             <p className="text-destructive">
-              {meError instanceof Error
-                ? meError.message
-                : "Error al cargar tu perfil"}
+              {meError instanceof Error ? meError.message : "Error al cargar tu perfil"}
             </p>
           ) : null}
-          <Button
-            variant="outline"
-            onClick={handleLogout}
-            disabled={isLoggingOut}
-          >
+
+          <Button variant="outline" onClick={handleLogout} disabled={isLoggingOut}>
             {isLoggingOut ? "Cerrando sesion..." : "Logout"}
           </Button>
         </CardContent>
@@ -132,6 +141,7 @@ export function AccountPage() {
           <TabsTrigger value="likes">Mis likes</TabsTrigger>
           <TabsTrigger value="summary">Resumen</TabsTrigger>
         </TabsList>
+
         <TabsContent value="likes">
           <MethodsList
             username={username}
@@ -141,17 +151,23 @@ export function AccountPage() {
             onSortChange={(sortBy, order) => setSortConfig({ sortBy, order })}
           />
         </TabsContent>
+
         <TabsContent value="summary">
           <Card>
             <CardHeader>
               <CardTitle>Resumen de actividad</CardTitle>
               <CardDescription>
-                Tus likes se sincronizan automáticamente entre el listado y el detalle.
+                Tus likes se sincronizan automaticamente entre el listado y el detalle.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <p>
-                Métodos likeados: <span className="font-semibold">{likesCount}</span>
+                Metodos likeados:{" "}
+                {isMeLoading ? (
+                  <Skeleton className="inline-flex h-5 w-12 align-middle" />
+                ) : (
+                  <span className="font-semibold">{likesCount}</span>
+                )}
               </p>
             </CardContent>
           </Card>

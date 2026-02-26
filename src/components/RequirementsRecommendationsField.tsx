@@ -22,6 +22,7 @@ export function RequirementsRecommendationsField(
         selectedEntryKeys={state.selectedEntryKeys}
         emptyMessage={state.emptyMessage}
         itemSearchError={state.itemSearchError}
+        itemSearchLoading={state.itemSearchLoading}
         itemSearchLoadingMore={state.itemSearchLoadingMore}
         onSearchListScroll={state.handleSearchListScroll}
         questIconUrl={state.questIconUrl}

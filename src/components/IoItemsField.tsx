@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { IconX } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 
@@ -286,11 +287,7 @@ export function IoItemsField({
   const getItemIcon = (id: number) =>
     itemsMap[id]?.iconUrl ?? searchCache[id]?.iconUrl;
 
-  const emptyMessage = loading
-    ? "Loading..."
-    : query.trim()
-      ? "Sin resultados"
-      : "Escribe para buscar";
+  const emptyMessage = query.trim() ? "Sin resultados" : "Escribe para buscar";
 
   return (
     <div className="space-y-3">
@@ -314,33 +311,45 @@ export function IoItemsField({
         />
         <ComboboxContent>
           <ComboboxList onScroll={handleResultsScroll}>
-            {results.map((item) => {
-              const isAdded = items.some((entry) => entry.id === item.id);
-              return (
-                <ComboboxItem key={item.id} value={item} disabled={isAdded}>
-                  <div className="flex items-center gap-2">
-                    {item.iconUrl ? (
-                      <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
-                        <img
-                          src={item.iconUrl}
-                          alt={item.name}
-                          className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
-                        />
-                      </div>
-                    ) : null}
-                    <span>{item.name}</span>
-                    {isAdded ? (
-                      <span className="text-xs text-muted-foreground">
-                        Agregado
-                      </span>
-                    ) : null}
+            {loading && results.length === 0
+              ? Array.from({ length: 6 }).map((_, index) => (
+                  <div key={`item-search-skeleton-${index}`} className="px-2 py-1.5">
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-[30px] w-[30px]" />
+                      <Skeleton className="h-4 w-44" />
+                    </div>
                   </div>
-                </ComboboxItem>
-              );
-            })}
+                ))
+              : results.map((item) => {
+                  const isAdded = items.some((entry) => entry.id === item.id);
+                  return (
+                    <ComboboxItem key={item.id} value={item} disabled={isAdded}>
+                      <div className="flex items-center gap-2">
+                        {item.iconUrl ? (
+                          <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
+                            <img
+                              src={item.iconUrl}
+                              alt={item.name}
+                              className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
+                            />
+                          </div>
+                        ) : null}
+                        <span>{item.name}</span>
+                        {isAdded ? (
+                          <span className="text-xs text-muted-foreground">
+                            Agregado
+                          </span>
+                        ) : null}
+                      </div>
+                    </ComboboxItem>
+                  );
+                })}
             {loadingMore ? (
-              <div className="px-2 py-1 text-xs text-muted-foreground">
-                Loading...
+              <div className="px-2 py-1.5">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-[30px] w-[30px]" />
+                  <Skeleton className="h-4 w-36" />
+                </div>
               </div>
             ) : null}
           </ComboboxList>
