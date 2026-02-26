@@ -1,4 +1,5 @@
 import { Outlet, useLocation } from "react-router-dom";
+import { Footer } from "./Footer";
 import { Nav } from "./Nav";
 
 export type Props = Record<string, never>;
@@ -18,6 +19,7 @@ export function Layout(_props: Props) {
       <main className="flex-1">
         <Outlet />
       </main>
+      <Footer />
     </div>
   );
 }
