@@ -12,10 +12,7 @@ import { LandingPage } from "./pages/LandingPage";
 import { ChangelogDetailPage } from "./pages/ChangelogDetailPage";
 import { SkillingPage } from "./pages/SkillingPage";
 import { SkillMethodsPage } from "./pages/SkillMethodsPage";
-import {
-  TechnicalWikiCategoryPage,
-  TechnicalWikiPage,
-} from "./pages/TechnicalWikiPage";
+import { WikiCategoryPage, WikiPage } from "./pages/WikiPage";
 
 const LazyMethodDetail = lazy(() =>
   import("./pages/MethodDetail").then((module) => ({
@@ -40,11 +37,8 @@ function App() {
               <Route path="/allMethods" element={<Home />} />
               <Route path="/skilling" element={<SkillingPage />} />
               <Route path="/skilling/:skill" element={<SkillMethodsPage />} />
-              <Route path="/wiki/technical" element={<TechnicalWikiPage />} />
-              <Route
-                path="/wiki/technical/:category"
-                element={<TechnicalWikiCategoryPage />}
-              />
+              <Route path="/wiki" element={<WikiPage />} />
+              <Route path="/wiki/:category" element={<WikiCategoryPage />} />
               <Route path="/changelog/:slug" element={<ChangelogDetailPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route element={<ProtectedRoute />}>

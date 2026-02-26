@@ -544,7 +544,7 @@ function isWikiCategorySlug(
 }
 
 function categoryPath(slug: WikiCategorySlug) {
-  return slug === "general" ? "/wiki/technical" : `/wiki/technical/${slug}`;
+  return slug === "general" ? "/wiki" : `/wiki/${slug}`;
 }
 
 function sectionPath(slug: WikiCategorySlug, sectionId: string) {
@@ -575,7 +575,7 @@ function SectionCard({
   );
 }
 
-function TechnicalWikiContent({
+function WikiContent({
   requestedCategory,
 }: {
   requestedCategory?: string;
@@ -612,7 +612,7 @@ function TechnicalWikiContent({
     description: category
       ? `${category.title}: ${category.shortDescription}`
       : "La categoria solicitada no existe en la wiki.",
-    path: category ? categoryPath(category.slug) : "/wiki/technical",
+    path: category ? categoryPath(category.slug) : "/wiki",
     keywords: "osrstool wiki, osrs guide",
   });
 
@@ -784,7 +784,7 @@ function TechnicalWikiContent({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Link to="/wiki/technical" className="font-semibold underline">
+            <Link to="/wiki" className="font-semibold underline">
               Volver a Vision general
             </Link>
           </CardContent>
@@ -887,11 +887,11 @@ function TechnicalWikiContent({
   );
 }
 
-export function TechnicalWikiPage() {
-  return <TechnicalWikiContent />;
+export function WikiPage() {
+  return <WikiContent />;
 }
 
-export function TechnicalWikiCategoryPage() {
+export function WikiCategoryPage() {
   const { category } = useParams<{ category: string }>();
-  return <TechnicalWikiContent requestedCategory={category} />;
+  return <WikiContent requestedCategory={category} />;
 }

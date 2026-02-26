@@ -10,6 +10,7 @@ export function Layout(_props: Props) {
     location.pathname === "/" ||
     location.pathname === "/allMethods" ||
     location.pathname.startsWith("/skilling/") ||
+    location.pathname === "/wiki" ||
     location.pathname.startsWith("/wiki/");
   return (
     <div className="min-h-screen flex flex-col">
