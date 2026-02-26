@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/auth/AuthProvider";
 import { useUsername } from "@/contexts/UsernameContext";
@@ -41,6 +41,8 @@ export function AccountPage() {
     order?: MethodsFilters["order"];
   }>({});
   const [showEmail, setShowEmail] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const isLoggingOutRef = useRef(false);
 
   const { data: meData, error: meError, isLoading: isMeLoading } = useQuery({
     queryKey: ["me"],
@@ -50,9 +52,17 @@ export function AccountPage() {
   });
 
   const handleLogout = async () => {
-    const error = await signOut();
-    if (error) return;
-    clearUsername();
+    if (isLoggingOutRef.current) return;
+    isLoggingOutRef.current = true;
+    setIsLoggingOut(true);
+    try {
+      const error = await signOut();
+      if (error) return;
+      clearUsername();
+    } finally {
+      isLoggingOutRef.current = false;
+      setIsLoggingOut(false);
+    }
   };
 
   const likesCount = meData?.data?.likesCount ?? meData?.data?.likes ?? 0;
@@ -107,8 +117,12 @@ export function AccountPage() {
                 : "Error al cargar tu perfil"}
             </p>
           ) : null}
-          <Button variant="outline" onClick={handleLogout}>
-            Logout
+          <Button
+            variant="outline"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+          >
+            {isLoggingOut ? "Cerrando sesion..." : "Logout"}
           </Button>
         </CardContent>
       </Card>
