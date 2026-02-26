@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { Fragment, lazy, Suspense, useMemo, useState } from "react";
 import {
   IconClick,
   IconTrendingDown,
@@ -25,6 +25,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import Markdown from "@/components/Markdown";
 import OsrsQuantitySprite from "@/components/OsrsQuantitySprite";
 import { formatNumber, formatPercent, getUrlByType } from "@/lib/utils";
@@ -80,6 +81,15 @@ function formatItemQuantity(quantity: number): {
     color: "yellow",
     showExactQuantity: false,
   };
+}
+
+type WeightPriceMode = "input" | "output";
+
+function getWeightPrice(item: Item, mode: WeightPriceMode): number {
+  if (mode === "input") {
+    return item.lowPrice ?? 0;
+  }
+  return item.highPrice ?? 0;
 }
 
 function focusUsernameInput() {
@@ -305,29 +315,65 @@ function IoItemsGrid({
   total,
   items,
   itemsMap,
+  weightPriceMode,
   isLoading = false,
 }: {
   title: string;
   total?: number;
   items: Variant["inputs"];
   itemsMap: Record<number, Item>;
+  weightPriceMode: WeightPriceMode;
   isLoading?: boolean;
 }) {
+  const [showWeights, setShowWeights] = useState(false);
+  const weightedItems = useMemo(() => {
+    const withValues = items
+      .map((entry) => {
+        const item = itemsMap[entry.id];
+        if (!item) return null;
+        const totalCoins = entry.quantity * getWeightPrice(item, weightPriceMode);
+        return { entry, item, totalCoins };
+      })
+      .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+
+    const totalCoins = withValues.reduce((sum, entry) => sum + entry.totalCoins, 0);
+
+    return withValues
+      .map((entry) => ({
+        ...entry,
+        weightPercent: totalCoins > 0 ? (entry.totalCoins / totalCoins) * 100 : 0,
+      }))
+      .sort((a, b) => b.weightPercent - a.weightPercent);
+  }, [items, itemsMap, weightPriceMode]);
+
   return (
     <div className="flex-1">
-      <div className="flex flex-wrap items-center gap-1 text-sm font-semibold">
-        <h3>{title}</h3>
-        <span className="text-xs font-normal text-muted-foreground">
-          {typeof total === "number"
-            ? `(${formatNumber(total)} gp)`
-            : isLoading
-              ? null
-              : "(N/A)"}
-        </span>
-        {isLoading ? <Skeleton className="h-3 w-24" /> : null}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-1 text-sm font-semibold">
+          <h3>{title}</h3>
+          <span className="text-xs font-normal text-muted-foreground">
+            {typeof total === "number"
+              ? `(${formatNumber(total)} gp)`
+              : isLoading
+                ? null
+                : "(N/A)"}
+          </span>
+          {isLoading ? <Skeleton className="h-3 w-24" /> : null}
+        </div>
+
+        <label className="flex items-center gap-2 text-xs font-normal text-muted-foreground">
+          <Switch checked={showWeights} onCheckedChange={setShowWeights} />
+          view weights
+        </label>
       </div>
       <div className="mt-3 min-h-14 w-full rounded bg-[#494034] p-4 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)]">
-        <div className="flex flex-start flex-wrap gap-1">
+        <div
+          className={
+            showWeights && !isLoading
+              ? "grid grid-cols-[2rem_max-content_minmax(0,1fr)] items-center gap-x-1.5 gap-y-2"
+              : "flex flex-start flex-wrap gap-1"
+          }
+        >
           {isLoading
             ? Array.from({ length: Math.min(12, Math.max(items.length, 6)) }).map(
                 (_, index) => (
@@ -337,7 +383,90 @@ function IoItemsGrid({
                   />
                 )
               )
-            : items.map((entry) => {
+            : showWeights
+              ? weightedItems.map((entry) => {
+                  const quantityDisplay = formatItemQuantity(entry.entry.quantity);
+                  const reasonLabel = entry.entry.reason?.trim();
+                  const roundedTotalCoins = Math.round(entry.totalCoins);
+                  const showExactCoinsTitle = roundedTotalCoins > 99_999;
+
+                  return (
+                    <Fragment key={`${title}-weight-${entry.entry.id}`}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="relative grid h-8 w-8 place-items-center">
+                            <figure className="grid h-full w-full place-items-center">
+                              <img
+                                src={entry.item.iconUrl}
+                                alt={entry.item.name}
+                                className="max-h-full max-w-full object-contain drop-shadow-[1px_1px_0_#333333] [image-rendering:pixelated]"
+                              />
+                            </figure>
+
+                            {entry.entry.quantity > 0 ? (
+                              <OsrsQuantitySprite
+                                text={quantityDisplay.label}
+                                color={quantityDisplay.color}
+                                scale={1}
+                                className="pointer-events-none absolute top-0 left-[2px]"
+                              />
+                            ) : null}
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <div className="flex flex-col">
+                            <span>
+                              {entry.item.name}
+                              {quantityDisplay.showExactQuantity ? (
+                                <span className="text-muted-foreground">
+                                  {" "}
+                                  ({formatNumber(entry.entry.quantity)})
+                                </span>
+                              ) : null}
+                            </span>
+                            {reasonLabel ? (
+                              <span className="text-muted-foreground">{reasonLabel}</span>
+                            ) : null}
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+
+                      {showExactCoinsTitle ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="justify-self-end whitespace-nowrap text-right text-xs font-medium text-white">
+                              {formatNumber(roundedTotalCoins)}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent sideOffset={6}>
+                            <span>{roundedTotalCoins.toLocaleString()}</span>
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        <span className="justify-self-end whitespace-nowrap text-right text-xs font-medium text-white">
+                          {formatNumber(roundedTotalCoins)}
+                        </span>
+                      )}
+
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="min-w-0 w-full">
+                            <div className="h-3 w-full overflow-hidden rounded-full bg-black/40">
+                              <div
+                                className="h-full rounded-full bg-[#f2c94c]"
+                                style={{ width: `${entry.weightPercent}%` }}
+                              />
+                            </div>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent sideOffset={6}>
+                          <span>{entry.weightPercent.toFixed(2)}%</span>
+                        </TooltipContent>
+                      </Tooltip>
+                    </Fragment>
+                  );
+                })
+              : items.map((entry) => {
                 const item = itemsMap[entry.id];
                 if (!item) return null;
                 const reasonLabel = entry.reason?.trim();
@@ -382,7 +511,7 @@ function IoItemsGrid({
                     </TooltipContent>
                   </Tooltip>
                 );
-              })}
+                })}
         </div>
       </div>
     </div>
@@ -492,6 +621,7 @@ export function MethodVariantContent({
                   total={inputsTotal}
                   items={variant.inputs}
                   itemsMap={itemsMap}
+                  weightPriceMode="input"
                   isLoading={isItemsLoading}
                 />
                 <IoItemsGrid
@@ -499,6 +629,7 @@ export function MethodVariantContent({
                   total={outputsTotal}
                   items={variant.outputs}
                   itemsMap={itemsMap}
+                  weightPriceMode="output"
                   isLoading={isItemsLoading}
                 />
               </AccordionContent>
