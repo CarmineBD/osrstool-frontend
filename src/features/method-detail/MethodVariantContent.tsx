@@ -388,7 +388,7 @@ function IoItemsGrid({
                   const quantityDisplay = formatItemQuantity(entry.entry.quantity);
                   const reasonLabel = entry.entry.reason?.trim();
                   const roundedTotalCoins = Math.round(entry.totalCoins);
-                  const showExactCoinsTitle = roundedTotalCoins > 99_999;
+                  const showExactCoinsTitle = roundedTotalCoins > 999;
 
                   return (
                     <Fragment key={`${title}-weight-${entry.entry.id}`}>
