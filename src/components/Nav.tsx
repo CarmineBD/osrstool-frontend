@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -51,6 +51,8 @@ export function Nav({ hideInput }: Props) {
   const { session, signOut } = useAuth();
   const [input, setInput] = useState<string>(username);
   const [logoutError, setLogoutError] = useState<string | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const isLoggingOutRef = useRef(false);
 
   useEffect(() => {
     setInput(username);
@@ -73,13 +75,21 @@ export function Nav({ hideInput }: Props) {
   };
 
   const handleLogout = async () => {
+    if (isLoggingOutRef.current) return;
+    isLoggingOutRef.current = true;
+    setIsLoggingOut(true);
     setLogoutError(null);
-    const error = await signOut();
-    if (error) {
-      setLogoutError(error);
-      return;
+    try {
+      const error = await signOut();
+      if (error) {
+        setLogoutError(error);
+        return;
+      }
+      clearUsername();
+    } finally {
+      isLoggingOutRef.current = false;
+      setIsLoggingOut(false);
     }
-    clearUsername();
   };
 
   return (
@@ -297,8 +307,12 @@ export function Nav({ hideInput }: Props) {
             <Button asChild variant="outline">
               <Link to="/account">Account</Link>
             </Button>
-            <Button variant="outline" onClick={handleLogout}>
-              Logout
+            <Button
+              variant="outline"
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+            >
+              {isLoggingOut ? "Cerrando sesion..." : "Logout"}
             </Button>
           </div>
         ) : (
