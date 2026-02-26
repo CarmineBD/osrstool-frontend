@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useUsername } from "@/contexts/UsernameContext";
@@ -45,6 +45,7 @@ const SKILL_TAB_ORDER = [
 ] as const;
 
 export function Nav({ hideInput }: Props) {
+  const navigate = useNavigate();
   const { username, setUsername, clearUsername, userError, setUserError } =
     useUsername();
   const { session, signOut } = useAuth();
@@ -95,7 +96,9 @@ export function Nav({ hideInput }: Props) {
       <NavigationMenu viewport={false}>
         <NavigationMenuList>
           <NavigationMenuItem>
-            <NavigationMenuTrigger>Money making methods</NavigationMenuTrigger>
+            <NavigationMenuTrigger onClick={() => navigate("/allMethods")}>
+              Money making methods
+            </NavigationMenuTrigger>
             <NavigationMenuContent>
               <ul className="grid gap-2 p-2 md:w-[420px]">
                 <li>
@@ -130,7 +133,9 @@ export function Nav({ hideInput }: Props) {
             </NavigationMenuContent>
           </NavigationMenuItem>
           <NavigationMenuItem>
-            <NavigationMenuTrigger>Training methods</NavigationMenuTrigger>
+            <NavigationMenuTrigger onClick={() => navigate("/allMethods")}>
+              Training methods
+            </NavigationMenuTrigger>
             <NavigationMenuContent>
               <ul className="grid w-fit grid-cols-[max-content_max-content_max-content] justify-items-center gap-x-2 gap-y-1 p-1">
                 <li className="col-span-3">
