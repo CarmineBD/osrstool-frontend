@@ -13,6 +13,8 @@ import { ChangelogDetailPage } from "./pages/ChangelogDetailPage";
 import { SkillingPage } from "./pages/SkillingPage";
 import { SkillMethodsPage } from "./pages/SkillMethodsPage";
 import { WikiCategoryPage, WikiPage } from "./pages/WikiPage";
+import { MethodDetailSkeleton } from "./features/method-detail/MethodDetailSkeleton";
+import { MethodUpsertSkeleton } from "./features/method-upsert/MethodUpsertSkeleton";
 
 const LazyMethodDetail = lazy(() =>
   import("./pages/MethodDetail").then((module) => ({
@@ -21,10 +23,6 @@ const LazyMethodDetail = lazy(() =>
 );
 const LazyMethodCreate = lazy(() => import("./pages/MethodCreate"));
 const LazyMethodEdit = lazy(() => import("./pages/MethodEdit"));
-
-function RouteFallback() {
-  return <p className="p-4 text-sm text-muted-foreground">Loading page...</p>;
-}
 
 function App() {
   return (
@@ -48,7 +46,7 @@ function App() {
                 <Route
                   path="/moneyMakingMethod/new"
                   element={
-                    <Suspense fallback={<RouteFallback />}>
+                    <Suspense fallback={<MethodUpsertSkeleton />}>
                       <LazyMethodCreate />
                     </Suspense>
                   }
@@ -56,7 +54,7 @@ function App() {
                 <Route
                   path="/moneyMakingMethod/:slug/edit"
                   element={
-                    <Suspense fallback={<RouteFallback />}>
+                    <Suspense fallback={<MethodUpsertSkeleton />}>
                       <LazyMethodEdit />
                     </Suspense>
                   }
@@ -65,7 +63,7 @@ function App() {
               <Route
                 path="/moneyMakingMethod/:slug/:variantSlug?"
                 element={
-                  <Suspense fallback={<RouteFallback />}>
+                  <Suspense fallback={<MethodDetailSkeleton />}>
                     <LazyMethodDetail />
                   </Suspense>
                 }

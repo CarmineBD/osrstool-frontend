@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   METHOD_CATEGORY_OPTIONS,
   type MethodUpsertFormValues,
@@ -73,9 +74,14 @@ function SelectorStatus({
 >) {
   if (selectorCatalogLoading) {
     return (
-      <p className="mb-2 text-xs text-muted-foreground">
-        Loading selector options...
-      </p>
+      <div className="mb-3 rounded-md border bg-muted/20 p-3">
+        <div className="mb-2 flex flex-wrap gap-2">
+          <Skeleton className="h-5 w-24 rounded-full" />
+          <Skeleton className="h-5 w-24 rounded-full" />
+          <Skeleton className="h-5 w-32 rounded-full" />
+        </div>
+        <Skeleton className="h-3 w-56" />
+      </div>
     );
   }
 
@@ -209,25 +215,50 @@ export function MethodUpsertForm({
             achievementDiaryOptions={achievementDiaryOptions}
           />
 
-          {variants.map((variant, index) => (
-            <VariantForm
-              key={index}
-              onRemove={() => onRemoveVariant(index)}
-              onDuplicate={() => onDuplicateVariant(index)}
-              isLabelDuplicate={isVariantLabelDuplicate(variant.label ?? "")}
-              skillOptions={skillOptions}
-              questOptions={questOptions}
-              achievementDiaryOptions={achievementDiaryOptions}
-              variant={variant}
-              onChange={(value) => onUpdateVariant(index, value)}
-            />
-          ))}
+          {selectorCatalogLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: Math.max(variants.length, 2) }).map((_, index) => (
+                <div
+                  key={`variant-form-skeleton-${index}`}
+                  className="rounded-lg border bg-muted/20 p-4"
+                >
+                  <div className="mb-3 flex items-center justify-between">
+                    <Skeleton className="h-5 w-32" />
+                    <div className="flex gap-2">
+                      <Skeleton className="h-8 w-8" />
+                      <Skeleton className="h-8 w-8" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-20 w-full md:col-span-2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            variants.map((variant, index) => (
+              <VariantForm
+                key={index}
+                onRemove={() => onRemoveVariant(index)}
+                onDuplicate={() => onDuplicateVariant(index)}
+                isLabelDuplicate={isVariantLabelDuplicate(variant.label ?? "")}
+                skillOptions={skillOptions}
+                questOptions={questOptions}
+                achievementDiaryOptions={achievementDiaryOptions}
+                variant={variant}
+                onChange={(value) => onUpdateVariant(index, value)}
+              />
+            ))
+          )}
 
           <Button
             onClick={onAddVariant}
             type="button"
             variant="outline"
             className="mt-4 w-full"
+            disabled={selectorCatalogLoading}
           >
             Add variant +
           </Button>
