@@ -11,11 +11,38 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
-  navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
+import { formatSkillName } from "@/lib/skills";
+import { getUrlByType } from "@/lib/utils";
 
 export type Props = { hideInput?: boolean };
 const LOGIN_REQUIRED_MESSAGE = "sign-in/login to fetch data by osrs usernames";
+const SKILL_TAB_ORDER = [
+  "attack",
+  "hitpoints",
+  "mining",
+  "strength",
+  "agility",
+  "smithing",
+  "defence",
+  "herblore",
+  "fishing",
+  "ranged",
+  "thieving",
+  "cooking",
+  "prayer",
+  "crafting",
+  "firemaking",
+  "magic",
+  "fletching",
+  "woodcutting",
+  "runecraft",
+  "slayer",
+  "farming",
+  "construction",
+  "hunter",
+  "sailing",
+] as const;
 
 export function Nav({ hideInput }: Props) {
   const { username, setUsername, clearUsername, userError, setUserError } =
@@ -103,11 +130,47 @@ export function Nav({ hideInput }: Props) {
             </NavigationMenuContent>
           </NavigationMenuItem>
           <NavigationMenuItem>
-            <NavigationMenuLink asChild>
-              <Link to="/skilling" className={navigationMenuTriggerStyle()}>
-                Skilling
-              </Link>
-            </NavigationMenuLink>
+            <NavigationMenuTrigger>Training methods</NavigationMenuTrigger>
+            <NavigationMenuContent>
+              <ul className="grid w-fit grid-cols-[max-content_max-content_max-content] justify-items-center gap-x-2 gap-y-1 p-1">
+                <li className="col-span-3">
+                  <NavigationMenuLink asChild>
+                    <Link
+                      className="from-muted/50 to-muted flex h-full w-full flex-col justify-end rounded-md bg-linear-to-b p-2 no-underline outline-hidden select-none focus:shadow-md"
+                      to="/skilling"
+                    >
+                      <div className="text-base font-medium">Se all skills</div>
+                    </Link>
+                  </NavigationMenuLink>
+                </li>
+                {SKILL_TAB_ORDER.map((skill) => {
+                  const iconUrl = getUrlByType(skill);
+                  const skillName = formatSkillName(skill);
+
+                  return (
+                    <li key={skill}>
+                      <NavigationMenuLink asChild>
+                        <Link
+                          className="hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground flex items-center justify-center gap-1 rounded-md px-1 py-1 text-xs no-underline outline-hidden transition-colors select-none"
+                          to={`/skilling/${skill}`}
+                        >
+                          {iconUrl ? (
+                            <img
+                              src={iconUrl}
+                              alt={`${skill}_icon`}
+                              className="block shrink-0 [image-rendering:pixelated]"
+                            />
+                          ) : null}
+                          <span className="font-medium leading-none">
+                            {skillName}
+                          </span>
+                        </Link>
+                      </NavigationMenuLink>
+                    </li>
+                  );
+                })}
+              </ul>
+            </NavigationMenuContent>
           </NavigationMenuItem>
 
           {/* <NavigationMenuItem>
@@ -228,7 +291,9 @@ export function Nav({ hideInput }: Props) {
             <Link to="/login">Login</Link>
           </Button>
         )}
-        {logoutError && <p className="text-sm text-destructive">{logoutError}</p>}
+        {logoutError && (
+          <p className="text-sm text-destructive">{logoutError}</p>
+        )}
       </div>
     </nav>
   );
