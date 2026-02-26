@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import type { Item } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Markdown } from "@/components/Markdown";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   formatChangelogDate,
   getChangelogContentBySlug,
@@ -93,7 +94,15 @@ export function ChangelogDetailPage() {
         <p className="mt-3 text-slate-700">{entry.summary}</p>
 
         {isLoading ? (
-          <p className="mt-8 text-sm text-slate-500">Cargando contenido...</p>
+          <div className="mt-8 rounded-xl border border-slate-200 bg-slate-50 p-6">
+            <div className="space-y-3">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-11/12" />
+              <Skeleton className="h-4 w-10/12" />
+              <Skeleton className="h-4 w-9/12" />
+              <Skeleton className="h-40 w-full rounded-lg" />
+            </div>
+          </div>
         ) : content === null ? (
           <p className="mt-8 text-sm text-destructive">
             No se pudo cargar el contenido de esta entrada.

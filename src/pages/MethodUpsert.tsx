@@ -1,5 +1,6 @@
 import { MethodUpsertDialogs } from "@/features/method-upsert/MethodUpsertDialogs";
 import { MethodUpsertForm } from "@/features/method-upsert/MethodUpsertForm";
+import { MethodUpsertSkeleton } from "@/features/method-upsert/MethodUpsertSkeleton";
 import {
   type MethodUpsertMode,
   useMethodUpsert,
@@ -13,7 +14,7 @@ export function MethodUpsert({ mode }: Props) {
   const state = useMethodUpsert(mode);
 
   if (state.isEditMode && state.isLoading) {
-    return <p>Cargando metodo...</p>;
+    return <MethodUpsertSkeleton />;
   }
 
   if (state.isEditMode && state.error) {

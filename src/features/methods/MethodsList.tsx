@@ -11,6 +11,7 @@ import {
   TableBody,
 } from "@/components/ui/table";
 import { Pagination } from "@/components/ui/pagination";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatNumber, getUrlByType } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -109,13 +110,15 @@ export function MethodsList({
   const hoverPrefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hoveredSlugRef = useRef<string | null>(null);
   const cursor = page > 1 ? cursorByPage[page] : undefined;
-  const { data, error, isFetching } = useMethods(
+  const { data, error, isFetching, isLoading } = useMethods(
     username,
     page,
     name,
     filters,
     cursor
   );
+  const isInitialLoading = (isLoading || isFetching) && !data && !error;
+  const isRefreshing = isFetching && !!data;
 
   useEffect(() => {
     setPage(1);
@@ -578,8 +581,75 @@ export function MethodsList({
     </TableCell>
   );
 
+  const renderSkeletonBadges = (count: number) => (
+    <div className="flex flex-wrap gap-1">
+      {Array.from({ length: count }).map((_, index) => (
+        <Skeleton
+          key={`skeleton-badge-${count}-${index}`}
+          className="h-6 w-16 rounded-full"
+        />
+      ))}
+    </div>
+  );
+
+  const renderSkeletonMetric = (primaryWidth = "70%", secondaryWidth = "55%") => (
+    <div className="space-y-1">
+      <Skeleton className="h-4" style={{ width: primaryWidth }} />
+      <Skeleton className="h-3" style={{ width: secondaryWidth }} />
+    </div>
+  );
+
+  const renderSkeletonCellContent = (cellIndex: number) => {
+    if (isSkillTable) {
+      switch (cellIndex) {
+        case 0:
+          return renderSkeletonBadges(2);
+        case 1:
+          return <Skeleton className="h-4" style={{ width: "78%" }} />;
+        case 2:
+          return <Skeleton className="h-4" style={{ width: "66%" }} />;
+        case 3:
+        case 4:
+        case 5:
+          return renderSkeletonMetric();
+        case 6:
+          return renderSkeletonBadges(2);
+        case 7:
+        case 8:
+          return <Skeleton className="h-4" style={{ width: "58%" }} />;
+        default:
+          return <Skeleton className="h-8 w-8 rounded-full" />;
+      }
+    }
+
+    switch (cellIndex) {
+      case 0:
+        return <Skeleton className="h-4" style={{ width: "72%" }} />;
+      case 1:
+      case 2:
+        return renderSkeletonMetric();
+      case 3:
+      case 6:
+        return renderSkeletonBadges(2);
+      case 4:
+      case 5:
+        return <Skeleton className="h-4" style={{ width: "60%" }} />;
+      default:
+        return <Skeleton className="h-8 w-8 rounded-full" />;
+    }
+  };
+
   return (
     <div className="space-y-4">
+      {isRefreshing ? (
+        <div
+          className="flex items-center gap-2 text-xs text-muted-foreground"
+          aria-live="polite"
+        >
+          <Skeleton className="h-2 w-2 rounded-full" />
+          <span>Actualizando resultados...</span>
+        </div>
+      ) : null}
       <Table className="table-fixed">
         <TableHeader>
           {isSkillTable ? (
@@ -708,12 +778,12 @@ export function MethodsList({
           )}
         </TableHeader>
         <TableBody>
-          {isFetching ? (
+          {isInitialLoading ? (
             Array.from({ length: SKELETON_ROW_COUNT }).map((_, index) => (
               <TableRow key={`fetching-skeleton-row-${index}`}>
                 {Array.from({ length: tableColumnCount }).map((_, cellIndex) => (
                   <TableCell key={`fetching-skeleton-cell-${index}-${cellIndex}`}>
-                    <div className="h-5 w-[85%] animate-pulse rounded bg-muted" />
+                    {renderSkeletonCellContent(cellIndex)}
                   </TableCell>
                 ))}
               </TableRow>
@@ -763,12 +833,21 @@ export function MethodsList({
           )}
         </TableBody>
       </Table>
-      <Pagination
-        page={page}
-        pageCount={pageCount}
-        hasNext={hasNextPage}
-        onPageChange={setPage}
-      />
+      {isInitialLoading ? (
+        <div className="flex items-center justify-center gap-2">
+          <Skeleton className="h-9 w-24" />
+          <Skeleton className="h-9 w-9" />
+          <Skeleton className="h-9 w-9" />
+          <Skeleton className="h-9 w-24" />
+        </div>
+      ) : (
+        <Pagination
+          page={page}
+          pageCount={pageCount}
+          hasNext={hasNextPage}
+          onPageChange={setPage}
+        />
+      )}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { lazy, Suspense } from "react";
+import { MethodUpsertSkeleton } from "@/features/method-upsert/MethodUpsertSkeleton";
 
 export type Props = Record<string, never>;
 const LazyMethodUpsert = lazy(() =>
@@ -8,11 +9,7 @@ const LazyMethodUpsert = lazy(() =>
 export function MethodCreate(_props: Props) {
   void _props;
   return (
-    <Suspense
-      fallback={
-        <p className="p-4 text-sm text-muted-foreground">Loading form...</p>
-      }
-    >
+    <Suspense fallback={<MethodUpsertSkeleton />}>
       <LazyMethodUpsert mode="create" />
     </Suspense>
   );

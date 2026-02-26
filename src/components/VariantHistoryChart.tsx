@@ -17,6 +17,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   ChartContainer,
   ChartTooltip,
@@ -195,6 +196,8 @@ export function VariantHistoryChart({
     { label: "the last month", value: trendLastMonth },
     { label: "the last year", value: trendLastYear },
   ].filter((t) => typeof t.value === "number");
+  const isHistoryLoading = isLoading && !data;
+  const isAllHistoryLoading = !allData;
 
   return (
     <div className="mt-4 flex flex-col gap-4 lg:flex-row">
@@ -215,8 +218,16 @@ export function VariantHistoryChart({
               ))}
             </TabsList>
           </Tabs>
-          {isLoading ? (
-            <div>Loading...</div>
+          {isHistoryLoading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-64 w-full rounded-xl" />
+              <div className="flex justify-between gap-2">
+                <Skeleton className="h-3 w-16" />
+                <Skeleton className="h-3 w-16" />
+                <Skeleton className="h-3 w-16" />
+                <Skeleton className="h-3 w-16" />
+              </div>
+            </div>
           ) : error ? (
             <div className="text-red-500">Error loading history</div>
           ) : (
@@ -287,31 +298,48 @@ export function VariantHistoryChart({
         <Card>
           <CardHeader>
             <CardDescription>Gp/hr now</CardDescription>
-            <CardTitle className="text-2xl font-semibold tabular-nums">
-              {currentHigh !== undefined ? formatNumber(currentHigh) : "N/A"}
-            </CardTitle>
-            {currentLow !== undefined && (
-              <div className="text-sm text-muted-foreground">
-                {formatNumber(currentLow)} low profit
-              </div>
+            {isHistoryLoading ? (
+              <>
+                <Skeleton className="h-8 w-28" />
+                <Skeleton className="h-4 w-24" />
+              </>
+            ) : (
+              <>
+                <CardTitle className="text-2xl font-semibold tabular-nums">
+                  {currentHigh !== undefined ? formatNumber(currentHigh) : "N/A"}
+                </CardTitle>
+                {currentLow !== undefined ? (
+                  <div className="text-sm text-muted-foreground">
+                    {formatNumber(currentLow)} low profit
+                  </div>
+                ) : null}
+              </>
             )}
           </CardHeader>
           <CardContent className="flex flex-col gap-1 text-sm">
-            {trends.map((t) => (
-              <div
-                key={t.label}
-                className="flex items-center justify-between"
-              >
-                <span>
-                  {`${formatPercent(t.value!, 2)} ${t.label}`}
-                </span>
-                {t.value! >= 0 ? (
-                  <IconTrendingUp className="size-4" />
-                ) : (
-                  <IconTrendingDown className="size-4" />
-                )}
-              </div>
-            ))}
+            {isHistoryLoading
+              ? Array.from({ length: 4 }).map((_, index) => (
+                  <div
+                    key={`trend-skeleton-${index}`}
+                    className="flex items-center justify-between"
+                  >
+                    <Skeleton className="h-4 w-36" />
+                    <Skeleton className="h-4 w-4" />
+                  </div>
+                ))
+              : trends.map((t) => (
+                  <div
+                    key={t.label}
+                    className="flex items-center justify-between"
+                  >
+                    <span>{`${formatPercent(t.value!, 2)} ${t.label}`}</span>
+                    {t.value! >= 0 ? (
+                      <IconTrendingUp className="size-4" />
+                    ) : (
+                      <IconTrendingDown className="size-4" />
+                    )}
+                  </div>
+                ))}
           </CardContent>
         </Card>
         <Card>
@@ -319,24 +347,42 @@ export function VariantHistoryChart({
             <div className="grid grid-cols-2 gap-4 text-center text-sm">
               <div>
                 <div className="font-medium">Min</div>
-                <div className="text-xl font-semibold">
-                  {minPoint ? formatNumber(minPoint.highProfit) : "N/A"}
-                </div>
-                {minPoint && (
-                  <div className="text-muted-foreground">
-                    {statsDateFormatter.format(new Date(minPoint.timestamp))}
+                {isAllHistoryLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="mx-auto h-7 w-20" />
+                    <Skeleton className="mx-auto h-4 w-20" />
                   </div>
+                ) : (
+                  <>
+                    <div className="text-xl font-semibold">
+                      {minPoint ? formatNumber(minPoint.highProfit) : "N/A"}
+                    </div>
+                    {minPoint ? (
+                      <div className="text-muted-foreground">
+                        {statsDateFormatter.format(new Date(minPoint.timestamp))}
+                      </div>
+                    ) : null}
+                  </>
                 )}
               </div>
               <div>
                 <div className="font-medium">Max</div>
-                <div className="text-xl font-semibold">
-                  {maxPoint ? formatNumber(maxPoint.highProfit) : "N/A"}
-                </div>
-                {maxPoint && (
-                  <div className="text-muted-foreground">
-                    {statsDateFormatter.format(new Date(maxPoint.timestamp))}
+                {isAllHistoryLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="mx-auto h-7 w-20" />
+                    <Skeleton className="mx-auto h-4 w-20" />
                   </div>
+                ) : (
+                  <>
+                    <div className="text-xl font-semibold">
+                      {maxPoint ? formatNumber(maxPoint.highProfit) : "N/A"}
+                    </div>
+                    {maxPoint ? (
+                      <div className="text-muted-foreground">
+                        {statsDateFormatter.format(new Date(maxPoint.timestamp))}
+                      </div>
+                    ) : null}
+                  </>
                 )}
               </div>
             </div>

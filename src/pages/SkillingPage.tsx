@@ -18,6 +18,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Skeleton } from "@/components/ui/skeleton";
 import { fetchMe } from "@/lib/me";
 
 function getSummaryVariant(method?: SkillSummaryMethod | null) {
@@ -100,7 +101,13 @@ function SkillSummaryTags({
   const hasAnyMetricData = summaryMetrics.some((metric) => metric.details);
 
   if (isLoading) {
-    return <p className="text-muted-foreground">Loading summary...</p>;
+    return (
+      <div className="flex flex-wrap gap-2">
+        <Skeleton className="h-6 w-28 rounded-full" />
+        <Skeleton className="h-6 w-28 rounded-full" />
+        <Skeleton className="h-6 w-28 rounded-full" />
+      </div>
+    );
   }
 
   if (!hasAnyMetricData) {

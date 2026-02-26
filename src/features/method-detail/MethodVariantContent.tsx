@@ -24,6 +24,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import Markdown from "@/components/Markdown";
 import OsrsQuantitySprite from "@/components/OsrsQuantitySprite";
 import { formatNumber, formatPercent, getUrlByType } from "@/lib/utils";
@@ -123,7 +124,25 @@ function LevelsAndQuestBadges({ requirement }: { requirement?: Variant["requirem
   );
 }
 
-function ItemRequirementIcons({ items, itemsMap }: { items?: Variant["inputs"]; itemsMap: Record<number, Item> }) {
+function ItemRequirementIcons({
+  items,
+  itemsMap,
+  isLoading = false,
+}: {
+  items?: Variant["inputs"];
+  itemsMap: Record<number, Item>;
+  isLoading?: boolean;
+}) {
+  if (isLoading) {
+    return (
+      <>
+        {Array.from({ length: 8 }).map((_, index) => (
+          <Skeleton key={`item-requirement-skeleton-${index}`} className="h-8 w-8" />
+        ))}
+      </>
+    );
+  }
+
   return (
     <>
       {(items || []).map(({ id, quantity }) => {
@@ -286,70 +305,84 @@ function IoItemsGrid({
   total,
   items,
   itemsMap,
+  isLoading = false,
 }: {
   title: string;
   total?: number;
   items: Variant["inputs"];
   itemsMap: Record<number, Item>;
+  isLoading?: boolean;
 }) {
   return (
     <div className="flex-1">
-      <h3 className="text-sm font-semibold">
-        {title}{" "}
+      <div className="flex flex-wrap items-center gap-1 text-sm font-semibold">
+        <h3>{title}</h3>
         <span className="text-xs font-normal text-muted-foreground">
           {typeof total === "number"
             ? `(${formatNumber(total)} gp)`
-            : "(loading prices...)"}
+            : isLoading
+              ? null
+              : "(N/A)"}
         </span>
-      </h3>
+        {isLoading ? <Skeleton className="h-3 w-24" /> : null}
+      </div>
       <div className="mt-3 min-h-14 w-full rounded bg-[#494034] p-4 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)]">
         <div className="flex flex-start flex-wrap gap-1">
-          {items.map((entry) => {
-            const item = itemsMap[entry.id];
-            if (!item) return null;
-            const reasonLabel = entry.reason?.trim();
-            const quantityDisplay = formatItemQuantity(entry.quantity);
-            return (
-              <Tooltip key={`${title}-${entry.id}`}>
-                <TooltipTrigger asChild>
-                  <div className="relative mx-0.75 grid h-8 w-8 place-items-center">
-                    <figure className="grid h-full w-full place-items-center">
-                      <img
-                        src={item.iconUrl}
-                        alt={item.name}
-                        className="max-h-full max-w-full object-contain drop-shadow-[1px_1px_0_#333333] [image-rendering:pixelated]"
-                      />
-                    </figure>
+          {isLoading
+            ? Array.from({ length: Math.min(12, Math.max(items.length, 6)) }).map(
+                (_, index) => (
+                  <Skeleton
+                    key={`${title}-items-skeleton-${index}`}
+                    className="h-8 w-8 rounded-sm bg-muted/70"
+                  />
+                )
+              )
+            : items.map((entry) => {
+                const item = itemsMap[entry.id];
+                if (!item) return null;
+                const reasonLabel = entry.reason?.trim();
+                const quantityDisplay = formatItemQuantity(entry.quantity);
+                return (
+                  <Tooltip key={`${title}-${entry.id}`}>
+                    <TooltipTrigger asChild>
+                      <div className="relative mx-0.75 grid h-8 w-8 place-items-center">
+                        <figure className="grid h-full w-full place-items-center">
+                          <img
+                            src={item.iconUrl}
+                            alt={item.name}
+                            className="max-h-full max-w-full object-contain drop-shadow-[1px_1px_0_#333333] [image-rendering:pixelated]"
+                          />
+                        </figure>
 
-                    {entry.quantity > 0 ? (
-                      <OsrsQuantitySprite
-                        text={quantityDisplay.label}
-                        color={quantityDisplay.color}
-                        scale={1}
-                        className="pointer-events-none absolute top-0 left-[2px]"
-                      />
-                    ) : null}
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <div className="flex flex-col">
-                    <span>
-                      {item.name}
-                      {quantityDisplay.showExactQuantity ? (
-                        <span className="text-muted-foreground">
-                          {" "}
-                          ({formatNumber(entry.quantity)})
+                        {entry.quantity > 0 ? (
+                          <OsrsQuantitySprite
+                            text={quantityDisplay.label}
+                            color={quantityDisplay.color}
+                            scale={1}
+                            className="pointer-events-none absolute top-0 left-[2px]"
+                          />
+                        ) : null}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <div className="flex flex-col">
+                        <span>
+                          {item.name}
+                          {quantityDisplay.showExactQuantity ? (
+                            <span className="text-muted-foreground">
+                              {" "}
+                              ({formatNumber(entry.quantity)})
+                            </span>
+                          ) : null}
                         </span>
-                      ) : null}
-                    </span>
-                    {reasonLabel ? (
-                      <span className="text-muted-foreground">{reasonLabel}</span>
-                    ) : null}
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            );
-          })}
+                        {reasonLabel ? (
+                          <span className="text-muted-foreground">{reasonLabel}</span>
+                        ) : null}
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              })}
         </div>
       </div>
     </div>
@@ -359,9 +392,11 @@ function IoItemsGrid({
 function RequirementsAndRecommendationsAccordion({
   variant,
   itemsMap,
+  isItemsLoading = false,
 }: {
   variant: Variant;
   itemsMap: Record<number, Item>;
+  isItemsLoading?: boolean;
 }) {
   return (
     <div className="mx-auto w-full px-6 py-8">
@@ -402,6 +437,7 @@ function RequirementsAndRecommendationsAccordion({
                 <ItemRequirementIcons
                   items={variant.requirements?.items}
                   itemsMap={itemsMap}
+                  isLoading={isItemsLoading}
                 />
               </div>
             </div>
@@ -414,6 +450,7 @@ function RequirementsAndRecommendationsAccordion({
                 <ItemRequirementIcons
                   items={variant.recommendations?.items}
                   itemsMap={itemsMap}
+                  isLoading={isItemsLoading}
                 />
               </div>
             </div>
@@ -435,11 +472,6 @@ export function MethodVariantContent({
   return (
     <div className="mx-auto max-w-6xl p-4 lg:p-6">
       <MissingRequirementsNotice variant={variant} username={username} />
-      {isItemsLoading ? (
-        <div className="mb-3 text-sm text-muted-foreground">
-          Loading item prices and requirements...
-        </div>
-      ) : null}
 
       <div className="grid gap-3 lg:grid-cols-12">
         <MetricsCards variant={variant} />
@@ -460,12 +492,14 @@ export function MethodVariantContent({
                   total={inputsTotal}
                   items={variant.inputs}
                   itemsMap={itemsMap}
+                  isLoading={isItemsLoading}
                 />
                 <IoItemsGrid
                   title="Outputs"
                   total={outputsTotal}
                   items={variant.outputs}
                   itemsMap={itemsMap}
+                  isLoading={isItemsLoading}
                 />
               </AccordionContent>
             </div>
@@ -478,6 +512,7 @@ export function MethodVariantContent({
                 <RequirementsAndRecommendationsAccordion
                   variant={variant}
                   itemsMap={itemsMap}
+                  isItemsLoading={isItemsLoading}
                 />
               </AccordionContent>
             </div>
@@ -488,7 +523,10 @@ export function MethodVariantContent({
       {variant.id ? (
         <Suspense
           fallback={
-            <div className="mt-4 text-sm text-muted-foreground">Loading chart...</div>
+            <div className="mt-4 space-y-2">
+              <Skeleton className="h-4 w-36" />
+              <Skeleton className="h-64 w-full rounded-xl" />
+            </div>
           }
         >
           <LazyVariantHistoryChart
