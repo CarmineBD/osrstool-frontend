@@ -9,11 +9,13 @@ export function Layout(_props: Props) {
   const hideInput =
     location.pathname === "/" ||
     location.pathname === "/allMethods" ||
-    location.pathname.startsWith("/skilling/");
+    location.pathname.startsWith("/skilling/") ||
+    location.pathname === "/wiki" ||
+    location.pathname.startsWith("/wiki/");
   return (
     <div className="min-h-screen flex flex-col">
       <Nav hideInput={hideInput} />
-      <main className="flex-1 pt-4">
+      <main className="flex-1">
         <Outlet />
       </main>
     </div>
