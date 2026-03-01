@@ -93,7 +93,7 @@ export function Nav({ hideInput }: Props) {
   };
 
   return (
-    <nav className="flex items-center justify-between bg-white p-4 shadow z-10">
+    <nav className="sticky top-0 z-50 flex items-center justify-between bg-white p-4 shadow">
       <Link to="/" className="flex items-center space-x-2">
         <img
           src="https://oldschool.runescape.wiki/images/thumb/Coins_detail.png/120px-Coins_detail.png?404bc"
