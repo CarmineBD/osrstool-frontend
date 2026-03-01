@@ -54,7 +54,7 @@ describe("critical flow: method detail load + error", () => {
     expect(
       await screen.findByRole("heading", { name: "Vorkath farming" })
     ).toBeInTheDocument();
-    expect(screen.getByText("Category:")).toBeInTheDocument();
+    expect(screen.getByText("Consistent dragon loot.")).toBeInTheDocument();
   });
 
   it("shows an error state when detail request fails", async () => {
