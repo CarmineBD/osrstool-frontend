@@ -1,10 +1,16 @@
-import { describe, expect, it } from "vitest";
-import { buildMethodUpdatePayload, getVariantsSignature, type Variant } from "./api";
+import { describe, expect, it, vi } from "vitest";
+import {
+  buildMethodUpdatePayload,
+  fetchItems,
+  getVariantsSignature,
+  type Variant,
+} from "./api";
 
 describe("api update payload helpers", () => {
   it("maps input/output item types in the method update payload", () => {
     const variant: Variant = {
       label: "Main",
+      xpHour: [],
       requirements: {},
       inputs: [{ id: 1, quantity: 2, reason: "buy" }],
       outputs: [{ id: 2, quantity: 3 }],
@@ -29,6 +35,7 @@ describe("api update payload helpers", () => {
     const variants: Variant[] = [
       {
         label: "A",
+        xpHour: [],
         requirements: {},
         inputs: [{ id: 100, quantity: 1 }],
         outputs: [{ id: 200, quantity: 1 }],
@@ -41,5 +48,33 @@ describe("api update payload helpers", () => {
     );
 
     expect(signatureA).toBe(signatureB);
+  });
+
+  it("requests extended fields when fetching items", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ data: {} }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+
+    await fetchItems([100, 200]);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const requestInput = fetchSpy.mock.calls[0]?.[0];
+    const requestUrl =
+      typeof requestInput === "string"
+        ? requestInput
+        : requestInput instanceof URL
+          ? requestInput.toString()
+          : requestInput.url;
+    const url = new URL(requestUrl, window.location.origin);
+
+    expect(url.searchParams.get("ids")).toBe("100,200");
+    expect(url.searchParams.get("fields")).toBe(
+      "name,iconUrl,highPrice,lowPrice,high24h,low24h,highTime,lowTime"
+    );
+
+    fetchSpy.mockRestore();
   });
 });

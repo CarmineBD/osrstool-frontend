@@ -97,7 +97,7 @@ export interface Variant {
   riskLevel?: string;
   wilderness?: boolean;
   actionsPerHour?: number;
-  xpHour?: { skill: string; experience: number }[];
+  xpHour: { skill: string; experience: number }[];
   requirements: Requirement;
   recommendations?: Requirement;
   highProfit?: number;
@@ -190,7 +190,7 @@ export async function fetchMethods(
   page?: number,
   name?: string,
   filters?: MethodsFilters,
-  cursor?: string
+  cursor?: string,
 ): Promise<MethodsResponse> {
   const url = toApiUrl("/methods");
   if (username) url.searchParams.set("username", username);
@@ -245,11 +245,10 @@ export async function fetchMethods(
     data?.meta && typeof data.meta === "object"
       ? (data.meta as Record<string, unknown>)
       : undefined;
-  const pagination =
-    (data?.pagination ??
-      dataMeta?.pagination ??
-      root?.pagination ??
-      meta?.pagination) as Record<string, unknown> | undefined;
+  const pagination = (data?.pagination ??
+    dataMeta?.pagination ??
+    root?.pagination ??
+    meta?.pagination) as Record<string, unknown> | undefined;
 
   let methods: Method[] = [];
   if (Array.isArray(json)) {
@@ -266,7 +265,7 @@ export async function fetchMethods(
       pagination?.page ??
       pagination?.currentPage ??
       pagination?.current_page ??
-      meta?.page
+      meta?.page,
   );
   const perPage = toNumber(
     data?.perPage ??
@@ -279,7 +278,7 @@ export async function fetchMethods(
       pagination?.limit ??
       meta?.perPage ??
       meta?.pageSize ??
-      root?.limit
+      root?.limit,
   );
   const total = toNumber(
     data?.total ??
@@ -287,7 +286,7 @@ export async function fetchMethods(
       pagination?.total ??
       pagination?.count ??
       meta?.total ??
-      dataMeta?.total
+      dataMeta?.total,
   );
   const nextCursorValue =
     data?.nextCursor ??
@@ -311,7 +310,7 @@ export async function fetchMethods(
         pagination?.hasNext ??
         pagination?.has_next ??
         meta?.hasNext ??
-        meta?.has_next
+        meta?.has_next,
     ) ?? (nextCursor !== undefined ? true : undefined);
 
   let pageCount = toNumber(
@@ -322,7 +321,7 @@ export async function fetchMethods(
       pagination?.totalPages ??
       pagination?.total_pages ??
       meta?.pageCount ??
-      meta?.page_count
+      meta?.page_count,
   );
 
   // Derive pageCount from total/perPage when available.
@@ -361,6 +360,10 @@ export interface Item {
   iconUrl: string;
   highPrice?: number;
   lowPrice?: number;
+  high24h?: number;
+  low24h?: number;
+  highTime?: number;
+  lowTime?: number;
 }
 
 export interface ItemSearchResult {
@@ -424,7 +427,10 @@ export interface MethodsSkillsSummaryResponse {
 export async function fetchItems(ids: number[]): Promise<Record<number, Item>> {
   const url = toApiUrl("/items");
   url.searchParams.set("ids", ids.join(","));
-  url.searchParams.set("fields", "name,iconUrl,highPrice,lowPrice");
+  url.searchParams.set(
+    "fields",
+    "name,iconUrl,highPrice,lowPrice,high24h,low24h,highTime,lowTime",
+  );
   const res = await apiFetch(url.toString());
   if (!res.ok) {
     throw new Error(`HTTP ${res.status} – Error fetching items`);
@@ -469,25 +475,24 @@ function toNumber(value: unknown): number | undefined {
 
 function parseItemSearchResponse(
   value: unknown,
-  fallbackLimit: number
+  fallbackLimit: number,
 ): ItemSearchResponse {
   const items = parseItemSearchResults(value);
   const root = value as Record<string, unknown> | undefined;
   const data = (root?.data ?? {}) as Record<string, unknown>;
   const meta = (root?.meta ?? {}) as Record<string, unknown>;
   const dataMeta = (data?.meta ?? {}) as Record<string, unknown>;
-  const pagination =
-    (data?.pagination ??
-      dataMeta?.pagination ??
-      root?.pagination ??
-      meta?.pagination) as Record<string, unknown> | undefined;
+  const pagination = (data?.pagination ??
+    dataMeta?.pagination ??
+    root?.pagination ??
+    meta?.pagination) as Record<string, unknown> | undefined;
 
   const page = toNumber(
     data.page ??
       root?.page ??
       pagination?.page ??
       pagination?.currentPage ??
-      pagination?.current_page
+      pagination?.current_page,
   );
   const pageCount = toNumber(
     data.pageCount ??
@@ -495,7 +500,7 @@ function parseItemSearchResponse(
       pagination?.pageCount ??
       pagination?.page_count ??
       pagination?.totalPages ??
-      pagination?.total_pages
+      pagination?.total_pages,
   );
   const perPage = toNumber(
     data.perPage ??
@@ -503,7 +508,7 @@ function parseItemSearchResponse(
       pagination?.perPage ??
       pagination?.per_page ??
       pagination?.limit ??
-      root?.limit
+      root?.limit,
   );
   const total = toNumber(
     data.total ??
@@ -511,7 +516,7 @@ function parseItemSearchResponse(
       pagination?.total ??
       pagination?.count ??
       meta?.total ??
-      dataMeta?.total
+      dataMeta?.total,
   );
 
   let normalizedPageCount = pageCount;
@@ -563,19 +568,22 @@ function parseCatalogArray(value: unknown): unknown[] {
     root.results,
   ];
   const firstRootArray = rootCandidates.find((candidate) =>
-    Array.isArray(candidate)
+    Array.isArray(candidate),
   );
   return Array.isArray(firstRootArray) ? firstRootArray : [];
 }
 
-function parseAchievementDiaryOptions(value: unknown): AchievementDiaryOption[] {
+function parseAchievementDiaryOptions(
+  value: unknown,
+): AchievementDiaryOption[] {
   const entries = parseCatalogArray(value);
   const unique = new Map<string, AchievementDiaryOption>();
 
   for (const entry of entries) {
     if (!entry || typeof entry !== "object") continue;
     const record = entry as Record<string, unknown>;
-    const nameValue = record.region ?? record.name ?? record.diary ?? record.label;
+    const nameValue =
+      record.region ?? record.name ?? record.diary ?? record.label;
     if (typeof nameValue !== "string" || !nameValue.trim()) continue;
 
     const name = nameValue.trim();
@@ -641,10 +649,10 @@ function parseSkillOptions(value: unknown): SkillOption[] {
       typeof entry === "string"
         ? entry
         : entry && typeof entry === "object"
-          ? ((entry as Record<string, unknown>).name ??
+          ? (((entry as Record<string, unknown>).name ??
               (entry as Record<string, unknown>).skill ??
               (entry as Record<string, unknown>).label ??
-              "") as string
+              "") as string)
           : "";
 
     if (typeof skillName !== "string" || !skillName.trim()) continue;
@@ -703,7 +711,7 @@ export async function fetchSkills(): Promise<SkillOption[]> {
 
 export async function fetchMethodsSkillsSummary(
   username?: string,
-  enabled = false
+  enabled = false,
 ): Promise<MethodsSkillsSummaryResponse> {
   const url = toApiUrl("/methods/skills/summary");
   const normalizedUsername = username?.trim();
@@ -714,7 +722,9 @@ export async function fetchMethodsSkillsSummary(
 
   const res = await apiFetch(url.toString());
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} - Error fetching methods skills summary`);
+    throw new Error(
+      `HTTP ${res.status} - Error fetching methods skills summary`,
+    );
   }
 
   const json: unknown = await res.json();
@@ -738,7 +748,7 @@ export async function searchItems(
   query: string,
   limit = 10,
   pageOrSignal?: number | AbortSignal,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): Promise<ItemSearchResponse> {
   const trimmed = query.trim();
   if (!trimmed) return { items: [], page: 1, pageCount: 0 };
@@ -747,16 +757,14 @@ export async function searchItems(
   }
   const page = typeof pageOrSignal === "number" ? pageOrSignal : 1;
   const requestSignal =
-    pageOrSignal && typeof pageOrSignal !== "number"
-      ? pageOrSignal
-      : signal;
+    pageOrSignal && typeof pageOrSignal !== "number" ? pageOrSignal : signal;
   const url = toApiUrl("/items/search");
   url.searchParams.set("q", trimmed);
   url.searchParams.set("limit", limit.toString());
   url.searchParams.set("page", page.toString());
   const res = await apiFetch(
     url.toString(),
-    requestSignal ? { signal: requestSignal } : undefined
+    requestSignal ? { signal: requestSignal } : undefined,
   );
   if (!res.ok) {
     throw new Error(`HTTP ${res.status} – Error searching items`);
@@ -784,7 +792,7 @@ export interface VariantHistoryResponse {
 export async function fetchVariantHistory(
   variantId: string,
   range: string,
-  granularity: string
+  granularity: string,
 ): Promise<VariantHistoryResponse> {
   const url = toApiUrl(`/variants/${variantId}/history`);
   url.searchParams.set("range", range);
@@ -804,7 +812,7 @@ export interface MethodDetailResponse {
 
 export async function fetchMethodDetail(
   id: string,
-  username?: string
+  username?: string,
 ): Promise<MethodDetailResponse> {
   const url = toApiUrl(`/methods/${id}`);
   if (username) url.searchParams.set("username", username);
@@ -826,7 +834,7 @@ export async function fetchMethodDetail(
 
 export async function fetchMethodDetailBySlug(
   slug: string,
-  username?: string
+  username?: string,
 ): Promise<MethodDetailResponse> {
   const normalizedSlug = slug.trim();
   if (!normalizedSlug) {
@@ -935,7 +943,7 @@ function buildVariantUpdatePayload(variant: Variant): UpdateVariantDto {
 
 export function buildMethodUpdatePayload(
   values: UpdateMethodBasicDto,
-  variants: Variant[]
+  variants: Variant[],
 ): UpdateMethodDto {
   return {
     ...values,
@@ -949,7 +957,7 @@ export function getVariantsSignature(variants: Variant[]): string {
 
 export async function updateMethodBasic(
   id: string,
-  dto: UpdateMethodBasicDto
+  dto: UpdateMethodBasicDto,
 ): Promise<Method> {
   const res = await apiFetch(`${API_URL}/methods/${id}/basic`, {
     method: "PUT",
@@ -973,7 +981,7 @@ export async function updateMethodBasic(
 export async function updateMethodWithVariants(
   id: string,
   values: UpdateMethodBasicDto,
-  variants: Variant[]
+  variants: Variant[],
 ): Promise<Method> {
   const dto = buildMethodUpdatePayload(values, variants);
   const res = await apiFetch(`${API_URL}/methods/${id}`, {
@@ -997,7 +1005,7 @@ export async function updateMethodWithVariants(
 
 export async function createMethodWithVariants(
   values: UpdateMethodBasicDto,
-  variants: Variant[]
+  variants: Variant[],
 ): Promise<Method> {
   const dto = buildMethodUpdatePayload(values, variants);
   const res = await apiFetch(`${API_URL}/methods`, {

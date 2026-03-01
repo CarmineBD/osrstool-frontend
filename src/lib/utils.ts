@@ -92,3 +92,98 @@ export function formatPercent(num: number, decimals = 1): string {
   const sign = num >= 0 ? "+" : "";
   return `${sign}${num.toFixed(decimals)}%`;
 }
+
+const SECONDS_PER_MINUTE = 60;
+const SECONDS_PER_HOUR = 60 * SECONDS_PER_MINUTE;
+const SECONDS_PER_DAY = 24 * SECONDS_PER_HOUR;
+const SECONDS_PER_WEEK = 7 * SECONDS_PER_DAY;
+const SECONDS_PER_MONTH = 30 * SECONDS_PER_DAY;
+const SECONDS_PER_YEAR = 365 * SECONDS_PER_DAY;
+
+function formatAgo(
+  primaryValue: number,
+  primaryUnit: string,
+  secondaryValue: number,
+  secondaryUnit: string,
+): string {
+  return `${primaryValue}${primaryUnit} ${secondaryValue}${secondaryUnit} ago`;
+}
+
+function normalizeUnixTimestampToMs(
+  unixTimestamp: number,
+  nowMs: number,
+): number {
+  const asMilliseconds = Math.trunc(unixTimestamp);
+  const asSeconds = Math.trunc(unixTimestamp * 1000);
+
+  const millisecondsDistance = Math.abs(nowMs - asMilliseconds);
+  const secondsDistance = Math.abs(nowMs - asSeconds);
+
+  return secondsDistance < millisecondsDistance ? asSeconds : asMilliseconds;
+}
+
+export function formatElapsedTimeFromUnix(
+  unixTimestamp: number,
+  nowMs = Date.now(),
+): string {
+  if (!Number.isFinite(unixTimestamp)) {
+    return "just now";
+  }
+
+  const normalizedTimestampMs = normalizeUnixTimestampToMs(
+    unixTimestamp,
+    nowMs,
+  );
+  const elapsedSeconds = Math.max(
+    0,
+    Math.floor((nowMs - normalizedTimestampMs) / 1000),
+  );
+
+  if (elapsedSeconds === 0) {
+    return "just now";
+  }
+
+  if (elapsedSeconds < SECONDS_PER_HOUR) {
+    const minutes = Math.floor(elapsedSeconds / SECONDS_PER_MINUTE);
+    const seconds = elapsedSeconds % SECONDS_PER_MINUTE;
+    return formatAgo(minutes, "m", seconds, "s");
+  }
+
+  if (elapsedSeconds < SECONDS_PER_DAY) {
+    const hours = Math.floor(elapsedSeconds / SECONDS_PER_HOUR);
+    const minutes = Math.floor(
+      (elapsedSeconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE,
+    );
+    return formatAgo(hours, "h", minutes, "m");
+  }
+
+  if (elapsedSeconds < SECONDS_PER_WEEK) {
+    const days = Math.floor(elapsedSeconds / SECONDS_PER_DAY);
+    const hours = Math.floor(
+      (elapsedSeconds % SECONDS_PER_DAY) / SECONDS_PER_HOUR,
+    );
+    return formatAgo(days, "d", hours, "h");
+  }
+
+  if (elapsedSeconds < SECONDS_PER_MONTH) {
+    const weeks = Math.floor(elapsedSeconds / SECONDS_PER_WEEK);
+    const days = Math.floor(
+      (elapsedSeconds % SECONDS_PER_WEEK) / SECONDS_PER_DAY,
+    );
+    return formatAgo(weeks, "w", days, "d");
+  }
+
+  if (elapsedSeconds < SECONDS_PER_YEAR) {
+    const months = Math.floor(elapsedSeconds / SECONDS_PER_MONTH);
+    const weeks = Math.floor(
+      (elapsedSeconds % SECONDS_PER_MONTH) / SECONDS_PER_WEEK,
+    );
+    return formatAgo(months, "M", weeks, "w");
+  }
+
+  const years = Math.floor(elapsedSeconds / SECONDS_PER_YEAR);
+  const months = Math.floor(
+    (elapsedSeconds % SECONDS_PER_YEAR) / SECONDS_PER_MONTH,
+  );
+  return formatAgo(years, "Y", months, "M");
+}
