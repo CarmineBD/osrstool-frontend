@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import type { Item } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Markdown } from "@/components/Markdown";
@@ -15,9 +15,18 @@ const EMPTY_ITEMS: Record<number, Item> = {};
 
 export function ChangelogDetailPage() {
   const { slug = "" } = useParams();
+  const navigate = useNavigate();
   const entry = getChangelogEntryBySlug(slug);
   const [content, setContent] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  const handleGoBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+    navigate("/changelog");
+  };
 
   useSeo({
     title: entry
@@ -116,11 +125,8 @@ export function ChangelogDetailPage() {
         )}
 
         <div className="mt-8 flex flex-wrap gap-3">
-          <Button asChild variant="outline">
-            <Link to="/">Volver a la landing</Link>
-          </Button>
-          <Button asChild>
-            <Link to="/allMethods">Ver todos los metodos</Link>
+          <Button type="button" variant="outline" onClick={handleGoBack}>
+            Volver
           </Button>
         </div>
       </article>
