@@ -58,11 +58,11 @@ describe("critical flow: list render + filters", () => {
     ).toBeInTheDocument();
 
     const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /show filters/i }));
     await user.type(
       screen.getByPlaceholderText("Buscar por nombre de metodo"),
       "dragon"
     );
-    await user.click(screen.getByRole("button", { name: "Filtrar" }));
 
     expect(
       await screen.findByRole("link", { name: "Dragon bones run" })

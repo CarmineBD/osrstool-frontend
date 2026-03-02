@@ -330,6 +330,7 @@ describe("critical flow: skilling routes", () => {
     expect(
       await screen.findByRole("heading", { name: "Methods for Magic" })
     ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /show filters/i }));
     expect(screen.getByText("Skill locked: Magic")).toBeInTheDocument();
     const tableHeaders = await screen.findAllByRole("columnheader");
     expect(tableHeaders[0]).toHaveTextContent(/requirements/i);
@@ -485,6 +486,8 @@ describe("critical flow: skilling routes", () => {
     expect(
       await screen.findByRole("heading", { name: "Methods for Magic" })
     ).toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /show filters/i }));
     expect(await screen.findByText("enabled")).toBeInTheDocument();
   });
 });
