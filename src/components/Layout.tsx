@@ -9,8 +9,6 @@ export function Layout(_props: Props) {
   const location = useLocation();
   const hideInput =
     location.pathname === "/" ||
-    location.pathname === "/allMethods" ||
-    location.pathname.startsWith("/skilling/") ||
     location.pathname === "/wiki" ||
     location.pathname.startsWith("/wiki/");
   return (

@@ -54,7 +54,7 @@ describe("critical flow: landing + all methods routing", () => {
     renderApp();
 
     expect(
-      await screen.findByRole("heading", { name: "OSRS Moneymaking Methods" })
+      await screen.findByRole("heading", { name: "All Methods" })
     ).toBeInTheDocument();
   });
 
