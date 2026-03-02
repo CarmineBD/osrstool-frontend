@@ -1,4 +1,4 @@
-import { Fragment, lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { Fragment, lazy, Suspense, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   IconAlertTriangle,
@@ -7,8 +7,8 @@ import {
   IconInfoCircle,
   IconTrendingDown,
   IconTrendingUp,
-  IconX,
 } from "@tabler/icons-react";
+import { UsernameFetchNotice } from "@/components/UsernameFetchNotice";
 import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
@@ -178,15 +178,6 @@ function getWeightPrice(item: Item, mode: WeightPriceMode): number {
   return item.highPrice ?? 0;
 }
 
-function focusUsernameInput() {
-  const usernameInput = document.getElementById(
-    "username-input",
-  ) as HTMLInputElement | null;
-  if (!usernameInput) return;
-  usernameInput.focus();
-  usernameInput.select?.();
-}
-
 function LevelsAndQuestBadges({
   requirement,
 }: {
@@ -335,7 +326,6 @@ function MissingRequirementsNotice({
   variant: Variant;
   username?: string;
 }) {
-  const [isDismissed, setIsDismissed] = useState(false);
   const hasMissingRequirements = Boolean(variant.missingRequirements);
   const allRequirementsMet = Boolean(username) && !hasMissingRequirements;
   const statusIcon = hasMissingRequirements ? (
@@ -346,63 +336,27 @@ function MissingRequirementsNotice({
     <IconInfoCircle className="size-4" />
   );
 
-  useEffect(() => {
-    setIsDismissed(false);
-  }, [variant.id, username, hasMissingRequirements]);
-
-  if (isDismissed) return null;
-
   return (
-    <div
-      className={cn(
-        "rounded-md border border-gray-300 bg-gray-200 p-4 text-sm dark:border-gray-700 dark:bg-gray-800",
-        !allRequirementsMet && "lg:sticky lg:top-24 lg:z-10",
-      )}
+    <UsernameFetchNotice
+      showPrompt={!username}
+      icon={statusIcon}
+      resetKey={`${variant.id}-${username ?? "missing"}-${
+        hasMissingRequirements ? "missing" : "complete"
+      }`}
+      dismissLabel="Dismiss requirements notice"
+      className={cn(!allRequirementsMet && "lg:sticky lg:top-24 lg:z-10")}
     >
-      <div className="flex items-start gap-4">
-        <span className="mt-0.5 inline-flex rounded-full border border-gray-300 bg-white p-1.5 text-muted-foreground dark:border-gray-600 dark:bg-gray-900/40">
-          {statusIcon}
-        </span>
-
-        <div className="min-w-0 flex-1 space-y-3">
-          {!username ? (
-            <p className="text-gray-700 dark:text-gray-200">
-              Please{" "}
-              <button
-                type="button"
-                className="cursor-pointer underline"
-                onClick={focusUsernameInput}
-              >
-                enter your username
-              </button>{" "}
-              to fetch your user data.
-            </p>
-          ) : null}
-
-          {hasMissingRequirements ? (
-            <div className="space-y-3">
-              <p>You are missing some requirements to do this method:</p>
-              <div className="flex flex-start flex-wrap gap-2">
-                <LevelsAndQuestBadges
-                  requirement={variant.missingRequirements}
-                />
-              </div>
-            </div>
-          ) : username ? (
-            <p>All requirements met!</p>
-          ) : null}
+      {hasMissingRequirements ? (
+        <div className="space-y-3">
+          <p>You are missing some requirements to do this method:</p>
+          <div className="flex flex-start flex-wrap gap-2">
+            <LevelsAndQuestBadges requirement={variant.missingRequirements} />
+          </div>
         </div>
-
-        <button
-          type="button"
-          onClick={() => setIsDismissed(true)}
-          aria-label="Dismiss requirements notice"
-          className="inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-gray-300 bg-white text-muted-foreground transition-colors hover:bg-gray-100 hover:text-foreground dark:border-gray-600 dark:bg-gray-900/40 dark:hover:bg-gray-900"
-        >
-          <IconX className="size-4" />
-        </button>
-      </div>
-    </div>
+      ) : username ? (
+        <p>All requirements met!</p>
+      ) : null}
+    </UsernameFetchNotice>
   );
 }
 
