@@ -73,7 +73,7 @@ export const changelogEntries = [...entries].sort((a, b) =>
   b.date.localeCompare(a.date)
 );
 
-export const latestChangelogEntries = changelogEntries.slice(0, 5);
+export const latestChangelogEntries = changelogEntries.slice(0, 3);
 
 export function getChangelogEntryBySlug(slug: string): ChangelogEntry | null {
   return changelogEntries.find((entry) => entry.slug === slug) ?? null;
@@ -104,4 +104,3 @@ export function formatChangelogDate(dateISO: string): string {
     timeZone: "UTC",
   }).format(date);
 }
-

@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
-  changelogEntries,
   formatChangelogDate,
   latestChangelogEntries,
 } from "@/content/changelog";
@@ -162,7 +161,7 @@ export function LandingPage() {
         >
           <h2 className="text-2xl font-bold text-slate-900">Changelog de novedades</h2>
           <p className="mt-2 text-sm text-slate-700">
-            Ultimas 5 novedades publicadas.
+            Ultimas 3 novedades publicadas.
           </p>
 
           <div className="mt-5 grid gap-3">
@@ -185,26 +184,14 @@ export function LandingPage() {
               </article>
             ))}
           </div>
-
-          <details className="mt-6 rounded-lg border border-slate-200 bg-white p-4">
-            <summary className="cursor-pointer text-sm font-semibold text-slate-900">
-              Ver todo ({changelogEntries.length} entradas)
-            </summary>
-            <div className="mt-3 grid gap-2">
-              {changelogEntries.map((entry) => (
-                <Link
-                  key={`all-${entry.slug}`}
-                  to={`/changelog/${entry.slug}`}
-                  className="rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
-                >
-                  {formatChangelogDate(entry.date)} | {entry.version} - {entry.title}
-                </Link>
-              ))}
-            </div>
-          </details>
+          <Link
+            to="/changelog"
+            className="mt-6 inline-block text-sm font-semibold text-slate-900 underline"
+          >
+            Ver todas las novedades
+          </Link>
         </section>
       </main>
     </div>
   );
 }
-

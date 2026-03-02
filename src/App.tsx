@@ -10,6 +10,7 @@ import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { LandingPage } from "./pages/LandingPage";
 import { ChangelogDetailPage } from "./pages/ChangelogDetailPage";
+import { ChangelogListPage } from "./pages/ChangelogListPage";
 import { SkillingPage } from "./pages/SkillingPage";
 import { SkillMethodsPage } from "./pages/SkillMethodsPage";
 import { WikiCategoryPage, WikiPage } from "./pages/WikiPage";
@@ -33,6 +34,7 @@ function App() {
             <Route element={<Layout />}>
               <Route path="/" element={<LandingPage />} />
               <Route path="/allMethods" element={<Home />} />
+              <Route path="/changelog" element={<ChangelogListPage />} />
               <Route path="/skilling" element={<SkillingPage />} />
               <Route path="/skilling/:skill" element={<SkillMethodsPage />} />
               <Route path="/wiki" element={<WikiPage />} />
