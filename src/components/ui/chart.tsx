@@ -119,6 +119,7 @@ function ChartTooltipContent({
   color,
   nameKey,
   labelKey,
+  payloadSortOrder,
 }: React.ComponentProps<typeof Tooltip> &
   React.ComponentProps<"div"> & {
     hideLabel?: boolean;
@@ -126,15 +127,33 @@ function ChartTooltipContent({
     indicator?: "line" | "dot" | "dashed";
     nameKey?: string;
     labelKey?: string;
+    payloadSortOrder?: string[];
   }) {
   const { config } = useChart();
+  const orderedPayload = React.useMemo(() => {
+    if (!payload?.length || !payloadSortOrder?.length) {
+      return payload;
+    }
+
+    const orderMap = new Map(
+      payloadSortOrder.map((payloadKey, index) => [payloadKey, index])
+    );
+
+    return [...payload].sort((a, b) => {
+      const aKey = `${a.dataKey ?? a.name ?? ""}`;
+      const bKey = `${b.dataKey ?? b.name ?? ""}`;
+      const aOrder = orderMap.get(aKey) ?? Number.MAX_SAFE_INTEGER;
+      const bOrder = orderMap.get(bKey) ?? Number.MAX_SAFE_INTEGER;
+      return aOrder - bOrder;
+    });
+  }, [payload, payloadSortOrder]);
 
   const tooltipLabel = React.useMemo(() => {
-    if (hideLabel || !payload?.length) {
+    if (hideLabel || !orderedPayload?.length) {
       return null;
     }
 
-    const [item] = payload;
+    const [item] = orderedPayload;
     const key = `${labelKey || item?.dataKey || item?.name || "value"}`;
     const itemConfig = getPayloadConfigFromPayload(config, item, key);
     const value =
@@ -145,7 +164,7 @@ function ChartTooltipContent({
     if (labelFormatter) {
       return (
         <div className={cn("font-medium", labelClassName)}>
-          {labelFormatter(value, payload)}
+          {labelFormatter(value, orderedPayload)}
         </div>
       );
     }
@@ -158,18 +177,18 @@ function ChartTooltipContent({
   }, [
     label,
     labelFormatter,
-    payload,
+    orderedPayload,
     hideLabel,
     labelClassName,
     config,
     labelKey,
   ]);
 
-  if (!active || !payload?.length) {
+  if (!active || !orderedPayload?.length) {
     return null;
   }
 
-  const nestLabel = payload.length === 1 && indicator !== "dot";
+  const nestLabel = orderedPayload.length === 1 && indicator !== "dot";
 
   return (
     <div
@@ -180,7 +199,7 @@ function ChartTooltipContent({
     >
       {!nestLabel ? tooltipLabel : null}
       <div className="grid gap-1.5">
-        {payload.map((item, index) => {
+        {orderedPayload.map((item, index) => {
           const key = `${nameKey || item.name || item.dataKey || "value"}`;
           const itemConfig = getPayloadConfigFromPayload(config, item, key);
           const indicatorColor = color || item.payload.fill || item.color;
