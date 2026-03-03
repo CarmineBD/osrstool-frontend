@@ -14,11 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Field,
-  FieldLabel,
-  FieldDescription,
-} from "@/components/ui/field";
+import { Field, FieldLabel, FieldDescription } from "@/components/ui/field";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
@@ -80,7 +76,7 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
     useState<number>(10000);
   const [afkiness, setAfkiness] = useState<number>(0);
   const [appliedAfkiness, setAppliedAfkiness] = useState<number>(0);
-  const [riskLevel, setRiskLevel] = useState<string>("");
+  const [riskLevel] = useState<string>("");
   const [givesExperience, setGivesExperience] = useState<boolean | undefined>(
     undefined,
   );
@@ -390,19 +386,6 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
                       <FieldDescription>
                         {afkiness === 0 ? "No minimum" : `${afkiness}% or more`}
                       </FieldDescription>
-                    </Field>
-                    <Field className="mx-auto grid gap-2 w-full">
-                      <FieldLabel>Risk level</FieldLabel>
-                      <Input
-                        type="number"
-                        step={1}
-                        min={1}
-                        max={100}
-                        placeholder="1-100"
-                        value={riskLevel}
-                        onChange={(e) => setRiskLevel(e.target.value)}
-                      />
-                      <FieldDescription>Set maximum allowed risk</FieldDescription>
                     </Field>
                   </div>
 
