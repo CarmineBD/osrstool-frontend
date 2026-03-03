@@ -391,19 +391,6 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
                         {afkiness === 0 ? "No minimum" : `${afkiness}% or more`}
                       </FieldDescription>
                     </Field>
-                    <Field className="mx-auto grid gap-2 w-full">
-                      <FieldLabel>Risk level</FieldLabel>
-                      <Input
-                        type="number"
-                        step={1}
-                        min={1}
-                        max={100}
-                        placeholder="1-100"
-                        value={riskLevel}
-                        onChange={(e) => setRiskLevel(e.target.value)}
-                      />
-                      <FieldDescription>Set maximum allowed risk</FieldDescription>
-                    </Field>
                   </div>
 
                   <div className="space-y-3">
