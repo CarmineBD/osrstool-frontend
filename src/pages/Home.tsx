@@ -80,7 +80,7 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
     useState<number>(10000);
   const [afkiness, setAfkiness] = useState<number>(0);
   const [appliedAfkiness, setAppliedAfkiness] = useState<number>(0);
-  const [riskLevel, setRiskLevel] = useState<string>("");
+  const [riskLevel] = useState<string>("");
   const [givesExperience, setGivesExperience] = useState<boolean | undefined>(
     undefined,
   );
