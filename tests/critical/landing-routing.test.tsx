@@ -34,6 +34,10 @@ describe("critical flow: landing + all methods routing", () => {
     expect(
       screen.getByRole("heading", { name: "Changelog de novedades" })
     ).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /leer articulo completo/i })).toHaveLength(3);
+    expect(
+      screen.getByRole("link", { name: /ver todas las novedades/i })
+    ).toHaveAttribute("href", "/changelog");
   });
 
   it("renders all methods page at /allMethods", async () => {
@@ -67,5 +71,22 @@ describe("critical flow: landing + all methods routing", () => {
       await screen.findByRole("heading", { name: "Landing SEO + Changelog" })
     ).toBeInTheDocument();
     expect(await screen.findByText("Cambios principales")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /volver/i })).toBeInTheDocument();
+  });
+
+  it("renders changelog list page with pagination", async () => {
+    window.history.pushState({}, "", "/changelog");
+
+    renderApp();
+
+    expect(
+      await screen.findByRole("heading", { name: "Todas las novedades" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("link", { name: /ver detalle de la novedad/i })
+    ).toHaveLength(5);
+    expect(
+      screen.getByRole("button", { name: "Current page, page 1" })
+    ).toBeInTheDocument();
   });
 });
