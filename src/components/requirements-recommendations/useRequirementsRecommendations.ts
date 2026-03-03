@@ -448,6 +448,37 @@ export function useRequirementsRecommendations({
     ]
   );
 
+  useEffect(() => {
+    const hasOnlyItemOptions =
+      itemSearchOptions.length > 0 &&
+      questSearchOptions.length === 0 &&
+      achievementDiarySearchOptions.length === 0 &&
+      skillSearchOptions.length === 0;
+
+    if (
+      !trimmedQuery ||
+      itemSearchLoading ||
+      itemSearchLoadingMore ||
+      !itemSearchHasMore ||
+      !hasOnlyItemOptions ||
+      itemSearchOptions.length > ITEM_SEARCH_LIMIT
+    ) {
+      return;
+    }
+
+    loadMoreItemSearchResults();
+  }, [
+    achievementDiarySearchOptions.length,
+    itemSearchHasMore,
+    itemSearchLoading,
+    itemSearchLoadingMore,
+    itemSearchOptions.length,
+    loadMoreItemSearchResults,
+    questSearchOptions.length,
+    skillSearchOptions.length,
+    trimmedQuery,
+  ]);
+
   const emptyMessage = trimmedQuery ? "Sin resultados" : "Escribe para buscar";
 
   const updateEntry = useCallback(
