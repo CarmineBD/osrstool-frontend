@@ -1,14 +1,24 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { IconInfoCircle, IconX } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
+import { OPEN_NAV_USERNAME_EVENT } from "@/lib/events";
 
-function focusUsernameInput() {
-  const usernameInput = document.getElementById(
-    "username-input",
-  ) as HTMLInputElement | null;
+function focusInput(inputId: string) {
+  const usernameInput = document.getElementById(inputId) as HTMLInputElement | null;
   if (!usernameInput) return;
+  if (usernameInput.offsetParent === null) return;
   usernameInput.focus();
   usernameInput.select?.();
+}
+
+function focusUsernameInput() {
+  focusInput("username-input");
+  if (document.activeElement?.id === "username-input") return;
+
+  focusInput("username-input-mobile");
+  if (document.activeElement?.id === "username-input-mobile") return;
+
+  window.dispatchEvent(new Event(OPEN_NAV_USERNAME_EVENT));
 }
 
 type UsernameFetchNoticeProps = {
