@@ -56,6 +56,34 @@ const chartConfig: ChartConfig = {
   highProfit: { label: "High Profit", color: "#22c55e" },
 };
 
+const ONE_HOUR_MS = 60 * 60 * 1000;
+const ONE_DAY_MS = 24 * ONE_HOUR_MS;
+
+function startOfHour(timestamp: number) {
+  const date = new Date(timestamp);
+  date.setMinutes(0, 0, 0);
+  return date.getTime();
+}
+
+function startOfDay(timestamp: number) {
+  const date = new Date(timestamp);
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
+}
+
+function startOfMonth(timestamp: number) {
+  const date = new Date(timestamp);
+  date.setDate(1);
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
+}
+
+function monthOffset(timestamp: number, deltaMonths: number) {
+  const date = new Date(timestamp);
+  date.setMonth(date.getMonth() + deltaMonths);
+  return date.getTime();
+}
+
 function createDateTimeFormatter(
   options: Intl.DateTimeFormatOptions,
   timezone?: string,
@@ -93,6 +121,14 @@ export function VariantHistoryChart({
     () =>
       createDateTimeFormatter(
         { hour: "2-digit", minute: "2-digit", hour12: false },
+        resolvedTimeZone
+      ),
+    [resolvedTimeZone]
+  );
+  const axisDayFormatter = useMemo(
+    () =>
+      createDateTimeFormatter(
+        { day: "2-digit" },
         resolvedTimeZone
       ),
     [resolvedTimeZone]
@@ -157,6 +193,50 @@ export function VariantHistoryChart({
       })) ?? [],
     [data]
   );
+  const xTicks = useMemo(() => {
+    if (!points.length) {
+      return [];
+    }
+
+    const minTimestamp = Math.min(...points.map((point) => point.timestamp));
+    const maxTimestamp = Math.max(...points.map((point) => point.timestamp));
+
+    if (range === "24h") {
+      const ticks: number[] = [];
+      let cursor = startOfHour(minTimestamp);
+
+      while (cursor <= maxTimestamp) {
+        ticks.push(cursor);
+        cursor += ONE_HOUR_MS * 2;
+      }
+      return ticks;
+    }
+
+    if (range === "1m") {
+      const ticks: number[] = [];
+      let cursor = startOfDay(minTimestamp);
+
+      while (cursor <= maxTimestamp) {
+        ticks.push(cursor);
+        cursor += ONE_DAY_MS;
+      }
+      return ticks;
+    }
+
+    if (range === "1y" || range === "all") {
+      const ticks: number[] = [];
+      const lastMonth = startOfMonth(maxTimestamp);
+      let cursor = monthOffset(lastMonth, -11);
+
+      while (cursor <= lastMonth) {
+        ticks.push(cursor);
+        cursor = monthOffset(cursor, 1);
+      }
+      return ticks;
+    }
+
+    return [];
+  }, [points, range]);
 
   const yDomain = useMemo(() => {
     if (!points.length) {
@@ -232,17 +312,25 @@ export function VariantHistoryChart({
             <div className="text-red-500">Error loading history</div>
           ) : (
             <ChartContainer config={chartConfig} className="h-64 w-full">
-              <LineChart data={points} margin={{ left: 0, right: 0 }}>
+              <LineChart data={points} margin={{ top: 0, right: 0, left: 0, bottom: 32 }}>
                 <CartesianGrid vertical={false} />
                 <XAxis
                   dataKey="timestamp"
                   type="number"
                   domain={["dataMin", "dataMax"]}
                   padding={{ left: 0, right: 0 }}
+                  ticks={xTicks}
+                  interval={0}
+                  minTickGap={0}
+                  tickMargin={8}
+                  angle={-35}
+                  textAnchor="end"
                   tickFormatter={(value) => {
                     const date = new Date(Number(value));
                     return range === "24h"
                       ? axisTimeFormatter.format(date)
+                      : range === "1m"
+                        ? axisDayFormatter.format(date)
                       : axisDateFormatter.format(date);
                   }}
                 />
@@ -251,6 +339,7 @@ export function VariantHistoryChart({
                   cursor={false}
                   content={
                     <ChartTooltipContent
+                      payloadSortOrder={["highProfit", "lowProfit"]}
                       labelFormatter={(_, payload) => {
                         const ts = payload?.[0]?.payload?.timestamp as
                           | number
