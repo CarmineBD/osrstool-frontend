@@ -263,7 +263,7 @@ export function IoItemsField({
       setQuery("");
       return;
     }
-    onChange([...items, { id: item.id, quantity: 1, reason: null }]);
+    onChange([{ id: item.id, quantity: 1, reason: null }, ...items]);
     setQuery("");
   };
 
