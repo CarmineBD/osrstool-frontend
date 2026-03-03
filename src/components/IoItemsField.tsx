@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type UIEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type DragEvent,
+  type UIEvent,
+} from "react";
 import {
   fetchItems,
   searchItems,
@@ -24,9 +32,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { IconX } from "@tabler/icons-react";
+import { IconGripVertical, IconX } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 
 const SEARCH_LIMIT = 10;
@@ -76,6 +85,8 @@ export function IoItemsField({
   const [searchCache, setSearchCache] = useState<
     Record<number, ItemSearchResult>
   >({});
+  const [draggingId, setDraggingId] = useState<number | null>(null);
+  const [dragOverId, setDragOverId] = useState<number | null>(null);
   const requestIdRef = useRef(0);
   const loadMoreControllerRef = useRef<AbortController | null>(null);
 
@@ -281,6 +292,52 @@ export function IoItemsField({
     );
   };
 
+  const handleDragStart = (event: DragEvent, id: number) => {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", id.toString());
+    const row = event.currentTarget.closest("tr");
+    if (row instanceof HTMLElement) {
+      const rect = row.getBoundingClientRect();
+      const offsetX = Math.max(0, event.clientX - rect.left);
+      const offsetY = Math.max(0, event.clientY - rect.top);
+      event.dataTransfer.setDragImage(row, offsetX, offsetY);
+    }
+    setDraggingId(id);
+  };
+
+  const handleDragEnd = () => {
+    setDraggingId(null);
+    setDragOverId(null);
+  };
+
+  const handleDragOver = (event: DragEvent, id: number) => {
+    if (draggingId === null || draggingId === id) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    if (dragOverId !== id) setDragOverId(id);
+  };
+
+  const handleDrop = (event: DragEvent, id: number) => {
+    event.preventDefault();
+    const data = event.dataTransfer.getData("text/plain");
+    const sourceId = Number(data);
+    if (!Number.isFinite(sourceId) || sourceId === id) {
+      setDragOverId(null);
+      return;
+    }
+    const fromIndex = items.findIndex((entry) => entry.id === sourceId);
+    const toIndex = items.findIndex((entry) => entry.id === id);
+    if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) {
+      setDragOverId(null);
+      return;
+    }
+    const next = [...items];
+    const [moved] = next.splice(fromIndex, 1);
+    next.splice(toIndex, 0, moved);
+    onChange(next);
+    setDragOverId(null);
+  };
+
   const getItemName = (id: number) =>
     itemsMap[id]?.name ?? searchCache[id]?.name ?? `#${id}`;
 
@@ -365,8 +422,8 @@ export function IoItemsField({
           <TableRow>
             <TableHead>Name</TableHead>
             <TableHead className="w-[140px]">Quantity</TableHead>
-            <TableHead className="w-[220px]">Reason</TableHead>
-            <TableHead className="w-[80px] text-right">Actions</TableHead>
+            <TableHead className="w-[260px]">Reason</TableHead>
+            <TableHead className="w-[120px] text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -383,7 +440,15 @@ export function IoItemsField({
             items.map((entry) => {
               const iconUrl = getItemIcon(entry.id);
               return (
-                <TableRow key={entry.id}>
+                <TableRow
+                  key={entry.id}
+                  onDragOver={(event) => handleDragOver(event, entry.id)}
+                  onDrop={(event) => handleDrop(event, entry.id)}
+                  className={cn(
+                    dragOverId === entry.id &&
+                      "outline outline-1 outline-primary/40"
+                  )}
+                >
                   <TableCell>
                     <div className="flex items-center gap-2">
                       {iconUrl ? (
@@ -413,26 +478,41 @@ export function IoItemsField({
                       className="w-24"
                     />
                   </TableCell>
-                  <TableCell>
-                    <Input
-                      type="text"
+                  <TableCell className="align-top">
+                    <Textarea
                       placeholder="Opcional"
                       value={entry.reason ?? ""}
                       onChange={(e) =>
                         handleReasonChange(entry.id, e.target.value)
                       }
+                      className="min-h-[64px] resize-y"
                     />
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Remove item"
-                      onClick={() => handleRemoveItem(entry.id)}
-                    >
-                      <IconX size={16} />
-                    </Button>
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Remove item"
+                        onClick={() => handleRemoveItem(entry.id)}
+                      >
+                        <IconX size={16} />
+                      </Button>
+                      <button
+                        type="button"
+                        aria-label="Reorder item"
+                        className={cn(
+                          "cursor-grab rounded-md p-2 text-muted-foreground transition hover:text-foreground",
+                          draggingId === entry.id && "cursor-grabbing"
+                        )}
+                        draggable
+                        onDragStart={(event) => handleDragStart(event, entry.id)}
+                        onDragEnd={handleDragEnd}
+                      >
+                        <IconGripVertical size={16} />
+                      </button>
+                    </div>
                   </TableCell>
                 </TableRow>
               );
