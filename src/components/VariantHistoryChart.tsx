@@ -25,7 +25,10 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { fetchVariantHistory } from "@/lib/api";
-import { QUERY_REFETCH_INTERVAL_MS, QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
+import {
+  QUERY_REFETCH_INTERVAL_MS,
+  QUERY_STALE_TIME_MS,
+} from "@/lib/queryRefresh";
 import { formatNumber, formatPercent } from "@/lib/utils";
 import { IconTrendingUp, IconTrendingDown } from "@tabler/icons-react";
 
@@ -87,12 +90,12 @@ function monthOffset(timestamp: number, deltaMonths: number) {
 function createDateTimeFormatter(
   options: Intl.DateTimeFormatOptions,
   timezone?: string,
-  locale?: Intl.LocalesArgument
+  locale?: Intl.LocalesArgument,
 ) {
   try {
     return new Intl.DateTimeFormat(
       locale,
-      timezone ? { ...options, timeZone: timezone } : options
+      timezone ? { ...options, timeZone: timezone } : options,
     );
   } catch {
     return new Intl.DateTimeFormat(locale, options);
@@ -102,9 +105,7 @@ function createDateTimeFormatter(
 export function VariantHistoryChart({
   variantId,
   timezone,
-  trendLastHour,
   trendLast24h,
-  trendLastWeek,
   trendLastMonth,
   trendLastYear,
 }: VariantHistoryChartProps) {
@@ -114,24 +115,20 @@ export function VariantHistoryChart({
     RANGE_OPTIONS.find((r) => r.value === range)?.granularity ?? "1h";
   const resolvedTimeZone = useMemo(
     () => timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
-    [timezone]
+    [timezone],
   );
 
   const axisTimeFormatter = useMemo(
     () =>
       createDateTimeFormatter(
         { hour: "2-digit", minute: "2-digit", hour12: false },
-        resolvedTimeZone
+        resolvedTimeZone,
       ),
-    [resolvedTimeZone]
+    [resolvedTimeZone],
   );
   const axisDayFormatter = useMemo(
-    () =>
-      createDateTimeFormatter(
-        { day: "2-digit" },
-        resolvedTimeZone
-      ),
-    [resolvedTimeZone]
+    () => createDateTimeFormatter({ day: "2-digit" }, resolvedTimeZone),
+    [resolvedTimeZone],
   );
   const axisDateFormatter = useMemo(
     () =>
@@ -139,9 +136,9 @@ export function VariantHistoryChart({
         range === "1y" || range === "all"
           ? { month: "short", year: "2-digit" }
           : { day: "2-digit", month: "short" },
-        resolvedTimeZone
+        resolvedTimeZone,
       ),
-    [range, resolvedTimeZone]
+    [range, resolvedTimeZone],
   );
   const tooltipDateTimeFormatter = useMemo(
     () =>
@@ -155,31 +152,23 @@ export function VariantHistoryChart({
           hour12: false,
         },
         resolvedTimeZone,
-        "en-GB"
+        "en-GB",
       ),
-    [resolvedTimeZone]
+    [resolvedTimeZone],
   );
   const statsDateFormatter = useMemo(
     () =>
       createDateTimeFormatter(
         { day: "2-digit", month: "short", year: "numeric" },
         resolvedTimeZone,
-        "en-GB"
+        "en-GB",
       ),
-    [resolvedTimeZone]
+    [resolvedTimeZone],
   );
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["variantHistory", variantId, range],
     queryFn: () => fetchVariantHistory(variantId, range, granularity),
-    enabled: !!variantId,
-    staleTime: QUERY_STALE_TIME_MS,
-    refetchInterval: QUERY_REFETCH_INTERVAL_MS,
-  });
-
-  const { data: allData } = useQuery({
-    queryKey: ["variantHistory", variantId, "all"],
-    queryFn: () => fetchVariantHistory(variantId, "all", "1d"),
     enabled: !!variantId,
     staleTime: QUERY_STALE_TIME_MS,
     refetchInterval: QUERY_REFETCH_INTERVAL_MS,
@@ -191,7 +180,7 @@ export function VariantHistoryChart({
         ...p,
         timestamp: new Date(p.timestamp).getTime(),
       })) ?? [],
-    [data]
+    [data],
   );
   const xTicks = useMemo(() => {
     if (!points.length) {
@@ -251,36 +240,40 @@ export function VariantHistoryChart({
   }, [points]);
 
   const snapshots = data?.variant_snapshot ?? [];
-  const latestPoint = points[points.length - 1];
-  const currentHigh = latestPoint?.highProfit;
-  const currentLow = latestPoint?.lowProfit;
+  const minPoint = useMemo(
+    () =>
+      points.length > 0
+        ? points.reduce(
+            (min, p) => (p.highProfit < min.highProfit ? p : min),
+            points[0],
+          )
+        : undefined,
+    [points],
+  );
+  const maxPoint = useMemo(
+    () =>
+      points.length > 0
+        ? points.reduce(
+            (max, p) => (p.highProfit > max.highProfit ? p : max),
+            points[0],
+          )
+        : undefined,
+    [points],
+  );
 
-  const allPoints =
-    allData?.data.map((p) => ({
-      ...p,
-      timestamp: new Date(p.timestamp).getTime(),
-    })) ?? [];
-  const minPoint =
-    allPoints.length > 0
-      ? allPoints.reduce((min, p) => (p.highProfit < min.highProfit ? p : min), allPoints[0])
-      : undefined;
-  const maxPoint =
-    allPoints.length > 0
-      ? allPoints.reduce((max, p) => (p.highProfit > max.highProfit ? p : max), allPoints[0])
-      : undefined;
-
-  const trends = [
-    { label: "the last hour", value: trendLastHour },
-    { label: "the last 24h", value: trendLast24h },
-    { label: "the last week", value: trendLastWeek },
-    { label: "the last month", value: trendLastMonth },
-    { label: "the last year", value: trendLastYear },
-  ].filter((t) => typeof t.value === "number");
+  const selectedTrend = useMemo(() => {
+    if (range === "24h") {
+      return { label: "last 24h", value: trendLast24h };
+    }
+    if (range === "1m") {
+      return { label: "last month", value: trendLastMonth };
+    }
+    return { label: "last year", value: trendLastYear };
+  }, [range, trendLast24h, trendLastMonth, trendLastYear]);
   const isHistoryLoading = isLoading && !data;
-  const isAllHistoryLoading = !allData;
 
   return (
-    <div className="mt-4 flex flex-col gap-4 lg:flex-row">
+    <div className="mt-4 flex flex-col gap-4 xl:flex-row">
       <Card className="flex-1">
         <CardContent className="pt-4">
           <Tabs
@@ -290,7 +283,7 @@ export function VariantHistoryChart({
             }
             className="mb-4"
           >
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid h-auto w-full grid-cols-2 gap-1 sm:grid-cols-4">
               {RANGE_OPTIONS.map((opt) => (
                 <TabsTrigger key={opt.value} value={opt.value}>
                   {opt.label}
@@ -312,7 +305,10 @@ export function VariantHistoryChart({
             <div className="text-red-500">Error loading history</div>
           ) : (
             <ChartContainer config={chartConfig} className="h-64 w-full">
-              <LineChart data={points} margin={{ top: 0, right: 0, left: 0, bottom: 32 }}>
+              <LineChart
+                data={points}
+                margin={{ top: 0, right: 0, left: 0, bottom: 32 }}
+              >
                 <CartesianGrid vertical={false} />
                 <XAxis
                   dataKey="timestamp"
@@ -331,7 +327,7 @@ export function VariantHistoryChart({
                       ? axisTimeFormatter.format(date)
                       : range === "1m"
                         ? axisDayFormatter.format(date)
-                      : axisDateFormatter.format(date);
+                        : axisDateFormatter.format(date);
                   }}
                 />
                 <YAxis domain={yDomain} hide />
@@ -383,10 +379,10 @@ export function VariantHistoryChart({
           )}
         </CardContent>
       </Card>
-      <div className="flex w-full flex-col gap-4 lg:w-64">
+      <div className="flex w-full flex-col gap-4 xl:w-64">
         <Card>
           <CardHeader>
-            <CardDescription>Gp/hr now</CardDescription>
+            <CardDescription>Trend {selectedTrend.label}</CardDescription>
             {isHistoryLoading ? (
               <>
                 <Skeleton className="h-8 w-28" />
@@ -394,49 +390,58 @@ export function VariantHistoryChart({
               </>
             ) : (
               <>
-                <CardTitle className="text-2xl font-semibold tabular-nums">
-                  {currentHigh !== undefined ? formatNumber(currentHigh) : "N/A"}
+                <CardTitle className="flex items-center gap-2 text-2xl font-semibold tabular-nums">
+                  {typeof selectedTrend.value === "number" ? (
+                    <div
+                      className={
+                        selectedTrend.value > 0
+                          ? "flex items-center justify-center gap-4 text-green-600"
+                          : selectedTrend.value < 0
+                            ? "flex items-center justify-center gap-4 text-red-600"
+                            : "flex items-center justify-center gap-4 text-muted-foreground"
+                      }
+                    >
+                      <div>{`${formatPercent(selectedTrend.value, 2)}`}</div>
+                      <div>
+                        {selectedTrend.value > 0 ? (
+                          <IconTrendingUp className="size-4" />
+                        ) : selectedTrend.value < 0 ? (
+                          <IconTrendingDown className="size-4 mt-1" />
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground">N/A</span>
+                  )}
                 </CardTitle>
-                {currentLow !== undefined ? (
-                  <div className="text-sm text-muted-foreground">
-                    {formatNumber(currentLow)} low profit
-                  </div>
-                ) : null}
               </>
             )}
           </CardHeader>
-          <CardContent className="flex flex-col gap-1 text-sm">
-            {isHistoryLoading
-              ? Array.from({ length: 4 }).map((_, index) => (
-                  <div
-                    key={`trend-skeleton-${index}`}
-                    className="flex items-center justify-between"
-                  >
-                    <Skeleton className="h-4 w-36" />
-                    <Skeleton className="h-4 w-4" />
-                  </div>
-                ))
-              : trends.map((t) => (
-                  <div
-                    key={t.label}
-                    className="flex items-center justify-between"
-                  >
-                    <span>{`${formatPercent(t.value!, 2)} ${t.label}`}</span>
-                    {t.value! >= 0 ? (
-                      <IconTrendingUp className="size-4" />
-                    ) : (
-                      <IconTrendingDown className="size-4" />
-                    )}
-                  </div>
-                ))}
-          </CardContent>
+          {/* <CardContent className="flex flex-col gap-1 text-sm">
+            {isHistoryLoading ? (
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-4 w-36" />
+                <Skeleton className="h-4 w-4" />
+              </div>
+            ) : typeof selectedTrend.value === "number" ? (
+              <div>
+                {selectedTrend.value >= 0 ? (
+                  <IconTrendingUp className="size-4" />
+                ) : (
+                  <IconTrendingDown className="size-4" />
+                )}
+              </div>
+            ) : (
+              <span className="text-muted-foreground">N/A</span>
+            )}
+          </CardContent> */}
         </Card>
         <Card>
           <CardContent className="pt-4">
             <div className="grid grid-cols-2 gap-4 text-center text-sm">
               <div>
                 <div className="font-medium">Min</div>
-                {isAllHistoryLoading ? (
+                {isHistoryLoading ? (
                   <div className="space-y-2">
                     <Skeleton className="mx-auto h-7 w-20" />
                     <Skeleton className="mx-auto h-4 w-20" />
@@ -448,7 +453,9 @@ export function VariantHistoryChart({
                     </div>
                     {minPoint ? (
                       <div className="text-muted-foreground">
-                        {statsDateFormatter.format(new Date(minPoint.timestamp))}
+                        {statsDateFormatter.format(
+                          new Date(minPoint.timestamp),
+                        )}
                       </div>
                     ) : null}
                   </>
@@ -456,7 +463,7 @@ export function VariantHistoryChart({
               </div>
               <div>
                 <div className="font-medium">Max</div>
-                {isAllHistoryLoading ? (
+                {isHistoryLoading ? (
                   <div className="space-y-2">
                     <Skeleton className="mx-auto h-7 w-20" />
                     <Skeleton className="mx-auto h-4 w-20" />
@@ -468,7 +475,9 @@ export function VariantHistoryChart({
                     </div>
                     {maxPoint ? (
                       <div className="text-muted-foreground">
-                        {statsDateFormatter.format(new Date(maxPoint.timestamp))}
+                        {statsDateFormatter.format(
+                          new Date(maxPoint.timestamp),
+                        )}
                       </div>
                     ) : null}
                   </>
