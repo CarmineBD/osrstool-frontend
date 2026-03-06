@@ -194,10 +194,7 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto p-8 space-y-6">
         {!normalizedUsername ? (
-          <UsernameFetchNotice
-            resetKey={Boolean(normalizedUsername)}
-            className="sticky top-20 z-20"
-          />
+          <UsernameFetchNotice state="info" className="sticky top-20 z-20" />
         ) : null}
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <h1 className="text-3xl font-bold">{pageTitle ?? "All Methods"}</h1>

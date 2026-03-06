@@ -1,8 +1,6 @@
 import { Fragment, lazy, Suspense, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  IconAlertTriangle,
-  IconCircleCheck,
   IconClick,
   IconInfoCircle,
   IconTrendingDown,
@@ -326,38 +324,31 @@ function MissingRequirementsNotice({
   variant: Variant;
   username?: string;
 }) {
+  const normalizedUsername = username?.trim();
+  const hasUsername = Boolean(normalizedUsername);
   const hasMissingRequirements = Boolean(variant.missingRequirements);
-  const allRequirementsMet = Boolean(username) && !hasMissingRequirements;
-  const statusIcon = hasMissingRequirements ? (
-    <IconAlertTriangle className="size-4" />
-  ) : allRequirementsMet ? (
-    <IconCircleCheck className="size-4" />
-  ) : (
-    <IconInfoCircle className="size-4" />
+  const stickyNoticeClass = cn(
+    !hasUsername || hasMissingRequirements ? "lg:sticky lg:top-24 lg:z-10" : "",
   );
 
-  return (
-    <UsernameFetchNotice
-      showPrompt={!username}
-      icon={statusIcon}
-      resetKey={`${variant.id}-${username ?? "missing"}-${
-        hasMissingRequirements ? "missing" : "complete"
-      }`}
-      dismissLabel="Dismiss requirements notice"
-      className={cn(!allRequirementsMet && "lg:sticky lg:top-24 lg:z-10")}
-    >
-      {hasMissingRequirements ? (
+  if (!hasUsername) {
+    return <UsernameFetchNotice state="info" className={stickyNoticeClass} />;
+  }
+
+  if (hasMissingRequirements) {
+    return (
+      <UsernameFetchNotice state="error" className={stickyNoticeClass}>
         <div className="space-y-3">
           <p>You are missing some requirements to do this method:</p>
           <div className="flex flex-start flex-wrap gap-2">
             <LevelsAndQuestBadges requirement={variant.missingRequirements} />
           </div>
         </div>
-      ) : username ? (
-        <p>All requirements met!</p>
-      ) : null}
-    </UsernameFetchNotice>
-  );
+      </UsernameFetchNotice>
+    );
+  }
+
+  return <UsernameFetchNotice state="success" />;
 }
 
 function MetricsCards({ variant }: { variant: Variant }) {
