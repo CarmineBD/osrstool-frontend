@@ -1,10 +1,15 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { IconInfoCircle, IconX } from "@tabler/icons-react";
-import { cn } from "@/lib/utils";
 import { OPEN_NAV_USERNAME_EVENT } from "@/lib/events";
+import { Alert, AlertDescription, AlertTitle, AlertAction } from "./ui/alert";
+import { AlertCircleIcon, CheckCircle2Icon, InfoIcon } from "lucide-react";
+import { IconX } from "@tabler/icons-react";
+import { Button } from "./ui/button";
+import { cn } from "@/lib/utils";
 
 function focusInput(inputId: string) {
-  const usernameInput = document.getElementById(inputId) as HTMLInputElement | null;
+  const usernameInput = document.getElementById(
+    inputId,
+  ) as HTMLInputElement | null;
   if (!usernameInput) return;
   if (usernameInput.offsetParent === null) return;
   usernameInput.focus();
@@ -21,70 +26,112 @@ function focusUsernameInput() {
   window.dispatchEvent(new Event(OPEN_NAV_USERNAME_EVENT));
 }
 
-type UsernameFetchNoticeProps = {
-  showPrompt?: boolean;
-  icon?: ReactNode;
+export type UsernameFetchNoticeState = "info" | "error" | "success";
+
+type UsernameFetchNoticeBaseProps = {
   className?: string;
-  resetKey?: string | number | boolean;
   dismissLabel?: string;
-  children?: ReactNode;
+  resetKey?: string | number | boolean;
 };
 
-export function UsernameFetchNotice({
-  showPrompt = true,
-  icon,
-  className,
-  resetKey,
-  dismissLabel = "Dismiss requirements notice",
-  children,
-}: UsernameFetchNoticeProps) {
+type UsernameFetchNoticeProps =
+  | (UsernameFetchNoticeBaseProps & {
+      state: "info";
+    })
+  | (UsernameFetchNoticeBaseProps & {
+      state: "error";
+      children: ReactNode;
+    })
+  | (UsernameFetchNoticeBaseProps & {
+      state: "success";
+    });
+
+const noticeToneClassByState: Record<UsernameFetchNoticeState, string> = {
+  info: "border-sky-300/70 bg-sky-50 text-sky-900 dark:border-sky-900/45 dark:bg-sky-950/25 dark:text-sky-100",
+  error:
+    "border-rose-300/70 bg-rose-50 text-rose-900 dark:border-rose-900/45 dark:bg-rose-950/25 dark:text-rose-100",
+  success:
+    "border-emerald-300/70 bg-emerald-50 text-emerald-900 dark:border-emerald-900/45 dark:bg-emerald-950/25 dark:text-emerald-100",
+};
+
+type NoticeContent = {
+  icon: ReactNode;
+  title: string;
+  description: ReactNode;
+  action?: ReactNode;
+};
+
+function getNoticeContent(state: UsernameFetchNoticeState): NoticeContent {
+  if (state === "info") {
+    return {
+      icon: <InfoIcon />,
+      title: "Fetch username",
+      description:
+        "Enter your OSRS username to fetch your user data and filter methods by your stats.",
+      action: (
+        <Button onClick={focusUsernameInput} size="sm" variant="default">
+          Fetch user data
+        </Button>
+      ),
+    };
+  }
+
+  if (state === "success") {
+    return {
+      icon: <CheckCircle2Icon />,
+      title: "All requirements met",
+      description:
+        "Congratulations! Your character meets all the requirements to do this method.",
+    };
+  }
+
+  return {
+    icon: <AlertCircleIcon />,
+    title: "Requirements not met",
+    description: "",
+  };
+}
+
+export function UsernameFetchNotice(props: UsernameFetchNoticeProps) {
+  const {
+    state,
+    className,
+    dismissLabel = "Dismiss username notice",
+    resetKey,
+  } = props;
   const [isDismissed, setIsDismissed] = useState(false);
 
   useEffect(() => {
     setIsDismissed(false);
-  }, [resetKey]);
+  }, [state, resetKey]);
 
   if (isDismissed) return null;
-  if (!showPrompt && !children) return null;
+
+  const noticeContent = getNoticeContent(state);
+  const body = state === "error" ? props.children : noticeContent.description;
 
   return (
-    <div
+    <Alert
       className={cn(
-        "rounded-md border border-gray-300 bg-gray-200 p-4 text-sm dark:border-gray-700 dark:bg-gray-800",
+        "pr-10 has-data-[slot=alert-action]:pr-30",
+        noticeToneClassByState[state],
         className,
       )}
     >
-      <div className="flex items-start gap-4">
-        <span className="mt-0.5 inline-flex rounded-full border border-gray-300 bg-white p-1.5 text-muted-foreground dark:border-gray-600 dark:bg-gray-900/40">
-          {icon ?? <IconInfoCircle className="size-4" />}
-        </span>
-
-        <div className="min-w-0 flex-1 space-y-3">
-          {showPrompt ? (
-            <p className="text-gray-700 dark:text-gray-200">
-              Please{" "}
-              <button
-                type="button"
-                className="cursor-pointer underline"
-                onClick={focusUsernameInput}
-              >
-                enter your username
-              </button>{" "}
-              to fetch your user data.
-            </p>
-          ) : null}
-          {children}
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setIsDismissed(true)}
-          aria-label={dismissLabel}
-          className="inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-gray-300 bg-white text-muted-foreground transition-colors hover:bg-gray-100 hover:text-foreground dark:border-gray-600 dark:bg-gray-900/40 dark:hover:bg-gray-900"
-        >
-          <IconX className="size-4" />
-        </button>
-      </div>
-    </div>
+      {noticeContent.icon}
+      <AlertTitle>{noticeContent.title}</AlertTitle>
+      <AlertDescription>{body}</AlertDescription>
+      {noticeContent.action ? (
+        <AlertAction className="right-10">{noticeContent.action}</AlertAction>
+      ) : null}
+      <button
+        type="button"
+        aria-label={dismissLabel}
+        onClick={() => setIsDismissed(true)}
+        className="absolute top-2 right-2 inline-flex size-7 items-center justify-center rounded-md text-current/70 transition-colors hover:bg-black/8 hover:text-current"
+      >
+        <IconX className="size-4" />
+      </button>
+    </Alert>
   );
 }
