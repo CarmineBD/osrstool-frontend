@@ -3,6 +3,7 @@ import {
   buildMethodUpdatePayload,
   fetchItems,
   getVariantsSignature,
+  searchItems,
   type Variant,
 } from "./api";
 
@@ -74,6 +75,59 @@ describe("api update payload helpers", () => {
     expect(url.searchParams.get("fields")).toBe(
       "name,iconUrl,highPrice,lowPrice,high24h,low24h,highTime,lowTime"
     );
+
+    fetchSpy.mockRestore();
+  });
+
+  it("defaults showUntradeables to false when searching items", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ data: { items: [] } }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+
+    await searchItems("coal", 10, 2);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const requestInput = fetchSpy.mock.calls[0]?.[0];
+    const requestUrl =
+      typeof requestInput === "string"
+        ? requestInput
+        : requestInput instanceof URL
+          ? requestInput.toString()
+          : requestInput.url;
+    const url = new URL(requestUrl, window.location.origin);
+
+    expect(url.searchParams.get("q")).toBe("coal");
+    expect(url.searchParams.get("limit")).toBe("10");
+    expect(url.searchParams.get("page")).toBe("2");
+    expect(url.searchParams.get("showUntradeables")).toBe("false");
+
+    fetchSpy.mockRestore();
+  });
+
+  it("passes showUntradeables when enabled in item search", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ data: { items: [] } }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+
+    await searchItems("coal", 10, 1, undefined, { showUntradeables: true });
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const requestInput = fetchSpy.mock.calls[0]?.[0];
+    const requestUrl =
+      typeof requestInput === "string"
+        ? requestInput
+        : requestInput instanceof URL
+          ? requestInput.toString()
+          : requestInput.url;
+    const url = new URL(requestUrl, window.location.origin);
+
+    expect(url.searchParams.get("showUntradeables")).toBe("true");
 
     fetchSpy.mockRestore();
   });
