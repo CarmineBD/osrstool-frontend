@@ -1,5 +1,6 @@
 import { Fragment, type UIEvent } from "react";
 import { getUrlByType } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
   Combobox,
   ComboboxContent,
@@ -11,7 +12,14 @@ import {
   ComboboxList,
   ComboboxSeparator,
 } from "@/components/ui/combobox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
+import { IconAdjustmentsHorizontal } from "@tabler/icons-react";
 import type {
   SearchOption,
   SearchOptionGroup,
@@ -21,6 +29,8 @@ interface RequirementsSearchComboboxProps {
   query: string;
   onQueryChange: (value: string) => void;
   onSelectOption: (value: SearchOption | null) => void;
+  showUntradeables: boolean;
+  onShowUntradeablesChange: (checked: boolean) => void;
   visibleSearchGroups: SearchOptionGroup[];
   selectedEntryKeys: Set<string>;
   emptyMessage: string;
@@ -36,6 +46,8 @@ export function RequirementsSearchCombobox({
   query,
   onQueryChange,
   onSelectOption,
+  showUntradeables,
+  onShowUntradeablesChange,
   visibleSearchGroups,
   selectedEntryKeys,
   emptyMessage,
@@ -47,115 +59,145 @@ export function RequirementsSearchCombobox({
   achievementDiaryIconUrl,
 }: RequirementsSearchComboboxProps) {
   return (
-    <Combobox<SearchOption>
-      inputValue={query}
-      onInputValueChange={onQueryChange}
-      onValueChange={onSelectOption}
-      filter={null}
-      itemToStringLabel={(item) => item.label}
-      itemToStringValue={(item) => item.key}
-      isItemEqualToValue={(left, right) => {
-        if (!left || !right) return false;
-        return left.key === right.key;
-      }}
-    >
-      <ComboboxInput
-        className="w-full"
-        placeholder="Buscar items, quests, achievement diaries o skills..."
-        showClear={query.trim().length > 0}
-      />
-      <ComboboxContent>
-        <ComboboxList onScroll={onSearchListScroll}>
-          {visibleSearchGroups.map((group, groupIndex) => (
-            <Fragment key={group.id}>
-              {groupIndex > 0 ? <ComboboxSeparator /> : null}
-              <ComboboxGroup>
-                <ComboboxLabel>{group.label}</ComboboxLabel>
-                {group.options.map((option) => {
-                  const isAdded = selectedEntryKeys.has(option.entryKey);
-                  const skillIconUrl =
-                    option.kind === "skill" ? getUrlByType(option.skill) : null;
-                  return (
-                    <ComboboxItem key={option.key} value={option} disabled={isAdded}>
-                      <div className="flex items-center gap-2">
-                        {option.kind === "item" && option.iconUrl ? (
-                          <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
-                            <img
-                              src={option.iconUrl}
-                              alt={option.label}
-                              className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
-                            />
-                          </div>
-                        ) : null}
-                        {option.kind === "skill" && skillIconUrl ? (
-                          <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
-                            <img
-                              src={skillIconUrl}
-                              alt={`${option.skill}_icon`}
-                              className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
-                            />
-                          </div>
-                        ) : null}
-                        {option.kind === "quest" && questIconUrl ? (
-                          <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
-                            <img
-                              src={questIconUrl}
-                              alt="quests_icon"
-                              className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
-                            />
-                          </div>
-                        ) : null}
-                        {option.kind === "achievement_diary" &&
-                        achievementDiaryIconUrl ? (
-                          <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
-                            <img
-                              src={achievementDiaryIconUrl}
-                              alt="achievement_diaries_icon"
-                              className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
-                            />
-                          </div>
-                        ) : null}
-                        <span>{option.label}</span>
-                        {isAdded ? (
-                          <span className="text-xs text-muted-foreground">Agregado</span>
-                        ) : null}
-                      </div>
-                    </ComboboxItem>
-                  );
-                })}
-              </ComboboxGroup>
-            </Fragment>
-          ))}
-          {itemSearchLoading ? (
-            <div className="px-2 py-1.5">
-              <Skeleton className="mb-2 h-3 w-24" />
-              <div className="space-y-1.5">
-                {Array.from({ length: 4 }).map((_, index) => (
-                  <div
-                    key={`requirements-item-skeleton-${index}`}
-                    className="flex items-center gap-2"
-                  >
-                    <Skeleton className="h-[30px] w-[30px]" />
-                    <Skeleton className="h-4 w-48" />
-                  </div>
-                ))}
+    <div className="flex items-start gap-2">
+      <Combobox<SearchOption>
+        inputValue={query}
+        onInputValueChange={onQueryChange}
+        onValueChange={onSelectOption}
+        filter={null}
+        itemToStringLabel={(item) => item.label}
+        itemToStringValue={(item) => item.key}
+        isItemEqualToValue={(left, right) => {
+          if (!left || !right) return false;
+          return left.key === right.key;
+        }}
+      >
+        <ComboboxInput
+          className="w-full"
+          placeholder="Buscar items, quests, achievement diaries o skills..."
+          showClear={query.trim().length > 0}
+        />
+        <ComboboxContent>
+          <ComboboxList onScroll={onSearchListScroll}>
+            {visibleSearchGroups.map((group, groupIndex) => (
+              <Fragment key={group.id}>
+                {groupIndex > 0 ? <ComboboxSeparator /> : null}
+                <ComboboxGroup>
+                  <ComboboxLabel>{group.label}</ComboboxLabel>
+                  {group.options.map((option) => {
+                    const isAdded = selectedEntryKeys.has(option.entryKey);
+                    const skillIconUrl =
+                      option.kind === "skill" ? getUrlByType(option.skill) : null;
+                    return (
+                      <ComboboxItem key={option.key} value={option} disabled={isAdded}>
+                        <div className="flex items-center gap-2">
+                          {option.kind === "item" && option.iconUrl ? (
+                            <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
+                              <img
+                                src={option.iconUrl}
+                                alt={option.label}
+                                className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
+                              />
+                            </div>
+                          ) : null}
+                          {option.kind === "skill" && skillIconUrl ? (
+                            <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
+                              <img
+                                src={skillIconUrl}
+                                alt={`${option.skill}_icon`}
+                                className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
+                              />
+                            </div>
+                          ) : null}
+                          {option.kind === "quest" && questIconUrl ? (
+                            <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
+                              <img
+                                src={questIconUrl}
+                                alt="quests_icon"
+                                className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
+                              />
+                            </div>
+                          ) : null}
+                          {option.kind === "achievement_diary" &&
+                          achievementDiaryIconUrl ? (
+                            <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
+                              <img
+                                src={achievementDiaryIconUrl}
+                                alt="achievement_diaries_icon"
+                                className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
+                              />
+                            </div>
+                          ) : null}
+                          <span>{option.label}</span>
+                          {isAdded ? (
+                            <span className="text-xs text-muted-foreground">
+                              Agregado
+                            </span>
+                          ) : null}
+                        </div>
+                      </ComboboxItem>
+                    );
+                  })}
+                </ComboboxGroup>
+              </Fragment>
+            ))}
+            {itemSearchLoading ? (
+              <div className="px-2 py-1.5">
+                <Skeleton className="mb-2 h-3 w-24" />
+                <div className="space-y-1.5">
+                  {Array.from({ length: 4 }).map((_, index) => (
+                    <div
+                      key={`requirements-item-skeleton-${index}`}
+                      className="flex items-center gap-2"
+                    >
+                      <Skeleton className="h-[30px] w-[30px]" />
+                      <Skeleton className="h-4 w-48" />
+                    </div>
+                  ))}
+                </div>
               </div>
+            ) : null}
+            {itemSearchLoadingMore ? (
+              <div className="px-2 py-1.5">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-[30px] w-[30px]" />
+                  <Skeleton className="h-4 w-40" />
+                </div>
+              </div>
+            ) : null}
+          </ComboboxList>
+          <ComboboxEmpty>{emptyMessage}</ComboboxEmpty>
+          {itemSearchError ? (
+            <div className="px-2 py-1 text-xs text-destructive">
+              {itemSearchError}
             </div>
           ) : null}
-          {itemSearchLoadingMore ? (
-            <div className="px-2 py-1.5">
-              <div className="flex items-center gap-2">
-                <Skeleton className="h-[30px] w-[30px]" />
-                <Skeleton className="h-4 w-40" />
-              </div>
-            </div>
-          ) : null}
-        </ComboboxList>
-        <ComboboxEmpty>{emptyMessage}</ComboboxEmpty>
-        {itemSearchError ? (
-          <div className="px-2 py-1 text-xs text-destructive">{itemSearchError}</div>
-        ) : null}
-      </ComboboxContent>
-    </Combobox>
+        </ComboboxContent>
+      </Combobox>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            aria-label="Requirements search options"
+            className="shrink-0"
+          >
+            <IconAdjustmentsHorizontal size={16} />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-64">
+          <div className="flex items-center justify-between gap-3 px-2 py-1.5">
+            <span className="text-sm">Show untradeables</span>
+            <Switch
+              checked={showUntradeables}
+              onCheckedChange={onShowUntradeablesChange}
+              aria-label="Show untradeables"
+            />
+          </div>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 }

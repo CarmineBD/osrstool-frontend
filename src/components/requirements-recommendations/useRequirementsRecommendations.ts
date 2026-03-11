@@ -50,6 +50,8 @@ type EntryUpdater = (entry: UnifiedEntry) => UnifiedEntry;
 export interface UseRequirementsRecommendationsResult {
   query: string;
   setQuery: (value: string) => void;
+  showUntradeables: boolean;
+  setShowUntradeables: (value: boolean) => void;
   emptyMessage: string;
   itemSearchError: string | null;
   itemSearchLoading: boolean;
@@ -79,6 +81,7 @@ export function useRequirementsRecommendations({
   onChange,
 }: RequirementsRecommendationsFieldProps): UseRequirementsRecommendationsResult {
   const [query, setQuery] = useState("");
+  const [showUntradeables, setShowUntradeables] = useState(false);
   const [entries, setEntries] = useState<UnifiedEntry[]>(() =>
     buildUnifiedEntries(requirements, recommendations)
   );
@@ -191,7 +194,9 @@ export function useRequirementsRecommendations({
     setItemSearchResults([]);
 
     const timeout = setTimeout(() => {
-      searchItems(trimmedQuery, ITEM_SEARCH_LIMIT, 1, controller.signal)
+      searchItems(trimmedQuery, ITEM_SEARCH_LIMIT, 1, controller.signal, {
+        showUntradeables,
+      })
         .then((response) => {
           if (itemSearchRequestIdRef.current !== requestId) return;
           const nextItems = response.items.slice(0, ITEM_SEARCH_LIMIT);
@@ -226,7 +231,7 @@ export function useRequirementsRecommendations({
       controller.abort();
       clearTimeout(timeout);
     };
-  }, [query]);
+  }, [query, showUntradeables]);
 
   const loadMoreItemSearchResults = useCallback(() => {
     const trimmedQuery = query.trim();
@@ -246,7 +251,9 @@ export function useRequirementsRecommendations({
     setItemSearchLoadingMore(true);
     setItemSearchError(null);
 
-    searchItems(trimmedQuery, ITEM_SEARCH_LIMIT, nextPage, controller.signal)
+    searchItems(trimmedQuery, ITEM_SEARCH_LIMIT, nextPage, controller.signal, {
+      showUntradeables,
+    })
       .then((response) => {
         if (itemSearchRequestIdRef.current !== requestId) return;
         const nextItems = response.items.slice(0, ITEM_SEARCH_LIMIT);
@@ -295,6 +302,7 @@ export function useRequirementsRecommendations({
     itemSearchLoadingMore,
     itemSearchPage,
     query,
+    showUntradeables,
   ]);
 
   const handleSearchListScroll = useCallback(
@@ -607,6 +615,8 @@ export function useRequirementsRecommendations({
   return {
     query,
     setQuery,
+    showUntradeables,
+    setShowUntradeables,
     emptyMessage,
     itemSearchError,
     itemSearchLoading,

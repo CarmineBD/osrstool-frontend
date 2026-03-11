@@ -18,6 +18,8 @@ export function RequirementsRecommendationsField(
         query={state.query}
         onQueryChange={state.setQuery}
         onSelectOption={state.handleSelectOption}
+        showUntradeables={state.showUntradeables}
+        onShowUntradeablesChange={state.setShowUntradeables}
         visibleSearchGroups={state.visibleSearchGroups}
         selectedEntryKeys={state.selectedEntryKeys}
         emptyMessage={state.emptyMessage}
