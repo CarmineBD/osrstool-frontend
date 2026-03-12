@@ -380,6 +380,10 @@ export interface ItemSearchResponse {
   perPage?: number;
 }
 
+export interface ItemSearchOptions {
+  showUntradeables?: boolean;
+}
+
 export interface AchievementDiaryOption {
   label: string;
   value: string;
@@ -749,6 +753,7 @@ export async function searchItems(
   limit = 10,
   pageOrSignal?: number | AbortSignal,
   signal?: AbortSignal,
+  options?: ItemSearchOptions,
 ): Promise<ItemSearchResponse> {
   const trimmed = query.trim();
   if (!trimmed) return { items: [], page: 1, pageCount: 0 };
@@ -762,6 +767,10 @@ export async function searchItems(
   url.searchParams.set("q", trimmed);
   url.searchParams.set("limit", limit.toString());
   url.searchParams.set("page", page.toString());
+  url.searchParams.set(
+    "showUntradeables",
+    String(options?.showUntradeables ?? false),
+  );
   const res = await apiFetch(
     url.toString(),
     requestSignal ? { signal: requestSignal } : undefined,

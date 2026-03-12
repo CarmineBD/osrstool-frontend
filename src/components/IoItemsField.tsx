@@ -34,8 +34,18 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
-import { IconGripVertical, IconX } from "@tabler/icons-react";
+import { Switch } from "@/components/ui/switch";
+import {
+  IconAdjustmentsHorizontal,
+  IconGripVertical,
+  IconX,
+} from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 
 const SEARCH_LIMIT = 10;
@@ -81,6 +91,7 @@ export function IoItemsField({
   const [currentPage, setCurrentPage] = useState(0);
   const [hasMoreResults, setHasMoreResults] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showUntradeables, setShowUntradeables] = useState(false);
   const [itemsMap, setItemsMap] = useState<Record<number, Item>>({});
   const [searchCache, setSearchCache] = useState<
     Record<number, ItemSearchResult>
@@ -151,7 +162,9 @@ export function IoItemsField({
     setResults([]);
 
     const timeout = setTimeout(() => {
-      searchItems(trimmed, SEARCH_LIMIT, 1, controller.signal)
+      searchItems(trimmed, SEARCH_LIMIT, 1, controller.signal, {
+        showUntradeables,
+      })
         .then((response) => {
           if (requestIdRef.current !== requestId) return;
           const nextItems = response.items.slice(0, SEARCH_LIMIT);
@@ -186,7 +199,7 @@ export function IoItemsField({
       controller.abort();
       clearTimeout(timeout);
     };
-  }, [query]);
+  }, [query, showUntradeables]);
 
   const loadMoreResults = useCallback(() => {
     const trimmed = query.trim();
@@ -200,7 +213,9 @@ export function IoItemsField({
     setLoadingMore(true);
     setError(null);
 
-    searchItems(trimmed, SEARCH_LIMIT, nextPage, controller.signal)
+    searchItems(trimmed, SEARCH_LIMIT, nextPage, controller.signal, {
+      showUntradeables,
+    })
       .then((response) => {
         if (requestIdRef.current !== requestId) return;
         const nextItems = response.items.slice(0, SEARCH_LIMIT);
@@ -243,7 +258,14 @@ export function IoItemsField({
           loadMoreControllerRef.current = null;
         }
       });
-  }, [currentPage, hasMoreResults, loading, loadingMore, query]);
+  }, [
+    currentPage,
+    hasMoreResults,
+    loading,
+    loadingMore,
+    query,
+    showUntradeables,
+  ]);
 
   const handleResultsScroll = useCallback(
     (event: UIEvent<HTMLElement>) => {
@@ -349,73 +371,102 @@ export function IoItemsField({
   return (
     <div className="space-y-3">
       <label className="block text-sm font-medium">{label}</label>
-      <Combobox<ItemSearchResult>
-        inputValue={query}
-        onInputValueChange={(value) => setQuery(value)}
-        onValueChange={(value) => handleAddItem(value)}
-        filter={null}
-        itemToStringLabel={(item) => item.name}
-        itemToStringValue={(item) => item.id.toString()}
-        isItemEqualToValue={(a, b) => {
-          if (!a || !b) return false;
-          return a.id === b.id;
-        }}
-      >
-        <ComboboxInput
-          className="w-full"
-          placeholder={placeholder ?? "Buscar item..."}
-          showClear={query.trim().length > 0}
-        />
-        <ComboboxContent>
-          <ComboboxList onScroll={handleResultsScroll}>
-            {loading && results.length === 0
-              ? Array.from({ length: 6 }).map((_, index) => (
-                  <div key={`item-search-skeleton-${index}`} className="px-2 py-1.5">
-                    <div className="flex items-center gap-2">
-                      <Skeleton className="h-[30px] w-[30px]" />
-                      <Skeleton className="h-4 w-44" />
-                    </div>
-                  </div>
-                ))
-              : results.map((item) => {
-                  const isAdded = items.some((entry) => entry.id === item.id);
-                  return (
-                    <ComboboxItem key={item.id} value={item} disabled={isAdded}>
+      <div className="flex items-start gap-2">
+        <Combobox<ItemSearchResult>
+          inputValue={query}
+          onInputValueChange={(value) => setQuery(value)}
+          onValueChange={(value) => handleAddItem(value)}
+          filter={null}
+          itemToStringLabel={(item) => item.name}
+          itemToStringValue={(item) => item.id.toString()}
+          isItemEqualToValue={(a, b) => {
+            if (!a || !b) return false;
+            return a.id === b.id;
+          }}
+        >
+          <ComboboxInput
+            className="w-full"
+            placeholder={placeholder ?? "Buscar item..."}
+            showClear={query.trim().length > 0}
+          />
+          <ComboboxContent>
+            <ComboboxList onScroll={handleResultsScroll}>
+              {loading && results.length === 0
+                ? Array.from({ length: 6 }).map((_, index) => (
+                    <div
+                      key={`item-search-skeleton-${index}`}
+                      className="px-2 py-1.5"
+                    >
                       <div className="flex items-center gap-2">
-                        {item.iconUrl ? (
-                          <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
-                            <img
-                              src={item.iconUrl}
-                              alt={item.name}
-                              className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
-                            />
-                          </div>
-                        ) : null}
-                        <span>{item.name}</span>
-                        {isAdded ? (
-                          <span className="text-xs text-muted-foreground">
-                            Agregado
-                          </span>
-                        ) : null}
+                        <Skeleton className="h-[30px] w-[30px]" />
+                        <Skeleton className="h-4 w-44" />
                       </div>
-                    </ComboboxItem>
-                  );
-                })}
-            {loadingMore ? (
-              <div className="px-2 py-1.5">
-                <div className="flex items-center gap-2">
-                  <Skeleton className="h-[30px] w-[30px]" />
-                  <Skeleton className="h-4 w-36" />
+                    </div>
+                  ))
+                : results.map((item) => {
+                    const isAdded = items.some((entry) => entry.id === item.id);
+                    return (
+                      <ComboboxItem key={item.id} value={item} disabled={isAdded}>
+                        <div className="flex items-center gap-2">
+                          {item.iconUrl ? (
+                            <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
+                              <img
+                                src={item.iconUrl}
+                                alt={item.name}
+                                className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
+                              />
+                            </div>
+                          ) : null}
+                          <span>{item.name}</span>
+                          {isAdded ? (
+                            <span className="text-xs text-muted-foreground">
+                              Agregado
+                            </span>
+                          ) : null}
+                        </div>
+                      </ComboboxItem>
+                    );
+                  })}
+              {loadingMore ? (
+                <div className="px-2 py-1.5">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-[30px] w-[30px]" />
+                    <Skeleton className="h-4 w-36" />
+                  </div>
                 </div>
-              </div>
+              ) : null}
+            </ComboboxList>
+            <ComboboxEmpty>{emptyMessage}</ComboboxEmpty>
+            {error ? (
+              <div className="px-2 py-1 text-xs text-destructive">{error}</div>
             ) : null}
-          </ComboboxList>
-          <ComboboxEmpty>{emptyMessage}</ComboboxEmpty>
-          {error ? (
-            <div className="px-2 py-1 text-xs text-destructive">{error}</div>
-          ) : null}
-        </ComboboxContent>
-      </Combobox>
+          </ComboboxContent>
+        </Combobox>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              aria-label={`${label} search options`}
+              className="shrink-0"
+            >
+              <IconAdjustmentsHorizontal size={16} />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-64">
+            <div className="flex items-center justify-between gap-3 px-2 py-1.5">
+              <span className="text-sm">Show untradeables</span>
+              <Switch
+                checked={showUntradeables}
+                onCheckedChange={setShowUntradeables}
+                aria-label="Show untradeables"
+              />
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
 
       <Table className="rounded-md border">
         <TableHeader>
