@@ -12,9 +12,13 @@ import {
 } from "@/components/ui/table";
 import { Pagination } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatNumber, getUrlByType } from "@/lib/utils";
+import { cn, formatNumber, getUrlByType } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   fetchItems,
   fetchMethodDetailBySlug,
@@ -38,6 +42,8 @@ import {
 type SortBy = NonNullable<MethodsFilters["sortBy"]>;
 type SortOrder = NonNullable<MethodsFilters["order"]>;
 const DETAIL_PREFETCH_HOVER_DELAY_MS = 200;
+const SHOW_FROM_SECOND_SCALE = "hidden md:table-cell";
+const SHOW_FROM_THIRD_SCALE = "hidden lg:table-cell";
 
 export type Props = {
   username: string;
@@ -107,7 +113,9 @@ export function MethodsList({
   const [cursorByPage, setCursorByPage] = useState<
     Record<number, string | undefined>
   >({ 1: undefined });
-  const hoverPrefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hoverPrefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const hoveredSlugRef = useRef<string | null>(null);
   const cursor = page > 1 ? cursorByPage[page] : undefined;
   const { data, error, isFetching, isLoading } = useMethods(
@@ -115,10 +123,10 @@ export function MethodsList({
     page,
     name,
     filters,
-    cursor
+    cursor,
   );
-  const isInitialLoading = (isLoading || isFetching) && !data && !error;
-  const isRefreshing = isFetching && !!data;
+  const isTableLoading = isLoading || isFetching;
+  const isInitialLoading = isTableLoading && !data && !error;
 
   useEffect(() => {
     setPage(1);
@@ -148,10 +156,12 @@ export function MethodsList({
       const levels = Array.isArray(variant.requirements?.levels)
         ? variant.requirements?.levels
         : variant.requirements?.levels
-          ? Object.entries(variant.requirements.levels).map(([skill, level]) => ({
-              skill,
-              level: Number(level),
-            }))
+          ? Object.entries(variant.requirements.levels).map(
+              ([skill, level]) => ({
+                skill,
+                level: Number(level),
+              }),
+            )
           : [];
       return {
         id: `${method.slug}-${variant.slug ?? variant.id ?? index}`,
@@ -176,19 +186,17 @@ export function MethodsList({
         likes: method.likes,
         likedByMe: method.likedByMe,
       };
-    })
+    }),
   );
 
   const calculatedPageCount =
-    data?.total !== undefined &&
-    data?.perPage !== undefined &&
-    data.perPage > 0
+    data?.total !== undefined && data?.perPage !== undefined && data.perPage > 0
       ? Math.max(1, Math.ceil(data.total / data.perPage))
       : undefined;
 
   const pageCount = Math.max(
     page,
-    data?.pageCount ?? calculatedPageCount ?? (data?.hasNext ? page + 1 : page)
+    data?.pageCount ?? calculatedPageCount ?? (data?.hasNext ? page + 1 : page),
   );
   const hasNextPage = data?.hasNext ?? page < pageCount;
   const normalizedHighlightSkill =
@@ -221,6 +229,18 @@ export function MethodsList({
 
     onSortChange(undefined, undefined);
   };
+
+  const renderSortHeader = (label: string, key: SortBy) => (
+    <button
+      type="button"
+      className="inline-flex max-w-full items-center gap-1 text-left font-medium leading-tight"
+      onClick={() => handleSortClick(key)}
+    >
+      <span className="min-w-0 whitespace-normal break-words">{label}</span>
+      {getSortIcon(key)}
+    </button>
+  );
+
   const clearPrefetchTimer = useCallback(() => {
     if (hoverPrefetchTimerRef.current === null) return;
     clearTimeout(hoverPrefetchTimerRef.current);
@@ -234,8 +254,12 @@ export function MethodsList({
       if (!normalizedSlug) return;
 
       const normalizedUsername = normalizeUsername(username);
-      const queryKey = getMethodDetailQueryKey(normalizedSlug, normalizedUsername);
-      const existingState = queryClient.getQueryState<MethodDetailResponse>(queryKey);
+      const queryKey = getMethodDetailQueryKey(
+        normalizedSlug,
+        normalizedUsername,
+      );
+      const existingState =
+        queryClient.getQueryState<MethodDetailResponse>(queryKey);
 
       if (existingState?.fetchStatus === "fetching") return;
 
@@ -249,11 +273,13 @@ export function MethodsList({
       void queryClient
         .prefetchQuery({
           queryKey,
-          queryFn: () => fetchMethodDetailBySlug(normalizedSlug, normalizedUsername),
+          queryFn: () =>
+            fetchMethodDetailBySlug(normalizedSlug, normalizedUsername),
           staleTime: QUERY_STALE_TIME_MS,
         })
         .then(() => {
-          const detail = queryClient.getQueryData<MethodDetailResponse>(queryKey);
+          const detail =
+            queryClient.getQueryData<MethodDetailResponse>(queryKey);
           const itemIds = getMethodItemIds(detail?.method);
           if (itemIds.length === 0) return;
 
@@ -278,7 +304,7 @@ export function MethodsList({
         })
         .catch(() => undefined);
     },
-    [queryClient, username]
+    [queryClient, username],
   );
 
   const scheduleMethodPrefetch = useCallback(
@@ -291,14 +317,14 @@ export function MethodsList({
         hoverPrefetchTimerRef.current = null;
       }, DETAIL_PREFETCH_HOVER_DELAY_MS);
     },
-    [clearPrefetchTimer, prefetchMethodDetail]
+    [clearPrefetchTimer, prefetchMethodDetail],
   );
 
   useEffect(() => clearPrefetchTimer, [clearPrefetchTimer]);
 
   const splitByCurrentSkill = <T extends { skill: string }>(
     entries: T[],
-    collapseSingleOverflow: boolean
+    collapseSingleOverflow: boolean,
   ) => {
     if (!normalizedHighlightSkill) {
       return { visible: entries, overflow: [] as T[] };
@@ -326,7 +352,7 @@ export function MethodsList({
   };
 
   const renderRequirementsOverflow = (
-    overflow: Array<{ skill: string; level: number }>
+    overflow: Array<{ skill: string; level: number }>,
   ) => {
     if (overflow.length === 0) return null;
     return (
@@ -341,12 +367,18 @@ export function MethodsList({
         </TooltipTrigger>
         <TooltipContent sideOffset={6}>
           <div className="max-w-xs space-y-2">
-            <p className="text-[11px] text-muted-foreground">Requirement skills</p>
+            <p className="text-[11px] text-muted-foreground">
+              Requirement skills
+            </p>
             <div className="flex flex-wrap gap-1">
               {overflow.map((entry, index) => {
                 const normalized = entry.skill.trim().toLowerCase();
                 return (
-                  <Badge size="sm" key={`${normalized}-${index}`} variant="secondary">
+                  <Badge
+                    size="sm"
+                    key={`${normalized}-${index}`}
+                    variant="secondary"
+                  >
                     <img
                       src={getUrlByType(normalized) ?? ""}
                       alt={`${normalized}_icon`}
@@ -363,10 +395,13 @@ export function MethodsList({
   };
 
   const splitRequirementsForSkillTable = (
-    entries: Array<{ skill: string; level: number }>
+    entries: Array<{ skill: string; level: number }>,
   ) => {
     if (entries.length === 0) {
-      return { visible: [] as Array<{ skill: string; level: number }>, overflow: [] as Array<{ skill: string; level: number }> };
+      return {
+        visible: [] as Array<{ skill: string; level: number }>,
+        overflow: [] as Array<{ skill: string; level: number }>,
+      };
     }
 
     const normalizedEntries = entries.map((entry, index) => ({
@@ -378,16 +413,16 @@ export function MethodsList({
     const highlightedEntries = normalizedEntries.filter(
       ({ normalizedSkill }) =>
         normalizedHighlightSkill.length > 0 &&
-        normalizedSkill === normalizedHighlightSkill
+        normalizedSkill === normalizedHighlightSkill,
     );
 
     const preferredEntry =
       highlightedEntries.length > 0
         ? highlightedEntries.reduce((best, candidate) =>
-            candidate.entry.level > best.entry.level ? candidate : best
+            candidate.entry.level > best.entry.level ? candidate : best,
           )
         : normalizedEntries.reduce((best, candidate) =>
-            candidate.entry.level > best.entry.level ? candidate : best
+            candidate.entry.level > best.entry.level ? candidate : best,
           );
 
     return {
@@ -397,7 +432,7 @@ export function MethodsList({
   };
 
   const renderXpOverflow = (
-    overflow: Array<{ skill: string; experience: number }>
+    overflow: Array<{ skill: string; experience: number }>,
   ) => {
     if (overflow.length === 0) return null;
     return (
@@ -417,7 +452,11 @@ export function MethodsList({
               {overflow.map((entry, index) => {
                 const normalized = entry.skill.trim().toLowerCase();
                 return (
-                  <Badge size="sm" key={`${normalized}-${index}`} variant="secondary">
+                  <Badge
+                    size="sm"
+                    key={`${normalized}-${index}`}
+                    variant="secondary"
+                  >
                     <img
                       src={getUrlByType(normalized) ?? ""}
                       alt={`${normalized}_icon`}
@@ -433,8 +472,8 @@ export function MethodsList({
     );
   };
 
-  const renderRequirementsCell = (row: Row) => (
-    <TableCell>
+  const renderRequirementsCell = (row: Row, className?: string) => (
+    <TableCell className={className}>
       <div className="flex flex-wrap gap-1">
         {(() => {
           const { visible, overflow } = isSkillTable
@@ -442,15 +481,17 @@ export function MethodsList({
             : splitByCurrentSkill(row.levels, true);
           return (
             <>
-              {visible.map(({ skill, level }: { skill: string; level: number }) => (
-                <Badge size="lg" key={skill} variant="secondary">
-                  <img
-                    src={getUrlByType(skill) ?? ""}
-                    alt={`${skill.toLowerCase()}_icon`}
-                  />
-                  {level}
-                </Badge>
-              ))}
+              {visible.map(
+                ({ skill, level }: { skill: string; level: number }) => (
+                  <Badge size="lg" key={skill} variant="secondary">
+                    <img
+                      src={getUrlByType(skill) ?? ""}
+                      alt={`${skill.toLowerCase()}_icon`}
+                    />
+                    {level}
+                  </Badge>
+                ),
+              )}
               {renderRequirementsOverflow(overflow)}
             </>
           );
@@ -459,13 +500,13 @@ export function MethodsList({
     </TableCell>
   );
 
-  const renderMethodCell = (row: Row) => (
-    <TableCell className="font-medium truncate">
+  const renderMethodCell = (row: Row, className?: string) => (
+    <TableCell className={cn("min-w-0 font-medium", className)}>
       <Link
         to={`/moneyMakingMethod/${row.methodSlug}${
           row.variantCount > 1 ? `/${row.variantSlug}` : ""
         }`}
-        className="text-blue-600 hover:underline"
+        className="block min-w-0 truncate text-blue-600 hover:underline"
         onMouseEnter={() => scheduleMethodPrefetch(row.methodSlug)}
         onMouseLeave={clearPrefetchTimer}
         onFocus={() => scheduleMethodPrefetch(row.methodSlug)}
@@ -478,11 +519,11 @@ export function MethodsList({
     </TableCell>
   );
 
-  const renderVariantCell = (row: Row) => (
-    <TableCell className="truncate">
+  const renderVariantCell = (row: Row, className?: string) => (
+    <TableCell className={cn("min-w-0", className)}>
       <Link
         to={`/moneyMakingMethod/${row.methodSlug}/${row.variantSlug}`}
-        className="text-blue-600 hover:underline"
+        className="block min-w-0 truncate text-blue-600 hover:underline"
         onMouseEnter={() => scheduleMethodPrefetch(row.methodSlug)}
         onMouseLeave={clearPrefetchTimer}
         onFocus={() => scheduleMethodPrefetch(row.methodSlug)}
@@ -495,19 +536,21 @@ export function MethodsList({
     </TableCell>
   );
 
-  const renderProfitCell = (row: Row) => (
-    <TableCell>
+  const renderProfitCell = (row: Row, className?: string) => (
+    <TableCell className={className}>
       <div className="flex flex-col">
         <span className="font-bold">
           {row.highProfit !== undefined ? formatNumber(row.highProfit) : "N/A"}
         </span>
-        <span>{row.lowProfit !== undefined ? formatNumber(row.lowProfit) : "N/A"}</span>
+        <span>
+          {row.lowProfit !== undefined ? formatNumber(row.lowProfit) : "N/A"}
+        </span>
       </div>
     </TableCell>
   );
 
-  const renderGpPerXpCell = (row: Row) => (
-    <TableCell>
+  const renderGpPerXpCell = (row: Row, className?: string) => (
+    <TableCell className={className}>
       <div className="flex flex-col leading-tight">
         <span>{formatGpPerXp(row.gpPerXpHigh)}</span>
         <span className="text-xs text-muted-foreground">
@@ -517,8 +560,8 @@ export function MethodsList({
     </TableCell>
   );
 
-  const renderLiquidityCell = (row: Row) => (
-    <TableCell>
+  const renderLiquidityCell = (row: Row, className?: string) => (
+    <TableCell className={className}>
       <div className="flex flex-col leading-tight">
         <span>{formatLiquidityScore(row.marketImpactSlow)}</span>
         <span className="text-xs text-muted-foreground">
@@ -528,8 +571,8 @@ export function MethodsList({
     </TableCell>
   );
 
-  const renderXpCell = (row: Row) => (
-    <TableCell>
+  const renderXpCell = (row: Row, className?: string) => (
+    <TableCell className={className}>
       <div className="flex flex-wrap gap-1">
         {(() => {
           const { visible, overflow } = splitByCurrentSkill(row.xpHour, false);
@@ -550,7 +593,7 @@ export function MethodsList({
                     />
                     {formatNumber(experience)}
                   </Badge>
-                )
+                ),
               )}
               {renderXpOverflow(overflow)}
             </>
@@ -560,18 +603,20 @@ export function MethodsList({
     </TableCell>
   );
 
-  const renderClickIntensityCell = (row: Row) => (
-    <TableCell>
+  const renderClickIntensityCell = (row: Row, className?: string) => (
+    <TableCell className={className}>
       {row.clickIntensity !== undefined ? `${row.clickIntensity}cph` : "-"}
     </TableCell>
   );
 
-  const renderAfkinessCell = (row: Row) => (
-    <TableCell>{row.afkiness !== undefined ? `${row.afkiness}%` : "N/A"}</TableCell>
+  const renderAfkinessCell = (row: Row, className?: string) => (
+    <TableCell className={className}>
+      {row.afkiness !== undefined ? `${row.afkiness}%` : "N/A"}
+    </TableCell>
   );
 
-  const renderLikesCell = (row: Row) => (
-    <TableCell>
+  const renderLikesCell = (row: Row, className?: string) => (
+    <TableCell className={className}>
       <LikeButton
         methodId={row.methodId}
         likedByMe={row.likedByMe}
@@ -592,7 +637,10 @@ export function MethodsList({
     </div>
   );
 
-  const renderSkeletonMetric = (primaryWidth = "70%", secondaryWidth = "55%") => (
+  const renderSkeletonMetric = (
+    primaryWidth = "70%",
+    secondaryWidth = "55%",
+  ) => (
     <div className="space-y-1">
       <Skeleton className="h-4" style={{ width: primaryWidth }} />
       <Skeleton className="h-3" style={{ width: secondaryWidth }} />
@@ -639,153 +687,122 @@ export function MethodsList({
     }
   };
 
+  const getCellVisibilityClassName = (cellIndex: number) => {
+    if (isSkillTable) {
+      switch (cellIndex) {
+        case 0:
+        case 9:
+          return SHOW_FROM_SECOND_SCALE;
+        case 2:
+        case 4:
+        case 5:
+        case 7:
+          return SHOW_FROM_THIRD_SCALE;
+        default:
+          return undefined;
+      }
+    }
+
+    switch (cellIndex) {
+      case 2:
+      case 4:
+        return SHOW_FROM_THIRD_SCALE;
+      case 6:
+      case 7:
+        return SHOW_FROM_SECOND_SCALE;
+      default:
+        return undefined;
+    }
+  };
+
   return (
     <div className="space-y-4">
-      {isRefreshing ? (
-        <div
-          className="flex items-center gap-2 text-xs text-muted-foreground"
-          aria-live="polite"
-        >
-          <Skeleton className="h-2 w-2 rounded-full" />
-          <span>Actualizando resultados...</span>
-        </div>
-      ) : null}
       <Table className="table-fixed">
         <TableHeader>
           {isSkillTable ? (
             <TableRow>
-              <TableHead className="w-[12%]">Requirements</TableHead>
-              <TableHead className="w-[18%]">Method Name</TableHead>
-              <TableHead className="w-[14%]">Variant</TableHead>
-              <TableHead className="w-[10%]">
-                <button
-                  type="button"
-                  className="inline-flex w-full items-center gap-1 font-medium text-left"
-                  onClick={() => handleSortClick("highProfit")}
-                >
-                  <span>Gp/Hr</span>
-                  {getSortIcon("highProfit")}
-                </button>
+              <TableHead
+                className={cn(SHOW_FROM_SECOND_SCALE, "md:w-[16%] lg:w-[10%]")}
+              >
+                Requirements
               </TableHead>
-              <TableHead className="w-[10%]">
-                <button
-                  type="button"
-                  className="inline-flex w-full items-center gap-1 font-medium text-left"
-                  onClick={() => handleSortClick("gpPerXpHigh")}
-                >
-                  <span>Gp/XP</span>
-                  {getSortIcon("gpPerXpHigh")}
-                </button>
+              <TableHead className="w-[34%] md:w-[28%] lg:w-[17%]">
+                Method Name
               </TableHead>
-              <TableHead className="w-[10%]">Liquidity score</TableHead>
-              <TableHead className="w-[12%]">
-                <button
-                  type="button"
-                  className="inline-flex w-full items-center gap-1 font-medium text-left"
-                  onClick={() => handleSortClick("xpHour")}
-                >
-                  <span>XP/Hr</span>
-                  {getSortIcon("xpHour")}
-                </button>
+              <TableHead className={cn(SHOW_FROM_THIRD_SCALE, "lg:w-[13%]")}>
+                Variant
               </TableHead>
-              <TableHead className="w-[8%]">
-                <button
-                  type="button"
-                  className="inline-flex w-full items-center gap-1 font-medium text-left"
-                  onClick={() => handleSortClick("clickIntensity")}
-                >
-                  <span>Click Intensity</span>
-                  {getSortIcon("clickIntensity")}
-                </button>
+              <TableHead className="w-[22%] md:w-[16%] lg:w-[10%]">
+                {renderSortHeader("Gp/Hr", "highProfit")}
               </TableHead>
-              <TableHead className="w-[8%]">
-                <button
-                  type="button"
-                  className="inline-flex w-full items-center gap-1 font-medium text-left"
-                  onClick={() => handleSortClick("afkiness")}
-                >
-                  <span>AFKiness</span>
-                  {getSortIcon("afkiness")}
-                </button>
+              <TableHead className={cn(SHOW_FROM_THIRD_SCALE, "lg:w-[9%]")}>
+                {renderSortHeader("Gp/XP", "gpPerXpHigh")}
               </TableHead>
-              <TableHead className="w-[8%]">
-                <button
-                  type="button"
-                  className="inline-flex w-full items-center gap-1 font-medium text-left"
-                  onClick={() => handleSortClick("likes")}
-                >
-                  <span>Likes</span>
-                  {getSortIcon("likes")}
-                </button>
+              <TableHead className={cn(SHOW_FROM_THIRD_SCALE, "lg:w-[10%]")}>
+                Liquidity score
+              </TableHead>
+              <TableHead className="w-[22%] md:w-[16%] lg:w-[11%]">
+                {renderSortHeader("XP/Hr", "xpHour")}
+              </TableHead>
+              <TableHead className={cn(SHOW_FROM_THIRD_SCALE, "lg:w-[8%]")}>
+                {renderSortHeader("Click Intensity", "clickIntensity")}
+              </TableHead>
+              <TableHead className="w-[22%] md:w-[12%] lg:w-[6%]">
+                {renderSortHeader("AFKiness", "afkiness")}
+              </TableHead>
+              <TableHead
+                className={cn(SHOW_FROM_SECOND_SCALE, "md:w-[12%] lg:w-[6%]")}
+              >
+                {renderSortHeader("Likes", "likes")}
               </TableHead>
             </TableRow>
           ) : (
             <TableRow>
-              <TableHead className="w-[21%]">Method Name</TableHead>
-              <TableHead className="w-[12%]">
-                <button
-                  type="button"
-                  className="inline-flex w-full items-center gap-1 font-medium text-left"
-                  onClick={() => handleSortClick("highProfit")}
-                >
-                  <span>Gp/Hr</span>
-                  {getSortIcon("highProfit")}
-                </button>
+              <TableHead className="w-[34%] md:w-[28%] lg:w-[21%]">
+                Method Name
               </TableHead>
-              <TableHead className="w-[12%]">Liquidity score</TableHead>
-              <TableHead className="w-[15%]">
-                <button
-                  type="button"
-                  className="inline-flex w-full items-center gap-1 font-medium text-left"
-                  onClick={() => handleSortClick("xpHour")}
-                >
-                  <span>XP/Hr</span>
-                  {getSortIcon("xpHour")}
-                </button>
+              <TableHead className="w-[22%] md:w-[16%] lg:w-[12%]">
+                {renderSortHeader("Gp/Hr", "highProfit")}
               </TableHead>
-              <TableHead className="w-[12%]">
-                <button
-                  type="button"
-                  className="inline-flex w-full items-center gap-1 font-medium text-left"
-                  onClick={() => handleSortClick("clickIntensity")}
-                >
-                  <span>Click Intensity</span>
-                  {getSortIcon("clickIntensity")}
-                </button>
+              <TableHead className={cn(SHOW_FROM_THIRD_SCALE, "lg:w-[12%]")}>
+                Liquidity score
               </TableHead>
-              <TableHead className="w-[8%]">
-                <button
-                  type="button"
-                  className="inline-flex w-full items-center gap-1 font-medium text-left"
-                  onClick={() => handleSortClick("afkiness")}
-                >
-                  <span>AFKiness</span>
-                  {getSortIcon("afkiness")}
-                </button>
+              <TableHead className="w-[22%] md:w-[16%] lg:w-[15%]">
+                {renderSortHeader("XP/Hr", "xpHour")}
               </TableHead>
-              <TableHead className="w-[12%]">Requirements</TableHead>
-              <TableHead className="w-[8%]">
-                <button
-                  type="button"
-                  className="inline-flex w-full items-center gap-1 font-medium text-left"
-                  onClick={() => handleSortClick("likes")}
-                >
-                  <span>Likes</span>
-                  {getSortIcon("likes")}
-                </button>
+              <TableHead className={cn(SHOW_FROM_THIRD_SCALE, "lg:w-[12%]")}>
+                {renderSortHeader("Click Intensity", "clickIntensity")}
+              </TableHead>
+              <TableHead className="w-[22%] md:w-[12%] lg:w-[8%]">
+                {renderSortHeader("AFKiness", "afkiness")}
+              </TableHead>
+              <TableHead
+                className={cn(SHOW_FROM_SECOND_SCALE, "md:w-[16%] lg:w-[12%]")}
+              >
+                Requirements
+              </TableHead>
+              <TableHead
+                className={cn(SHOW_FROM_SECOND_SCALE, "md:w-[12%] lg:w-[8%]")}
+              >
+                {renderSortHeader("Likes", "likes")}
               </TableHead>
             </TableRow>
           )}
         </TableHeader>
         <TableBody>
-          {isInitialLoading ? (
+          {isTableLoading ? (
             Array.from({ length: SKELETON_ROW_COUNT }).map((_, index) => (
               <TableRow key={`fetching-skeleton-row-${index}`}>
-                {Array.from({ length: tableColumnCount }).map((_, cellIndex) => (
-                  <TableCell key={`fetching-skeleton-cell-${index}-${cellIndex}`}>
-                    {renderSkeletonCellContent(cellIndex)}
-                  </TableCell>
-                ))}
+                {Array.from({ length: tableColumnCount }).map(
+                  (_, cellIndex) => (
+                    <TableCell
+                      key={`fetching-skeleton-cell-${index}-${cellIndex}`}
+                      className={getCellVisibilityClassName(cellIndex)}
+                    >
+                      {renderSkeletonCellContent(cellIndex)}
+                    </TableCell>
+                  ),
+                )}
               </TableRow>
             ))
           ) : error && !data ? (
@@ -796,7 +813,10 @@ export function MethodsList({
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={tableColumnCount} className="text-muted-foreground">
+              <TableCell
+                colSpan={tableColumnCount}
+                className="text-muted-foreground"
+              >
                 No methods found.
               </TableCell>
             </TableRow>
@@ -805,27 +825,27 @@ export function MethodsList({
               <TableRow key={row.id}>
                 {isSkillTable ? (
                   <>
-                    {renderRequirementsCell(row)}
+                    {renderRequirementsCell(row, SHOW_FROM_SECOND_SCALE)}
                     {renderMethodCell(row)}
-                    {renderVariantCell(row)}
+                    {renderVariantCell(row, SHOW_FROM_THIRD_SCALE)}
                     {renderProfitCell(row)}
-                    {renderGpPerXpCell(row)}
-                    {renderLiquidityCell(row)}
+                    {renderGpPerXpCell(row, SHOW_FROM_THIRD_SCALE)}
+                    {renderLiquidityCell(row, SHOW_FROM_THIRD_SCALE)}
                     {renderXpCell(row)}
-                    {renderClickIntensityCell(row)}
+                    {renderClickIntensityCell(row, SHOW_FROM_THIRD_SCALE)}
                     {renderAfkinessCell(row)}
-                    {renderLikesCell(row)}
+                    {renderLikesCell(row, SHOW_FROM_SECOND_SCALE)}
                   </>
                 ) : (
                   <>
                     {renderMethodCell(row)}
                     {renderProfitCell(row)}
-                    {renderLiquidityCell(row)}
+                    {renderLiquidityCell(row, SHOW_FROM_THIRD_SCALE)}
                     {renderXpCell(row)}
-                    {renderClickIntensityCell(row)}
+                    {renderClickIntensityCell(row, SHOW_FROM_THIRD_SCALE)}
                     {renderAfkinessCell(row)}
-                    {renderRequirementsCell(row)}
-                    {renderLikesCell(row)}
+                    {renderRequirementsCell(row, SHOW_FROM_SECOND_SCALE)}
+                    {renderLikesCell(row, SHOW_FROM_SECOND_SCALE)}
                   </>
                 )}
               </TableRow>

@@ -130,7 +130,7 @@ function Pagination({
   pageCount,
   hasNext,
   onPageChange,
-  maxButtons = 10,
+  maxButtons = 5,
 }: PaginationProps) {
   const currentPage = Math.max(1, Math.min(page, Math.max(1, pageCount)));
   const safePageCount = Math.max(1, pageCount);
