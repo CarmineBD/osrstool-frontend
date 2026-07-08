@@ -112,6 +112,7 @@ export interface Variant {
   id?: string;
   slug?: string;
   label: string;
+  members: boolean;
   description?: string;
   afkiness?: number;
   clickIntensity?: number;
@@ -196,6 +197,24 @@ function parseMethodsFromResponse(value: unknown): Method[] {
   return [];
 }
 
+function normalizeVariant(variant: Variant): Variant {
+  return {
+    ...variant,
+    members: variant.members ?? false,
+  };
+}
+
+function normalizeMethod(method: Method): Method {
+  return {
+    ...method,
+    variants: (method.variants ?? []).map(normalizeVariant),
+  };
+}
+
+function normalizeMethods(methods: Method[]): Method[] {
+  return methods.map(normalizeMethod);
+}
+
 function toBoolean(value: unknown): boolean | undefined {
   if (typeof value === "boolean") return value;
   if (typeof value === "number") {
@@ -216,6 +235,7 @@ export interface MethodsFilters {
   clickIntensity?: number;
   afkiness?: number;
   riskLevel?: number;
+  members?: boolean;
   givesExperience?: boolean;
   enabled?: boolean;
   skill?: string;
@@ -254,6 +274,9 @@ export async function fetchMethods(
   }
   if (filters?.riskLevel !== undefined) {
     url.searchParams.set("riskLevel", filters.riskLevel.toString());
+  }
+  if (filters?.members !== undefined) {
+    url.searchParams.set("members", String(filters.members));
   }
   if (filters?.givesExperience !== undefined) {
     url.searchParams.set("givesExperience", String(filters.givesExperience));
@@ -298,7 +321,7 @@ export async function fetchMethods(
     root?.pagination ??
     meta?.pagination) as Record<string, unknown> | undefined;
 
-  const methods = parseMethodsFromResponse(json);
+  const methods = normalizeMethods(parseMethodsFromResponse(json));
 
   const resolvedPage = toNumber(
     data?.page ??
@@ -408,7 +431,7 @@ export async function fetchTrendingProfitMethods(): Promise<Method[]> {
   }
 
   const json: unknown = await res.json();
-  return parseMethodsFromResponse(json);
+  return normalizeMethods(parseMethodsFromResponse(json));
 }
 
 export interface Item {
@@ -894,7 +917,7 @@ export async function fetchMethodDetail(
     throw new Error("Method not found");
   }
   const warnings = parseWarnings((json as { warnings?: unknown }).warnings);
-  return { method, warnings };
+  return { method: normalizeMethod(method), warnings };
 }
 
 export async function fetchMethodDetailBySlug(
@@ -923,7 +946,7 @@ export async function fetchMethodDetailBySlug(
     throw new Error("Method not found");
   }
   const warnings = parseWarnings((json as { warnings?: unknown }).warnings);
-  return { method, warnings };
+  return { method: normalizeMethod(method), warnings };
 }
 
 export async function likeMethod(methodId: string): Promise<void> {
@@ -963,6 +986,7 @@ export interface UpdateMethodBasicDto {
 export interface UpdateVariantDto {
   id?: string;
   label: string;
+  members: boolean;
   description?: string;
   afkiness?: number;
   clickIntensity?: number;
@@ -993,6 +1017,7 @@ function buildVariantUpdatePayload(variant: Variant): UpdateVariantDto {
   return {
     id: variant.id,
     label: variant.label,
+    members: variant.members ?? false,
     description: variant.description,
     clickIntensity: variant.clickIntensity,
     afkiness: variant.afkiness,
@@ -1040,7 +1065,7 @@ export async function updateMethodBasic(
   if (!method) {
     throw new Error("Method not found");
   }
-  return method;
+  return normalizeMethod(method);
 }
 
 export async function updateMethodWithVariants(
@@ -1065,7 +1090,7 @@ export async function updateMethodWithVariants(
   if (!method) {
     throw new Error("Method not found");
   }
-  return method;
+  return normalizeMethod(method);
 }
 
 export async function createMethodWithVariants(
@@ -1089,5 +1114,5 @@ export async function createMethodWithVariants(
   if (!method) {
     throw new Error("Method not found");
   }
-  return method;
+  return normalizeMethod(method);
 }

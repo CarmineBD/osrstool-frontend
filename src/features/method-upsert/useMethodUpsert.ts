@@ -45,6 +45,7 @@ export const METHOD_CATEGORY_OPTIONS = [
 
 const createEmptyVariant = (): Variant => ({
   label: "New variant",
+  members: false,
   description: "",
   xpHour: [],
   requirements: {},
