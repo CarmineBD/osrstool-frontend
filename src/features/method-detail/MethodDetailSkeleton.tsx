@@ -1,21 +1,26 @@
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
-function MetricCardSkeleton() {
+function MetricsCardSkeleton() {
   return (
-    <Card>
+    <Card className="gap-0">
       <CardHeader className="space-y-2">
-        <Skeleton className="h-4 w-20" />
-        <Skeleton className="h-8 w-32" />
+        <Skeleton className="h-4 w-16" />
+        <Skeleton className="h-5 w-32" />
       </CardHeader>
-      <CardContent className="space-y-2">
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-4/5" />
+      <CardContent>
+        <div className="divide-y divide-border/50">
+          {Array.from({ length: 7 }).map((_, index) => (
+            <div
+              key={`metric-row-skeleton-${index}`}
+              className="flex items-center justify-between gap-4 py-3"
+            >
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-20" />
+            </div>
+          ))}
+        </div>
       </CardContent>
-      <CardFooter className="flex-col items-start gap-2">
-        <Skeleton className="h-4 w-3/4" />
-        <Skeleton className="h-4 w-2/3" />
-      </CardFooter>
     </Card>
   );
 }
@@ -84,11 +89,8 @@ export function MethodDetailSkeleton() {
               </div>
             </div>
 
-            <div className="order-1 flex flex-col gap-4 lg:order-2">
-              <MetricCardSkeleton />
-              <MetricCardSkeleton />
-              <MetricCardSkeleton />
-              <MetricCardSkeleton />
+            <div className="order-1 lg:order-2">
+              <MetricsCardSkeleton />
             </div>
           </div>
         </div>

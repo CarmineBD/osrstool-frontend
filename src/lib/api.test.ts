@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   buildMethodUpdatePayload,
+  fetchTrendingProfitMethods,
   fetchItems,
   getVariantsSignature,
   searchItems,
@@ -74,6 +75,81 @@ describe("api update payload helpers", () => {
     expect(url.searchParams.get("ids")).toBe("100,200");
     expect(url.searchParams.get("fields")).toBe(
       "name,iconUrl,highPrice,lowPrice,high24h,low24h,highTime,lowTime"
+    );
+
+    fetchSpy.mockRestore();
+  });
+
+  it("requests the last-hour window for trending profit methods", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          status: "ok",
+          data: {
+            methods: [
+              {
+                id: "trend-1",
+                slug: "testing",
+                name: "Testing",
+                category: "skilling",
+                variants: [
+                  {
+                    id: "variant-1",
+                    slug: "copy-of-new-variant",
+                    label: "copy of New variant",
+                    xpHour: null,
+                    requirements: {},
+                    lowProfit: 2221295961.1012797,
+                    highProfit: 2275707578.04,
+                    profitGrowth: {
+                      window: "1h",
+                      mode: "reliable",
+                      previousPeriodProfit: 2203244244.34435,
+                      currentPeriodProfit: 2221295961.1012797,
+                      growthAbs: 18051716.756929874,
+                      growthPct: 0.8193243578540143,
+                      trendDirection: "up",
+                    },
+                    inputs: [],
+                    outputs: [],
+                  },
+                ],
+              },
+            ],
+          },
+          warnings: [],
+          meta: {
+            total: 1,
+            window: "1h",
+            mode: "reliable",
+          },
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      )
+    );
+
+    const methods = await fetchTrendingProfitMethods();
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const requestInput = fetchSpy.mock.calls[0]?.[0];
+    const requestUrl =
+      typeof requestInput === "string"
+        ? requestInput
+        : requestInput instanceof URL
+          ? requestInput.toString()
+          : requestInput.url;
+    const url = new URL(requestUrl, window.location.origin);
+
+    expect(url.searchParams.get("window")).toBe("1h");
+    expect(url.searchParams.get("mode")).toBe("reliable");
+    expect(url.searchParams.get("variants")).toBe("all");
+    expect(methods).toHaveLength(1);
+    expect(methods[0]?.name).toBe("Testing");
+    expect(methods[0]?.variants[0]?.profitGrowth?.growthAbs).toBe(
+      18051716.756929874
     );
 
     fetchSpy.mockRestore();
