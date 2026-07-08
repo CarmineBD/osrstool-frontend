@@ -53,6 +53,27 @@ export interface IoItem {
   reason?: string | null;
 }
 
+export interface ProfitGrowth {
+  window: string;
+  mode: string;
+  previousPeriodProfit?: number;
+  currentPeriodProfit?: number;
+  growthAbs?: number;
+  growthPct?: number;
+  trendDirection?: "up" | "down" | "flat" | string;
+  baselineTimestamp?: string;
+  baselineLowProfit?: number;
+  baselineHighProfit?: number;
+  lowGrowthAbs?: number;
+  highGrowthAbs?: number;
+  reliableGrowthAbs?: number;
+  lowGrowthPct?: number;
+  highGrowthPct?: number;
+  reliableGrowthPct?: number;
+  selectedGrowthAbs?: number;
+  selectedGrowthPct?: number;
+}
+
 type ItemRequirement = {
   id: number;
   quantity: number;
@@ -111,6 +132,7 @@ export interface Variant {
   trendLastWeek?: number;
   trendLastMonth?: number;
   trendLastYear?: number;
+  profitGrowth?: ProfitGrowth;
   missingRequirements?: Requirement;
   inputs: IoItem[];
   outputs: IoItem[];
@@ -146,6 +168,32 @@ export interface MethodsResponse {
   hasNext?: boolean;
   nextCursor?: string;
   pageCount?: number;
+}
+
+function parseMethodsFromResponse(value: unknown): Method[] {
+  const root =
+    value && typeof value === "object"
+      ? (value as Record<string, unknown>)
+      : undefined;
+  const data =
+    root?.data && typeof root.data === "object"
+      ? (root.data as Record<string, unknown>)
+      : undefined;
+
+  if (Array.isArray(value)) {
+    return value as Method[];
+  }
+  if (Array.isArray(root?.data)) {
+    return root.data as Method[];
+  }
+  if (Array.isArray(data?.methods)) {
+    return data.methods as Method[];
+  }
+  if (Array.isArray(root?.methods)) {
+    return root.methods as Method[];
+  }
+
+  return [];
 }
 
 function toBoolean(value: unknown): boolean | undefined {
@@ -250,14 +298,7 @@ export async function fetchMethods(
     root?.pagination ??
     meta?.pagination) as Record<string, unknown> | undefined;
 
-  let methods: Method[] = [];
-  if (Array.isArray(json)) {
-    methods = json as Method[];
-  } else if (Array.isArray(data?.methods)) {
-    methods = data.methods as Method[];
-  } else if (Array.isArray(root?.methods)) {
-    methods = root.methods as Method[];
-  }
+  const methods = parseMethodsFromResponse(json);
 
   const resolvedPage = toNumber(
     data?.page ??
@@ -353,6 +394,21 @@ export async function fetchMethods(
     nextCursor,
     pageCount,
   };
+}
+
+export async function fetchTrendingProfitMethods(): Promise<Method[]> {
+  const url = toApiUrl("/methods/trending-profit");
+  url.searchParams.set("window", "1h");
+  url.searchParams.set("mode", "reliable");
+  url.searchParams.set("variants", "all");
+
+  const res = await apiFetch(url.toString());
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status} - Error fetching trending methods`);
+  }
+
+  const json: unknown = await res.json();
+  return parseMethodsFromResponse(json);
 }
 
 export interface Item {
