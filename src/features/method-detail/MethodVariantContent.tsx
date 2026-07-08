@@ -15,11 +15,7 @@ import {
 } from "@/components/ui/tooltip";
 import {
   Card,
-  CardAction,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
+  CardContent,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
@@ -352,141 +348,163 @@ function MissingRequirementsNotice({
 }
 
 function MetricsCards({ variant }: { variant: Variant }) {
-  return (
-    <div className="flex flex-col gap-4">
-      <Card className="@container/card">
-        <CardHeader>
-          <CardDescription>Gp/hr</CardDescription>
-          <CardTitle className="flex items-center gap-3 text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            <figure className="shrink-0">
-              <img
-                src="https://oldschool.runescape.wiki/images/Coins_10000.png"
-                alt="Coins"
-                title="Coins"
-                className="size-6 shrink-0 object-contain"
-              />
-            </figure>
+  const xpHourEntries = variant.xpHour ?? [];
+  const xpHourTotal = xpHourEntries.reduce(
+    (total, { experience }) => total + experience,
+    0,
+  );
 
-            {variant.highProfit !== undefined
-              ? formatNumber(variant.highProfit)
-              : "N/A"}
-          </CardTitle>
-          <CardAction>
-            {typeof variant.trendLastHour === "number" ? (
-              <Badge variant="outline">
-                {variant.trendLastHour >= 0 ? (
-                  <IconTrendingUp />
-                ) : (
-                  <IconTrendingDown />
-                )}
-                {formatPercent(variant.trendLastHour)}
-              </Badge>
-            ) : null}
-          </CardAction>
-        </CardHeader>
-        <CardFooter className="flex-col items-start gap-1.5 text-sm">
-          {typeof variant.trendLastMonth === "number" ? (
-            <div className="line-clamp-1 flex gap-2 font-medium">
-              {variant.trendLastMonth >= 0
-                ? "Trending up this month"
-                : "Trending down this month"}
-              {variant.trendLastMonth >= 0 ? (
-                <IconTrendingUp className="size-4" />
+  const rowClassName =
+    "flex flex-wrap items-start justify-between gap-x-4 gap-y-2 py-3";
+  const labelClassName = "text-sm text-muted-foreground";
+  const valueClassName =
+    "text-right text-sm font-medium tabular-nums text-foreground";
+
+  return (
+    <Card className="@container/card gap-0">
+      <CardContent>
+        <div className="divide-y divide-border/50">
+          <div className={rowClassName}>
+            <span className={labelClassName}>Gp/hr</span>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <span className="flex items-center gap-2 text-right text-base font-semibold tabular-nums text-foreground">
+                <figure className="shrink-0">
+                  <img
+                    src="https://oldschool.runescape.wiki/images/Coins_10000.png"
+                    alt="Coins"
+                    title="Coins"
+                    className="size-5 shrink-0 object-contain"
+                  />
+                </figure>
+                {variant.highProfit !== undefined
+                  ? formatNumber(variant.highProfit)
+                  : "N/A"}
+              </span>
+            </div>
+          </div>
+
+          <div className={rowClassName}>
+            <span className={labelClassName}>Lowest profit</span>
+            <span className={valueClassName}>
+              {variant.lowProfit !== undefined
+                ? formatNumber(variant.lowProfit)
+                : "N/A"}
+            </span>
+          </div>
+
+          <div className={rowClassName}>
+            <span className={labelClassName}>Monthly trend</span>
+            <span className="flex items-center justify-end gap-1.5 text-right text-sm font-medium tabular-nums text-foreground">
+              {typeof variant.trendLastMonth === "number" ? (
+                <>
+                  {variant.trendLastMonth >= 0 ? (
+                    <IconTrendingUp className="size-4" />
+                  ) : (
+                    <IconTrendingDown className="size-4" />
+                  )}
+                  {formatPercent(variant.trendLastMonth)}
+                </>
               ) : (
-                <IconTrendingDown className="size-4" />
+                "N/A"
+              )}
+            </span>
+          </div>
+
+          <div className={rowClassName}>
+            <span className={labelClassName}>Xp/hr</span>
+            <div className="flex max-w-full flex-col items-end gap-2">
+              {xpHourEntries.length === 0 ? (
+                <span className={valueClassName}>N/A</span>
+              ) : xpHourEntries.length === 1 ? (
+                xpHourEntries.map(({ skill, experience }) => (
+                  <Badge size="lg" key={skill} variant="secondary">
+                    <img
+                      src={getUrlByType(skill) ?? ""}
+                      alt={`${skill.toLowerCase()}_icon`}
+                      title={skill}
+                    />
+                    {formatNumber(experience)}
+                  </Badge>
+                ))
+              ) : (
+                <>
+                  <div className="flex flex-col items-end gap-0.5">
+                    <span className="text-xs text-muted-foreground">Total</span>
+                    <span className={valueClassName}>
+                      {formatNumber(xpHourTotal)}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap justify-end gap-1.5">
+                    {xpHourEntries.map(({ skill, experience }) => (
+                      <Badge size="lg" key={skill} variant="secondary">
+                        <img
+                          src={getUrlByType(skill) ?? ""}
+                          alt={`${skill.toLowerCase()}_icon`}
+                          title={skill}
+                        />
+                        {formatNumber(experience)}
+                      </Badge>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
-          ) : null}
-          <div className="text-muted-foreground">
-            {variant.lowProfit !== undefined
-              ? `${formatNumber(variant.lowProfit)} (lowest profit)`
-              : "N/A"}
           </div>
-        </CardFooter>
-      </Card>
 
-      <Card className="@container/card">
-        <CardHeader>
-          <CardDescription>Xp/hr</CardDescription>
-          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {variant.xpHour
-              ? formatNumber(
-                  variant.xpHour.reduce(
-                    (total, { experience }) => total + experience,
-                    0,
-                  ),
-                )
-              : "N/A"}
-          </CardTitle>
-        </CardHeader>
-        {variant.xpHour?.length > 0 ? (
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            {(variant.xpHour || []).map(({ skill, experience }) => (
-              <Badge size="lg" key={skill} variant="secondary">
-                <img
-                  src={getUrlByType(skill) ?? ""}
-                  alt={`${skill.toLowerCase()}_icon`}
-                  title={skill}
-                />
-                {formatNumber(experience)}
-              </Badge>
-            ))}
-          </CardFooter>
-        ) : null}
-      </Card>
+          <div className={rowClassName}>
+            <span className={labelClassName}>AFKiness</span>
+            <span className={valueClassName}>
+              {variant.afkiness !== undefined ? `${variant.afkiness}%` : "N/A"}
+            </span>
+          </div>
 
-      <Card className="@container/card">
-        <CardHeader>
-          <CardDescription>AFKiness</CardDescription>
-          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {variant.afkiness !== undefined ? `${variant.afkiness}%` : "N/A"}
-          </CardTitle>
-        </CardHeader>
-        {variant.clickIntensity && (
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 flex gap-2 font-medium">
+          <div className={rowClassName}>
+            <span className={labelClassName}>Click intensity</span>
+            <span className="flex items-center justify-end gap-1.5 text-right text-sm font-medium tabular-nums text-foreground">
               <IconClick className="size-4" />
-              {variant.clickIntensity ?? "N/A"} clicks/hr
-            </div>
-          </CardFooter>
-        )}
-      </Card>
-
-      <Card className="@container/card">
-        <CardHeader>
-          <CardDescription className="flex items-center gap-1.5">
-            <span>Market impact</span>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="inline-flex cursor-help text-muted-foreground">
-                  <IconInfoCircle className="size-4" />
-                </span>
-              </TooltipTrigger>
-              <TooltipContent
-                sideOffset={6}
-                className="w-max max-w-[360px] whitespace-normal break-words text-wrap text-left"
-              >
-                <p className="m-0">
-                  {
-                    "% De impacto comparando del valumen de cada item entre la cantidad de cada uno en base a 1 hora. Para mas informacion visita la "
-                  }
-                  <Link to="/wiki" className="underline font-medium">
-                    wiki
-                  </Link>
-                  {"."}
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </CardDescription>
-        </CardHeader>
-        <CardFooter className="flex-col items-start gap-1.5 text-sm">
-          <div>Patient: {formatLiquidityScore(variant.marketImpactSlow)}</div>
-          <div className="text-muted-foreground">
-            Instant: {formatLiquidityScore(variant.marketImpactInstant)}
+              {variant.clickIntensity !== undefined
+                ? `${formatNumber(variant.clickIntensity)} clicks/hr`
+                : "N/A"}
+            </span>
           </div>
-        </CardFooter>
-      </Card>
-    </div>
+
+          <div className={rowClassName}>
+            <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <span>Market impact</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex cursor-help text-muted-foreground">
+                    <IconInfoCircle className="size-4" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent
+                  sideOffset={6}
+                  className="w-max max-w-[360px] whitespace-normal break-words text-wrap text-left"
+                >
+                  <p className="m-0">
+                    {
+                      "% De impacto comparando del valumen de cada item entre la cantidad de cada uno en base a 1 hora. Para mas informacion visita la "
+                    }
+                    <Link to="/wiki" className="underline font-medium">
+                      wiki
+                    </Link>
+                    {"."}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </span>
+            <div className="space-y-1 text-right text-sm font-medium tabular-nums text-foreground">
+              <div>
+                Patient: {formatLiquidityScore(variant.marketImpactSlow)}
+              </div>
+              <div className="text-muted-foreground">
+                Instant: {formatLiquidityScore(variant.marketImpactInstant)}
+              </div>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
