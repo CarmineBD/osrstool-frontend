@@ -1,4 +1,4 @@
-import { Fragment, lazy, Suspense, useMemo, useState } from "react";
+import { Fragment, lazy, Suspense, useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import {
   IconClick,
@@ -173,6 +173,29 @@ function getWeightPrice(item: Item, mode: WeightPriceMode): number {
   return item.highPrice ?? 0;
 }
 
+function RequirementReasonBadge({
+  reason,
+  children,
+}: {
+  reason?: string;
+  children: ReactNode;
+}) {
+  const reasonLabel = reason?.trim();
+
+  if (!reasonLabel) {
+    return children;
+  }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent sideOffset={6}>
+        <span>{reasonLabel}</span>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 function LevelsAndQuestBadges({
   requirement,
 }: {
@@ -180,35 +203,38 @@ function LevelsAndQuestBadges({
 }) {
   return (
     <>
-      {(requirement?.levels || []).map(({ skill, level }) => (
-        <Badge size="lg" key={skill} variant="secondary">
-          <img
-            src={getUrlByType(skill) ?? ""}
-            alt={`${skill.toLowerCase()}_icon`}
-            title={skill}
-          />
-          {level}
-        </Badge>
+      {(requirement?.levels || []).map(({ skill, level, reason }) => (
+        <RequirementReasonBadge key={skill} reason={reason}>
+          <Badge size="lg" variant="secondary">
+            <img
+              src={getUrlByType(skill) ?? ""}
+              alt={`${skill.toLowerCase()}_icon`}
+            />
+            {level}
+          </Badge>
+        </RequirementReasonBadge>
       ))}
-      {(requirement?.quests || []).map(({ name, stage }) => (
-        <Badge size="lg" key={name} variant="secondary">
-          <img
-            src={getUrlByType("quests") ?? ""}
-            alt="quests_icon"
-            title="quests"
-          />
-          {stage === 1 ? name : `${name} (started)`}
-        </Badge>
+      {(requirement?.quests || []).map(({ name, stage, reason }) => (
+        <RequirementReasonBadge key={name} reason={reason}>
+          <Badge size="lg" variant="secondary">
+            <img
+              src={getUrlByType("quests") ?? ""}
+              alt="quests_icon"
+            />
+            {stage === 1 ? `${name} (started)` : name}
+          </Badge>
+        </RequirementReasonBadge>
       ))}
-      {(requirement?.achievement_diaries || []).map(({ name, tier }) => (
-        <Badge size="lg" key={`${name}_${tier}`} variant="secondary">
-          <img
-            src={getUrlByType("achievement_diaries") ?? ""}
-            alt="achievement_diaries_icon"
-            title="quests"
-          />
-          {`${name} ${tier}`}
-        </Badge>
+      {(requirement?.achievement_diaries || []).map(({ name, tier, reason }) => (
+        <RequirementReasonBadge key={`${name}_${tier}`} reason={reason}>
+          <Badge size="lg" variant="secondary">
+            <img
+              src={getUrlByType("achievement_diaries") ?? ""}
+              alt="achievement_diaries_icon"
+            />
+            {`${name} ${tier}`}
+          </Badge>
+        </RequirementReasonBadge>
       ))}
     </>
   );
