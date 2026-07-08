@@ -292,7 +292,14 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
     if (event.key !== "Enter") return;
     const target = event.target as HTMLElement | null;
     if (!target) return;
-    if (target.tagName === "TEXTAREA" || target.isContentEditable) return;
+    if (
+      target.tagName === "INPUT" ||
+      target.tagName === "SELECT" ||
+      target.tagName === "TEXTAREA" ||
+      target.isContentEditable
+    ) {
+      return;
+    }
     event.preventDefault();
   };
 

@@ -15,6 +15,7 @@ import {
 import { getUrlByType } from "@/lib/utils";
 import type {
   DiaryTier,
+  EntrySelectionState,
   RequirementsRecommendationsFieldProps,
   SearchOption,
   SearchOptionGroup,
@@ -26,6 +27,7 @@ import type {
 } from "@/components/requirements-recommendations/requirementsRecommendations.types";
 import {
   achievementDiaryEntryKey,
+  buildUnifiedEntryKey,
   buildUnifiedEntries,
   formatAchievementDiaryLabel,
   hasMoreItemPages,
@@ -42,6 +44,8 @@ import {
   questEntryKey,
   SCROLL_BOTTOM_THRESHOLD_PX,
   skillEntryKey,
+  sortUnifiedEntries,
+  supportsDualRequirementEntries,
   splitUnifiedEntries,
 } from "@/components/requirements-recommendations/requirementsRecommendations.utils";
 
@@ -58,7 +62,7 @@ export interface UseRequirementsRecommendationsResult {
   itemSearchLoadingMore: boolean;
   questIconUrl: string | undefined;
   achievementDiaryIconUrl: string | undefined;
-  selectedEntryKeys: Set<string>;
+  entrySelectionState: Map<string, EntrySelectionState>;
   visibleSearchGroups: SearchOptionGroup[];
   itemEntries: UnifiedItemEntry[];
   questEntries: UnifiedQuestEntry[];
@@ -122,7 +126,7 @@ export function useRequirementsRecommendations({
   const applyEntries = useCallback(
     (updater: (previousEntries: UnifiedEntry[]) => UnifiedEntry[]) => {
       setEntries((previousEntries) => {
-        const nextEntries = updater(previousEntries);
+        const nextEntries = sortUnifiedEntries(updater(previousEntries));
         onChange(splitUnifiedEntries(nextEntries));
         return nextEntries;
       });
@@ -431,8 +435,23 @@ export function useRequirementsRecommendations({
       }));
   }, [normalizedSkillOptions, trimmedQuery]);
 
-  const selectedEntryKeys = useMemo(
-    () => new Set(entries.map((entry) => entry.key)),
+  const entrySelectionState = useMemo(
+    () =>
+      entries.reduce((map, entry) => {
+        const current = map.get(entry.baseKey) ?? {
+          count: 0,
+          hasRequired: false,
+          hasRecommended: false,
+        };
+        current.count += 1;
+        if (entry.isRequired) {
+          current.hasRequired = true;
+        } else {
+          current.hasRecommended = true;
+        }
+        map.set(entry.baseKey, current);
+        return map;
+      }, new Map<string, EntrySelectionState>()),
     [entries]
   );
 
@@ -491,11 +510,50 @@ export function useRequirementsRecommendations({
 
   const updateEntry = useCallback(
     (entryKey: string, updater: EntryUpdater) => {
-      applyEntries((previousEntries) =>
-        previousEntries.map((entry) =>
-          entry.key === entryKey ? updater(entry) : entry
-        )
-      );
+      applyEntries((previousEntries) => {
+        const targetIndex = previousEntries.findIndex(
+          (entry) => entry.key === entryKey
+        );
+        if (targetIndex === -1) return previousEntries;
+
+        const currentEntry = previousEntries[targetIndex];
+        const nextEntries = [...previousEntries];
+        const updatedEntry = updater(currentEntry);
+        const normalizedUpdatedEntry = {
+          ...updatedEntry,
+          baseKey: currentEntry.baseKey,
+          key: buildUnifiedEntryKey(
+            updatedEntry.kind,
+            currentEntry.baseKey,
+            updatedEntry.isRequired
+          ),
+        };
+
+        const conflictingIndex = supportsDualRequirementEntries(updatedEntry.kind)
+          ? nextEntries.findIndex(
+              (entry, index) =>
+                index !== targetIndex &&
+                entry.baseKey === normalizedUpdatedEntry.baseKey &&
+                entry.isRequired === normalizedUpdatedEntry.isRequired
+            )
+          : -1;
+
+        if (conflictingIndex !== -1) {
+          const conflictingEntry = nextEntries[conflictingIndex];
+          nextEntries[conflictingIndex] = {
+            ...conflictingEntry,
+            isRequired: !normalizedUpdatedEntry.isRequired,
+            key: buildUnifiedEntryKey(
+              conflictingEntry.kind,
+              conflictingEntry.baseKey,
+              !normalizedUpdatedEntry.isRequired
+            ),
+          };
+        }
+
+        nextEntries[targetIndex] = normalizedUpdatedEntry;
+        return nextEntries;
+      });
     },
     [applyEntries]
   );
@@ -512,21 +570,31 @@ export function useRequirementsRecommendations({
   const handleSelectOption = useCallback(
     (option: SearchOption | null) => {
       if (!option) return;
-      if (selectedEntryKeys.has(option.entryKey)) {
+      const selectionState = entrySelectionState.get(option.entryKey);
+      const supportsDualEntries = option.kind === "skill";
+      if (
+        (supportsDualEntries &&
+          (selectionState?.count === 2 ||
+            (selectionState?.hasRequired && selectionState?.hasRecommended))) ||
+        (!supportsDualEntries && selectionState?.count)
+      ) {
         setQuery("");
         return;
       }
+      const isRequired = supportsDualEntries ? !selectionState?.hasRequired : true;
+      const key = buildUnifiedEntryKey(option.kind, option.entryKey, isRequired);
 
       if (option.kind === "item") {
         applyEntries((previousEntries) => [
           ...previousEntries,
           {
             kind: "item",
-            key: option.entryKey,
+            key,
+            baseKey: option.entryKey,
             id: option.id,
             quantity: 1,
             reason: null,
-            isRequired: true,
+            isRequired,
             name: option.label,
             iconUrl: option.iconUrl,
           },
@@ -540,11 +608,12 @@ export function useRequirementsRecommendations({
           ...previousEntries,
           {
             kind: "quest",
-            key: option.entryKey,
+            key,
+            baseKey: option.entryKey,
             name: option.name,
             stage: 2,
             reason: null,
-            isRequired: true,
+            isRequired,
           },
         ]);
         setQuery("");
@@ -556,12 +625,13 @@ export function useRequirementsRecommendations({
           ...previousEntries,
           {
             kind: "achievement_diary",
-            key: option.entryKey,
+            key,
+            baseKey: option.entryKey,
             name: option.name,
             tier: option.tier,
             stage: 2,
             reason: null,
-            isRequired: true,
+            isRequired,
           },
         ]);
         setQuery("");
@@ -572,16 +642,17 @@ export function useRequirementsRecommendations({
         ...previousEntries,
         {
           kind: "skill",
-          key: option.entryKey,
+          key,
+          baseKey: option.entryKey,
           skill: option.skill,
           level: 1,
           reason: null,
-          isRequired: true,
+          isRequired,
         },
       ]);
       setQuery("");
     },
-    [applyEntries, selectedEntryKeys]
+    [applyEntries, entrySelectionState]
   );
 
   const itemEntries = useMemo(() => entries.filter(isItemEntry), [entries]);
@@ -623,7 +694,7 @@ export function useRequirementsRecommendations({
     itemSearchLoadingMore,
     questIconUrl,
     achievementDiaryIconUrl,
-    selectedEntryKeys,
+    entrySelectionState,
     visibleSearchGroups,
     itemEntries,
     questEntries,

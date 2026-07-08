@@ -9,9 +9,11 @@ export type StageRequirement = 1 | 2;
 export type RequirementPayload = Variant["requirements"];
 export type RecommendationPayload = Variant["recommendations"];
 export type DiaryTier = AchievementDiaryOption["tier"];
+export type EntryRequirementType = "required" | "recommended";
 
 interface UnifiedEntryBase {
   key: string;
+  baseKey: string;
   reason: string | null;
   isRequired: boolean;
 }
@@ -85,6 +87,12 @@ export interface SearchOptionGroup {
   id: string;
   label: string;
   options: SearchOption[];
+}
+
+export interface EntrySelectionState {
+  count: number;
+  hasRequired: boolean;
+  hasRecommended: boolean;
 }
 
 export interface RequirementsRecommendationsFieldProps {

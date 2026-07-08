@@ -21,6 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { IconAdjustmentsHorizontal } from "@tabler/icons-react";
 import type {
+  EntrySelectionState,
   SearchOption,
   SearchOptionGroup,
 } from "@/components/requirements-recommendations/requirementsRecommendations.types";
@@ -32,7 +33,7 @@ interface RequirementsSearchComboboxProps {
   showUntradeables: boolean;
   onShowUntradeablesChange: (checked: boolean) => void;
   visibleSearchGroups: SearchOptionGroup[];
-  selectedEntryKeys: Set<string>;
+  entrySelectionState: Map<string, EntrySelectionState>;
   emptyMessage: string;
   itemSearchError: string | null;
   itemSearchLoading: boolean;
@@ -49,7 +50,7 @@ export function RequirementsSearchCombobox({
   showUntradeables,
   onShowUntradeablesChange,
   visibleSearchGroups,
-  selectedEntryKeys,
+  entrySelectionState,
   emptyMessage,
   itemSearchError,
   itemSearchLoading,
@@ -85,11 +86,22 @@ export function RequirementsSearchCombobox({
                 <ComboboxGroup>
                   <ComboboxLabel>{group.label}</ComboboxLabel>
                   {group.options.map((option) => {
-                    const isAdded = selectedEntryKeys.has(option.entryKey);
+                    const selectionState = entrySelectionState.get(option.entryKey);
+                    const supportsDualEntries = option.kind === "skill";
+                    const isComplete = Boolean(
+                      supportsDualEntries
+                        ? selectionState?.hasRequired &&
+                            selectionState?.hasRecommended
+                        : selectionState?.count
+                    );
                     const skillIconUrl =
                       option.kind === "skill" ? getUrlByType(option.skill) : null;
                     return (
-                      <ComboboxItem key={option.key} value={option} disabled={isAdded}>
+                      <ComboboxItem
+                        key={option.key}
+                        value={option}
+                        disabled={isComplete}
+                      >
                         <div className="flex items-center gap-2">
                           {option.kind === "item" && option.iconUrl ? (
                             <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
@@ -129,9 +141,19 @@ export function RequirementsSearchCombobox({
                             </div>
                           ) : null}
                           <span>{option.label}</span>
-                          {isAdded ? (
+                          {supportsDualEntries && selectionState?.count === 1 ? (
+                            <span className="text-xs text-muted-foreground">
+                              1/2
+                            </span>
+                          ) : null}
+                          {!supportsDualEntries && selectionState?.count ? (
                             <span className="text-xs text-muted-foreground">
                               Agregado
+                            </span>
+                          ) : null}
+                          {supportsDualEntries && isComplete ? (
+                            <span className="text-xs text-muted-foreground">
+                              Completo
                             </span>
                           ) : null}
                         </div>

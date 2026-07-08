@@ -21,7 +21,7 @@ export function RequirementsRecommendationsField(
         showUntradeables={state.showUntradeables}
         onShowUntradeablesChange={state.setShowUntradeables}
         visibleSearchGroups={state.visibleSearchGroups}
-        selectedEntryKeys={state.selectedEntryKeys}
+        entrySelectionState={state.entrySelectionState}
         emptyMessage={state.emptyMessage}
         itemSearchError={state.itemSearchError}
         itemSearchLoading={state.itemSearchLoading}

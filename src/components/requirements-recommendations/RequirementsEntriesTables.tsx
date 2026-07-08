@@ -21,7 +21,7 @@ import type {
 import {
   formatAchievementDiaryLabel,
   formatRequiredLabel,
-  normalizeReason,
+  sanitizeReasonInput,
 } from "@/components/requirements-recommendations/requirementsRecommendations.utils";
 
 type EntryUpdater = (entry: UnifiedEntry) => UnifiedEntry;
@@ -134,7 +134,7 @@ export function RequirementsEntriesTables({
                       onChange={(event) =>
                         updateEntry(entry.key, (current) => ({
                           ...current,
-                          reason: normalizeReason(event.target.value),
+                          reason: sanitizeReasonInput(event.target.value),
                         }))
                       }
                     />
@@ -229,7 +229,7 @@ export function RequirementsEntriesTables({
                       onChange={(event) =>
                         updateEntry(entry.key, (current) => ({
                           ...current,
-                          reason: normalizeReason(event.target.value),
+                          reason: sanitizeReasonInput(event.target.value),
                         }))
                       }
                     />
@@ -324,7 +324,7 @@ export function RequirementsEntriesTables({
                       onChange={(event) =>
                         updateEntry(entry.key, (current) => ({
                           ...current,
-                          reason: normalizeReason(event.target.value),
+                          reason: sanitizeReasonInput(event.target.value),
                         }))
                       }
                     />
@@ -422,7 +422,7 @@ export function RequirementsEntriesTables({
                       onChange={(event) =>
                         updateEntry(entry.key, (current) => ({
                           ...current,
-                          reason: normalizeReason(event.target.value),
+                          reason: sanitizeReasonInput(event.target.value),
                         }))
                       }
                     />
