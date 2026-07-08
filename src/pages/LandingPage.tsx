@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, TrendingDown, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { VariantMembershipBadge } from "@/components/VariantMembershipBadge";
 import {
   Carousel,
   CarouselContent,
@@ -149,9 +150,14 @@ function TrendingMethodCard({
               {method.name}
             </h2>
             {variant?.label ? (
-              <p className="mt-1 line-clamp-1 text-sm font-semibold text-slate-600">
-                {variant.label}
-              </p>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <p className="line-clamp-1 text-sm font-semibold text-slate-600">
+                  {variant.label}
+                </p>
+                {variant ? (
+                  <VariantMembershipBadge members={variant.members} compact />
+                ) : null}
+              </div>
             ) : null}
           </div>
           <div className="shrink-0 space-y-1 text-right ">

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   buildMethodUpdatePayload,
+  fetchMethods,
   fetchTrendingProfitMethods,
   fetchItems,
   getVariantsSignature,
@@ -12,6 +13,7 @@ describe("api update payload helpers", () => {
   it("maps input/output item types in the method update payload", () => {
     const variant: Variant = {
       label: "Main",
+      members: true,
       xpHour: [],
       requirements: {},
       inputs: [{ id: 1, quantity: 2, reason: "buy" }],
@@ -31,12 +33,14 @@ describe("api update payload helpers", () => {
     expect(payload.variants[0]?.inputs[0]?.type).toBe("input");
     expect(payload.variants[0]?.outputs[0]?.type).toBe("output");
     expect(payload.variants[0]?.outputs[0]?.reason).toBeNull();
+    expect(payload.variants[0]?.members).toBe(true);
   });
 
   it("builds stable signatures for equal variants", () => {
     const variants: Variant[] = [
       {
         label: "A",
+        members: false,
         xpHour: [],
         requirements: {},
         inputs: [{ id: 100, quantity: 1 }],
@@ -97,6 +101,7 @@ describe("api update payload helpers", () => {
                     id: "variant-1",
                     slug: "copy-of-new-variant",
                     label: "copy of New variant",
+                    members: true,
                     xpHour: null,
                     requirements: {},
                     lowProfit: 2221295961.1012797,
@@ -151,6 +156,31 @@ describe("api update payload helpers", () => {
     expect(methods[0]?.variants[0]?.profitGrowth?.growthAbs).toBe(
       18051716.756929874
     );
+
+    fetchSpy.mockRestore();
+  });
+
+  it("passes the members filter when fetching methods", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ data: { methods: [] } }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+
+    await fetchMethods(undefined, undefined, undefined, { members: false });
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const requestInput = fetchSpy.mock.calls[0]?.[0];
+    const requestUrl =
+      typeof requestInput === "string"
+        ? requestInput
+        : requestInput instanceof URL
+          ? requestInput.toString()
+          : requestInput.url;
+    const url = new URL(requestUrl, window.location.origin);
+
+    expect(url.searchParams.get("members")).toBe("false");
 
     fetchSpy.mockRestore();
   });

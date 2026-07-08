@@ -42,6 +42,7 @@ type SortConfig = {
   sortBy?: MethodsFilters["sortBy"];
   order?: MethodsFilters["order"];
 };
+type MembershipFilterValue = "all" | "free-to-play" | "members";
 
 const SKILL_OPTIONS = ["combat", ...OSRS_SKILLS] as const;
 const METHOD_SEARCH_DEBOUNCE_MS = 400;
@@ -84,6 +85,8 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
   const [showProfitables, setShowProfitables] = useState<boolean | undefined>(
     undefined,
   );
+  const [membershipFilter, setMembershipFilter] =
+    useState<MembershipFilterValue>("all");
   const [enabled, setEnabled] = useState<boolean>(true);
   const [sortConfig, setSortConfig] = useState<SortConfig>({});
   const { data: meData } = useQuery({
@@ -144,6 +147,7 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
     if (!hasLockedSkill && skill) count += 1;
     if (givesExperience !== undefined) count += 1;
     if (showProfitables !== undefined) count += 1;
+    if (membershipFilter !== "all") count += 1;
     if (isSuperAdmin && enabled !== true) count += 1;
     return count;
   }, [
@@ -155,6 +159,7 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
     skill,
     givesExperience,
     showProfitables,
+    membershipFilter,
     isSuperAdmin,
     enabled,
   ]);
@@ -166,6 +171,10 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
         appliedClickIntensity >= 10000 ? undefined : appliedClickIntensity,
       afkiness: appliedAfkiness <= 0 ? undefined : appliedAfkiness,
       riskLevel: parsedRiskLevel,
+      members:
+        membershipFilter === "all"
+          ? undefined
+          : membershipFilter === "members",
       givesExperience,
       enabled: isSuperAdmin ? enabled : undefined,
       skill: normalizedLockedSkill ?? (skill || undefined),
@@ -179,6 +188,7 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
       appliedClickIntensity,
       appliedAfkiness,
       parsedRiskLevel,
+      membershipFilter,
       givesExperience,
       isSuperAdmin,
       enabled,
@@ -335,6 +345,27 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
                           Skill locked: {lockedSkillLabel}
                         </FieldDescription>
                       ) : null}
+                    </Field>
+
+                    <Field className="mx-auto grid gap-2 w-full">
+                      <FieldLabel>Membership</FieldLabel>
+                      <Select
+                        value={membershipFilter}
+                        onValueChange={(value) =>
+                          setMembershipFilter(value as MembershipFilterValue)
+                        }
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Membership" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos</SelectItem>
+                          <SelectItem value="free-to-play">
+                            Free-to-play
+                          </SelectItem>
+                          <SelectItem value="members">Members</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </Field>
                   </div>
 

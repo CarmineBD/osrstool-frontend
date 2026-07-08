@@ -56,6 +56,7 @@ export function VariantForm({
   const [open, setOpen] = useState(false);
   const [label, setLabel] = useState<string>(variant.label);
   const [description, setDescription] = useState<string>(variant.description ?? "");
+  const [members, setMembers] = useState<boolean>(variant.members ?? false);
   const [wilderness, setWilderness] = useState<boolean>(variant.wilderness ?? false);
   const [afkiness, setAfkiness] = useState<number | undefined>(variant.afkiness);
   const [clickIntensity, setClickIntensity] = useState<number | undefined>(
@@ -70,6 +71,7 @@ export function VariantForm({
   useEffect(() => {
     setLabel(variant.label);
     setDescription(variant.description ?? "");
+    setMembers(variant.members ?? false);
     setWilderness(variant.wilderness ?? false);
     setAfkiness(variant.afkiness);
     setClickIntensity(variant.clickIntensity ?? variant.actionsPerHour);
@@ -164,15 +166,27 @@ export function VariantForm({
               }}
             />
           </div>
-          <div className="flex items-center space-x-2">
-            <Switch
-              checked={wilderness}
-              onCheckedChange={(checked) => {
-                setWilderness(checked);
-                onChange?.({ ...variant, wilderness: checked });
-              }}
-            />
-            <span className="text-sm">Wilderness</span>
+          <div className="flex flex-wrap items-center gap-6">
+            <div className="flex items-center space-x-2">
+              <Switch
+                checked={members}
+                onCheckedChange={(checked) => {
+                  setMembers(checked);
+                  onChange?.({ ...variant, members: checked });
+                }}
+              />
+              <span className="text-sm">Members</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                checked={wilderness}
+                onCheckedChange={(checked) => {
+                  setWilderness(checked);
+                  onChange?.({ ...variant, wilderness: checked });
+                }}
+              />
+              <span className="text-sm">Wilderness</span>
+            </div>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
