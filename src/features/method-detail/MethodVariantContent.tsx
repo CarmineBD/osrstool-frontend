@@ -8,6 +8,7 @@ import {
 } from "@tabler/icons-react";
 import { UsernameFetchNotice } from "@/components/UsernameFetchNotice";
 import { Badge } from "@/components/ui/badge";
+import { VariantMembershipBadge } from "@/components/VariantMembershipBadge";
 import {
   Tooltip,
   TooltipContent,
@@ -364,6 +365,11 @@ function MetricsCards({ variant }: { variant: Variant }) {
     <Card className="@container/card gap-0">
       <CardContent>
         <div className="divide-y divide-border/50">
+          <div className={rowClassName}>
+            <span className={labelClassName}>Access</span>
+            <VariantMembershipBadge members={variant.members} />
+          </div>
+
           <div className={rowClassName}>
             <span className={labelClassName}>Gp/hr</span>
             <div className="flex flex-wrap items-center justify-end gap-2">

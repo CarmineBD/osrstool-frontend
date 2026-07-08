@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import { VariantMembershipBadge } from "@/components/VariantMembershipBadge";
 import { useUsername } from "@/contexts/UsernameContext";
 import { MethodDetailHeader } from "@/features/method-detail/MethodDetailHeader";
 import { MethodDetailSkeleton } from "@/features/method-detail/MethodDetailSkeleton";
@@ -91,7 +92,14 @@ export function MethodDetail(_props: Props) {
                   key={getVariantTabValue(variant, index)}
                   value={getVariantTabValue(variant, index)}
                 >
-                  {variant.label}
+                  <span className="flex items-center gap-2">
+                    <span>{variant.label}</span>
+                    <VariantMembershipBadge
+                      members={variant.members}
+                      compact
+                      className="hidden sm:inline-flex"
+                    />
+                  </span>
                 </TabsTrigger>
               ))}
             </TabsList>

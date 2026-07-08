@@ -14,6 +14,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn, formatNumber, getUrlByType } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { VariantMembershipBadge } from "@/components/VariantMembershipBadge";
 import {
   Tooltip,
   TooltipContent,
@@ -63,6 +64,7 @@ interface Row {
   variantSlug: string;
   variantLabel: string;
   variantCount: number;
+  members: boolean;
   name: string;
   category: string;
   xpHour: { skill: string; experience: number }[];
@@ -170,6 +172,7 @@ export function MethodsList({
         variantSlug: variant.slug ?? (variant.id ?? index).toString(),
         variantLabel: variant.label,
         variantCount,
+        members: variant.members,
         name: method.name,
         category: method.category,
         xpHour,
@@ -502,37 +505,45 @@ export function MethodsList({
 
   const renderMethodCell = (row: Row, className?: string) => (
     <TableCell className={cn("min-w-0 font-medium", className)}>
-      <Link
-        to={`/moneyMakingMethod/${row.methodSlug}${
-          row.variantCount > 1 ? `/${row.variantSlug}` : ""
-        }`}
-        className="block min-w-0 truncate text-blue-600 hover:underline"
-        onMouseEnter={() => scheduleMethodPrefetch(row.methodSlug)}
-        onMouseLeave={clearPrefetchTimer}
-        onFocus={() => scheduleMethodPrefetch(row.methodSlug)}
-        onBlur={clearPrefetchTimer}
-        onMouseDown={() => prefetchMethodDetail(row.methodSlug)}
-        onTouchStart={() => prefetchMethodDetail(row.methodSlug)}
-      >
-        {row.name}
-      </Link>
+      <div className="space-y-1">
+        <Link
+          to={`/moneyMakingMethod/${row.methodSlug}${
+            row.variantCount > 1 ? `/${row.variantSlug}` : ""
+          }`}
+          className="block min-w-0 truncate text-blue-600 hover:underline"
+          onMouseEnter={() => scheduleMethodPrefetch(row.methodSlug)}
+          onMouseLeave={clearPrefetchTimer}
+          onFocus={() => scheduleMethodPrefetch(row.methodSlug)}
+          onBlur={clearPrefetchTimer}
+          onMouseDown={() => prefetchMethodDetail(row.methodSlug)}
+          onTouchStart={() => prefetchMethodDetail(row.methodSlug)}
+        >
+          {row.name}
+        </Link>
+        {!isSkillTable ? (
+          <VariantMembershipBadge members={row.members} compact />
+        ) : null}
+      </div>
     </TableCell>
   );
 
   const renderVariantCell = (row: Row, className?: string) => (
     <TableCell className={cn("min-w-0", className)}>
-      <Link
-        to={`/moneyMakingMethod/${row.methodSlug}/${row.variantSlug}`}
-        className="block min-w-0 truncate text-blue-600 hover:underline"
-        onMouseEnter={() => scheduleMethodPrefetch(row.methodSlug)}
-        onMouseLeave={clearPrefetchTimer}
-        onFocus={() => scheduleMethodPrefetch(row.methodSlug)}
-        onBlur={clearPrefetchTimer}
-        onMouseDown={() => prefetchMethodDetail(row.methodSlug)}
-        onTouchStart={() => prefetchMethodDetail(row.methodSlug)}
-      >
-        {row.variantLabel}
-      </Link>
+      <div className="space-y-1">
+        <Link
+          to={`/moneyMakingMethod/${row.methodSlug}/${row.variantSlug}`}
+          className="block min-w-0 truncate text-blue-600 hover:underline"
+          onMouseEnter={() => scheduleMethodPrefetch(row.methodSlug)}
+          onMouseLeave={clearPrefetchTimer}
+          onFocus={() => scheduleMethodPrefetch(row.methodSlug)}
+          onBlur={clearPrefetchTimer}
+          onMouseDown={() => prefetchMethodDetail(row.methodSlug)}
+          onTouchStart={() => prefetchMethodDetail(row.methodSlug)}
+        >
+          {row.variantLabel}
+        </Link>
+        <VariantMembershipBadge members={row.members} compact />
+      </div>
     </TableCell>
   );
 
