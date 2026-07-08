@@ -1,9 +1,10 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { IoItemsField } from "@/components/IoItemsField";
 import { RequirementsRecommendationsField } from "@/components/RequirementsRecommendationsField";
-import { fetchItems, searchItems } from "@/lib/api";
+import { fetchItems, searchItems, type Variant } from "@/lib/api";
 
 vi.mock("@/lib/api", async () => {
   const actual = await vi.importActual<typeof import("@/lib/api")>("@/lib/api");
@@ -93,5 +94,209 @@ describe("item search untradeables toggle", () => {
     expect(vi.mocked(searchItems).mock.calls.at(-1)?.[4]).toEqual({
       showUntradeables: true,
     });
+  });
+
+  it("preserves blank spaces in requirement reasons while keeping the input single-line", async () => {
+    const user = userEvent.setup();
+
+    function Wrapper() {
+      const [requirements, setRequirements] = useState<Variant["requirements"]>({
+        levels: [{ skill: "Attack", level: 70 }],
+      });
+      const [recommendations, setRecommendations] = useState<
+        Variant["recommendations"]
+      >({});
+
+      return (
+        <RequirementsRecommendationsField
+          requirements={requirements}
+          recommendations={recommendations}
+          skillOptions={[]}
+          questOptions={[]}
+          achievementDiaryOptions={[]}
+          onChange={({ requirements: nextRequirements, recommendations: nextRecommendations }) => {
+            setRequirements(nextRequirements);
+            setRecommendations(nextRecommendations ?? {});
+          }}
+        />
+      );
+    }
+
+    render(<Wrapper />);
+
+    const attackRow = screen.getByText("Attack").closest("tr");
+    expect(attackRow).not.toBeNull();
+    const input = within(attackRow as HTMLTableRowElement).getByPlaceholderText(
+      "Opcional"
+    );
+
+    await user.type(input, "main hand ");
+
+    expect(input).toHaveValue("main hand ");
+  });
+
+  it("allows up to one required and one recommended entry for the same skill", async () => {
+    const user = userEvent.setup();
+
+    function Wrapper() {
+      const [requirements, setRequirements] = useState<Variant["requirements"]>({});
+      const [recommendations, setRecommendations] = useState<
+        Variant["recommendations"]
+      >();
+
+      return (
+        <>
+          <RequirementsRecommendationsField
+            requirements={requirements}
+            recommendations={recommendations}
+            skillOptions={[
+              { label: "Attack", value: "attack", name: "Attack" },
+            ]}
+            questOptions={[]}
+            achievementDiaryOptions={[]}
+            onChange={({
+              requirements: nextRequirements,
+              recommendations: nextRecommendations,
+            }) => {
+              setRequirements(nextRequirements);
+              setRecommendations(nextRecommendations);
+            }}
+          />
+          <pre data-testid="requirements-state">
+            {JSON.stringify({ requirements, recommendations: recommendations ?? null })}
+          </pre>
+        </>
+      );
+    }
+
+    render(<Wrapper />);
+
+    const searchInput = screen.getByPlaceholderText(
+      "Buscar items, quests, achievement diaries o skills..."
+    );
+    const getComboboxItem = () =>
+      document.querySelector("[data-slot='combobox-item']") as HTMLElement | null;
+
+    await user.click(searchInput);
+    await user.clear(searchInput);
+    await user.type(searchInput, "att");
+    await waitFor(() => expect(getComboboxItem()).not.toBeNull());
+    await user.click(getComboboxItem() as HTMLElement);
+
+    expect(screen.getByTestId("requirements-state")).toHaveTextContent(
+      JSON.stringify({
+        requirements: { levels: [{ skill: "Attack", level: 1 }] },
+        recommendations: null,
+      })
+    );
+
+    await user.click(searchInput);
+    await user.clear(searchInput);
+    await user.type(searchInput, "att");
+    await waitFor(() => expect(screen.getByText("1/2")).toBeInTheDocument());
+    await user.click(getComboboxItem() as HTMLElement);
+
+    expect(screen.getByTestId("requirements-state")).toHaveTextContent(
+      JSON.stringify({
+        requirements: { levels: [{ skill: "Attack", level: 1 }] },
+        recommendations: { levels: [{ skill: "Attack", level: 1 }] },
+      })
+    );
+
+    await user.clear(searchInput);
+    await user.type(searchInput, "att");
+    expect(await screen.findByText("Completo")).toBeInTheDocument();
+  });
+
+  it("does not allow duplicate quest or achievement diary entries", async () => {
+    const user = userEvent.setup();
+
+    function Wrapper() {
+      const [requirements, setRequirements] = useState<Variant["requirements"]>({});
+      const [recommendations, setRecommendations] = useState<
+        Variant["recommendations"]
+      >();
+
+      return (
+        <>
+          <RequirementsRecommendationsField
+            requirements={requirements}
+            recommendations={recommendations}
+            skillOptions={[]}
+            questOptions={[
+              {
+                label: "Fairy Tale II",
+                value: "fairy-tale-ii",
+                name: "Fairy Tale II",
+                stage: 2,
+              },
+            ]}
+            achievementDiaryOptions={[
+              {
+                label: "Lumbridge & Draynor - Hard",
+                value: "lumbridge-draynor-hard",
+                name: "Lumbridge & Draynor",
+                tier: "Hard",
+              },
+            ]}
+            onChange={({
+              requirements: nextRequirements,
+              recommendations: nextRecommendations,
+            }) => {
+              setRequirements(nextRequirements);
+              setRecommendations(nextRecommendations);
+            }}
+          />
+          <pre data-testid="requirements-state">
+            {JSON.stringify({ requirements, recommendations: recommendations ?? null })}
+          </pre>
+        </>
+      );
+    }
+
+    render(<Wrapper />);
+
+    const searchInput = screen.getByPlaceholderText(
+      "Buscar items, quests, achievement diaries o skills..."
+    );
+    const getComboboxItem = () =>
+      document.querySelector("[data-slot='combobox-item']") as HTMLElement | null;
+
+    await user.click(searchInput);
+    await user.type(searchInput, "fairy");
+    await waitFor(() => expect(getComboboxItem()).not.toBeNull());
+    await user.click(getComboboxItem() as HTMLElement);
+
+    expect(screen.getByTestId("requirements-state")).toHaveTextContent(
+      JSON.stringify({
+        requirements: { quests: [{ name: "Fairy Tale II", stage: 2 }] },
+        recommendations: null,
+      })
+    );
+
+    await user.clear(searchInput);
+    await user.type(searchInput, "fairy");
+    expect(await screen.findByText("Agregado")).toBeInTheDocument();
+
+    await user.clear(searchInput);
+    await user.type(searchInput, "lumb");
+    await waitFor(() => expect(getComboboxItem()).not.toBeNull());
+    await user.click(getComboboxItem() as HTMLElement);
+
+    expect(screen.getByTestId("requirements-state")).toHaveTextContent(
+      JSON.stringify({
+        requirements: {
+          quests: [{ name: "Fairy Tale II", stage: 2 }],
+          achievement_diaries: [
+            { name: "Lumbridge & Draynor", stage: 2, tier: "Hard" },
+          ],
+        },
+        recommendations: null,
+      })
+    );
+
+    await user.clear(searchInput);
+    await user.type(searchInput, "lumb");
+    expect(await screen.findByText("Agregado")).toBeInTheDocument();
   });
 });

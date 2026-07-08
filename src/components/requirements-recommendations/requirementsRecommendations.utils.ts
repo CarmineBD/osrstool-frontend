@@ -98,6 +98,34 @@ export function formatRequiredLabel(isRequired: boolean): string {
   return isRequired ? "Required" : "Recommended";
 }
 
+export function buildUnifiedEntryInstanceKey(
+  baseKey: string,
+  type: EntryRequirementType
+): string {
+  return `${baseKey}::${type}`;
+}
+
+export function supportsDualRequirementEntries(
+  kind: UnifiedEntry["kind"]
+): boolean {
+  return kind === "skill";
+}
+
+export function buildUnifiedEntryKey(
+  kind: UnifiedEntry["kind"],
+  baseKey: string,
+  isRequired: boolean
+): string {
+  if (!supportsDualRequirementEntries(kind)) {
+    return baseKey;
+  }
+
+  return buildUnifiedEntryInstanceKey(
+    baseKey,
+    isRequired ? "required" : "recommended"
+  );
+}
+
 export function hasRequirementContent(value: RequirementPayload | undefined): boolean {
   if (!value) return false;
   return (
@@ -127,12 +155,32 @@ function mergeUnifiedEntry(map: Map<string, UnifiedEntry>, entry: UnifiedEntry) 
     map.set(entry.key, entry);
     return;
   }
-  if (!existing.isRequired && entry.isRequired) {
-    existing.isRequired = true;
-  }
   if (!existing.reason && entry.reason) {
     existing.reason = entry.reason;
   }
+}
+
+export function sortUnifiedEntries(entries: UnifiedEntry[]): UnifiedEntry[] {
+  const kindOrder: Record<UnifiedEntry["kind"], number> = {
+    item: 0,
+    quest: 1,
+    achievement_diary: 2,
+    skill: 3,
+  };
+
+  return [...entries].sort((left, right) => {
+    const byKind = kindOrder[left.kind] - kindOrder[right.kind];
+    if (byKind !== 0) return byKind;
+
+    const byLabel = getEntryLabel(left).localeCompare(getEntryLabel(right));
+    if (byLabel !== 0) return byLabel;
+
+    if (left.isRequired !== right.isRequired) {
+      return left.isRequired ? -1 : 1;
+    }
+
+    return left.key.localeCompare(right.key);
+  });
 }
 
 export function buildUnifiedEntries(
@@ -148,9 +196,11 @@ export function buildUnifiedEntries(
       const id = Number(item.id);
       if (!Number.isFinite(id)) continue;
       const quantity = Number(item.quantity);
+      const baseKey = itemEntryKey(id);
       mergeUnifiedEntry(entriesMap, {
         kind: "item",
-        key: itemEntryKey(id),
+        key: buildUnifiedEntryKey("item", baseKey, isRequired),
+        baseKey,
         id,
         quantity: Number.isFinite(quantity) ? Math.max(0, quantity) : 1,
         reason: normalizeReason(item.reason),
@@ -162,9 +212,11 @@ export function buildUnifiedEntries(
       const skill = level.skill?.trim();
       if (!skill) continue;
       const parsedLevel = Number(level.level);
+      const baseKey = skillEntryKey(skill);
       mergeUnifiedEntry(entriesMap, {
         kind: "skill",
-        key: skillEntryKey(skill),
+        key: buildUnifiedEntryKey("skill", baseKey, isRequired),
+        baseKey,
         skill,
         level: Number.isFinite(parsedLevel) ? Math.max(0, parsedLevel) : 1,
         reason: normalizeReason(level.reason),
@@ -175,9 +227,11 @@ export function buildUnifiedEntries(
     for (const quest of source.quests ?? []) {
       const name = quest.name?.trim();
       if (!name) continue;
+      const baseKey = questEntryKey(name);
       mergeUnifiedEntry(entriesMap, {
         kind: "quest",
-        key: questEntryKey(name),
+        key: buildUnifiedEntryKey("quest", baseKey, isRequired),
+        baseKey,
         name,
         stage: normalizeStage(quest.stage),
         reason: normalizeReason(quest.reason),
@@ -189,9 +243,11 @@ export function buildUnifiedEntries(
       const name = diary.name?.trim();
       if (!name) continue;
       const tier = normalizeTier(diary.tier);
+      const baseKey = achievementDiaryEntryKey(name, tier);
       mergeUnifiedEntry(entriesMap, {
         kind: "achievement_diary",
-        key: achievementDiaryEntryKey(name, tier),
+        key: buildUnifiedEntryKey("achievement_diary", baseKey, isRequired),
+        baseKey,
         name,
         tier,
         stage: normalizeStage(diary.stage),
@@ -204,18 +260,7 @@ export function buildUnifiedEntries(
   ingest(requirements, true);
   ingest(recommendations, false);
 
-  const kindOrder: Record<UnifiedEntry["kind"], number> = {
-    item: 0,
-    quest: 1,
-    achievement_diary: 2,
-    skill: 3,
-  };
-
-  return Array.from(entriesMap.values()).sort((left, right) => {
-    const byKind = kindOrder[left.kind] - kindOrder[right.kind];
-    if (byKind !== 0) return byKind;
-    return getEntryLabel(left).localeCompare(getEntryLabel(right));
-  });
+  return sortUnifiedEntries(Array.from(entriesMap.values()));
 }
 
 export function splitUnifiedEntries(entries: UnifiedEntry[]): {

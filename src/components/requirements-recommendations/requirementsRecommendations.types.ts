@@ -89,6 +89,12 @@ export interface SearchOptionGroup {
   options: SearchOption[];
 }
 
+export interface EntrySelectionState {
+  count: number;
+  hasRequired: boolean;
+  hasRecommended: boolean;
+}
+
 export interface RequirementsRecommendationsFieldProps {
   requirements: RequirementPayload;
   recommendations?: RecommendationPayload;
