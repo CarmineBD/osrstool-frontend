@@ -146,6 +146,22 @@ if (!globalThis.ResizeObserver) {
   globalThis.ResizeObserver = ResizeObserver;
 }
 
+if (!globalThis.IntersectionObserver) {
+  class IntersectionObserver {
+    readonly root = null;
+    readonly rootMargin = "";
+    readonly thresholds = [];
+
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+    takeRecords() {
+      return [];
+    }
+  }
+  globalThis.IntersectionObserver = IntersectionObserver;
+}
+
 beforeAll(() => {
   server.listen({ onUnhandledRequest: "error" });
 });
