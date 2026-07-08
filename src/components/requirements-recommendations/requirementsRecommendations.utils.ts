@@ -1,6 +1,7 @@
 import type { ItemSearchResponse } from "@/lib/api";
 import type {
   DiaryTier,
+  EntryRequirementType,
   RecommendationPayload,
   RequirementPayload,
   StageRequirement,
@@ -39,15 +40,22 @@ export function normalizeText(value: string): string {
   return value.trim().toLowerCase();
 }
 
-export function normalizeReason(value: unknown): string | null {
+export function sanitizeReasonInput(value: unknown): string | null {
   if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  return trimmed ? trimmed : null;
+  const singleLine = value.replace(/\r?\n|\r/g, " ");
+  return singleLine === "" ? null : singleLine;
+}
+
+export function normalizeReason(value: unknown): string | null {
+  const sanitized = sanitizeReasonInput(value);
+  if (!sanitized?.trim()) return null;
+  return sanitized;
 }
 
 function toPayloadReason(value: string | null): string | undefined {
-  const trimmed = value?.trim();
-  return trimmed ? trimmed : undefined;
+  const sanitized = sanitizeReasonInput(value);
+  if (!sanitized?.trim()) return undefined;
+  return sanitized;
 }
 
 function normalizeStage(value: unknown): StageRequirement {

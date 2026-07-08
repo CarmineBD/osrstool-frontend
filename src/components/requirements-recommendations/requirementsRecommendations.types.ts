@@ -9,9 +9,11 @@ export type StageRequirement = 1 | 2;
 export type RequirementPayload = Variant["requirements"];
 export type RecommendationPayload = Variant["recommendations"];
 export type DiaryTier = AchievementDiaryOption["tier"];
+export type EntryRequirementType = "required" | "recommended";
 
 interface UnifiedEntryBase {
   key: string;
+  baseKey: string;
   reason: string | null;
   isRequired: boolean;
 }
