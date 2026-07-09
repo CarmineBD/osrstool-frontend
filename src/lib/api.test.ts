@@ -14,6 +14,7 @@ describe("api update payload helpers", () => {
     const variant: Variant = {
       label: "Main",
       members: true,
+      description: "Primera linea\nSegunda linea\n\nTercera linea",
       xpHour: [],
       requirements: {},
       inputs: [{ id: 1, quantity: 2, reason: "buy" }],
@@ -34,6 +35,9 @@ describe("api update payload helpers", () => {
     expect(payload.variants[0]?.outputs[0]?.type).toBe("output");
     expect(payload.variants[0]?.outputs[0]?.reason).toBeNull();
     expect(payload.variants[0]?.members).toBe(true);
+    expect(payload.variants[0]?.description).toBe(
+      "Primera linea\nSegunda linea\n\nTercera linea"
+    );
   });
 
   it("builds stable signatures for equal variants", () => {
