@@ -49,4 +49,15 @@ describe("Markdown", () => {
 
     expect(html).toContain("12.35k");
   });
+
+  it("preserves plain-text line breaks inside markdown paragraphs", () => {
+    const html = renderMarkdown("Primera linea\nSegunda linea\n\nTercera linea");
+
+    expect(html).toContain(
+      '<p class="mb-4 whitespace-pre-wrap last:mb-0">Primera linea\nSegunda linea</p>'
+    );
+    expect(html).toContain(
+      '<p class="mb-4 whitespace-pre-wrap last:mb-0">Tercera linea</p>'
+    );
+  });
 });
