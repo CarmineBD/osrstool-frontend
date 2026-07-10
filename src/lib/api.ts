@@ -37,6 +37,7 @@ export interface Method {
   name: string;
   category: string;
   description?: string;
+  icon_id?: number | null;
   enabled?: boolean;
   likes?: number;
   likedByMe?: boolean;
@@ -112,6 +113,7 @@ export interface Variant {
   id?: string;
   slug?: string;
   label: string;
+  icon_id?: number | null;
   members: boolean;
   description?: string;
   afkiness?: number;
@@ -983,9 +985,14 @@ export interface UpdateMethodBasicDto {
   enabled: boolean;
 }
 
+export interface UpsertMethodValues extends UpdateMethodBasicDto {
+  icon_id: number;
+}
+
 export interface UpdateVariantDto {
   id?: string;
   label: string;
+  icon_id: number;
   members: boolean;
   description?: string;
   afkiness?: number;
@@ -1000,7 +1007,7 @@ export interface UpdateVariantDto {
   outputs: IoItem[];
 }
 
-export interface UpdateMethodDto extends UpdateMethodBasicDto {
+export interface UpdateMethodDto extends UpsertMethodValues {
   variants: UpdateVariantDto[];
 }
 
@@ -1013,10 +1020,35 @@ function mapIoItems(items: IoItem[] | undefined, type: IoItemType): IoItem[] {
   }));
 }
 
-function buildVariantUpdatePayload(variant: Variant): UpdateVariantDto {
+function normalizeIconId(value: number | null | undefined): number | null {
+  return Number.isInteger(value) && (value as number) > 0
+    ? (value as number)
+    : null;
+}
+
+function parseApiErrorMessage(value: unknown): string | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const message = (value as { message?: unknown }).message;
+  return typeof message === "string" && message.trim() ? message : undefined;
+}
+
+async function getApiErrorMessage(
+  res: Response,
+  fallback: string,
+): Promise<string> {
+  try {
+    const json: unknown = await res.json();
+    return parseApiErrorMessage(json) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function buildVariantSignaturePayload(variant: Variant) {
   return {
     id: variant.id,
     label: variant.label,
+    icon_id: normalizeIconId(variant.icon_id),
     members: variant.members ?? false,
     description: variant.description,
     clickIntensity: variant.clickIntensity,
@@ -1031,18 +1063,36 @@ function buildVariantUpdatePayload(variant: Variant): UpdateVariantDto {
   };
 }
 
+function buildVariantUpdatePayload(variant: Variant): UpdateVariantDto {
+  const icon_id = normalizeIconId(variant.icon_id);
+  if (!icon_id) {
+    throw new Error("Variant icon_id is required");
+  }
+
+  return {
+    ...buildVariantSignaturePayload(variant),
+    icon_id,
+  };
+}
+
 export function buildMethodUpdatePayload(
-  values: UpdateMethodBasicDto,
+  values: UpsertMethodValues,
   variants: Variant[],
 ): UpdateMethodDto {
+  const icon_id = normalizeIconId(values.icon_id);
+  if (!icon_id) {
+    throw new Error("Method icon_id is required");
+  }
+
   return {
     ...values,
+    icon_id,
     variants: variants.map(buildVariantUpdatePayload),
   };
 }
 
 export function getVariantsSignature(variants: Variant[]): string {
-  return JSON.stringify(variants.map(buildVariantUpdatePayload));
+  return JSON.stringify(variants.map(buildVariantSignaturePayload));
 }
 
 export async function updateMethodBasic(
@@ -1055,7 +1105,12 @@ export async function updateMethodBasic(
     body: JSON.stringify(dto),
   });
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} - Error updating method`);
+    throw new Error(
+      await getApiErrorMessage(
+        res,
+        `HTTP ${res.status} - Error updating method`,
+      ),
+    );
   }
   const json: unknown = await res.json();
   const method =
@@ -1070,7 +1125,7 @@ export async function updateMethodBasic(
 
 export async function updateMethodWithVariants(
   id: string,
-  values: UpdateMethodBasicDto,
+  values: UpsertMethodValues,
   variants: Variant[],
 ): Promise<Method> {
   const dto = buildMethodUpdatePayload(values, variants);
@@ -1080,7 +1135,12 @@ export async function updateMethodWithVariants(
     body: JSON.stringify(dto),
   });
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} - Error updating method`);
+    throw new Error(
+      await getApiErrorMessage(
+        res,
+        `HTTP ${res.status} - Error updating method`,
+      ),
+    );
   }
   const json: unknown = await res.json();
   const method =
@@ -1094,7 +1154,7 @@ export async function updateMethodWithVariants(
 }
 
 export async function createMethodWithVariants(
-  values: UpdateMethodBasicDto,
+  values: UpsertMethodValues,
   variants: Variant[],
 ): Promise<Method> {
   const dto = buildMethodUpdatePayload(values, variants);
@@ -1104,7 +1164,12 @@ export async function createMethodWithVariants(
     body: JSON.stringify(dto),
   });
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} - Error creating method`);
+    throw new Error(
+      await getApiErrorMessage(
+        res,
+        `HTTP ${res.status} - Error creating method`,
+      ),
+    );
   }
   const json: unknown = await res.json();
   const method =

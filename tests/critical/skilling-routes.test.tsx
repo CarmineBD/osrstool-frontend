@@ -249,6 +249,25 @@ describe("critical flow: skilling routes", () => {
     const seenSortBy: string[] = [];
 
     server.use(
+      http.get("*/items", ({ request }) => {
+        const url = new URL(request.url);
+        const ids = (url.searchParams.get("ids") ?? "")
+          .split(",")
+          .map((value) => Number(value))
+          .filter((value) => Number.isFinite(value));
+
+        const data = Object.fromEntries(
+          ids.map((id) => [
+            id,
+            {
+              name: `Item ${id}`,
+              iconUrl: `https://example.com/items/${id}.png`,
+            },
+          ])
+        );
+
+        return HttpResponse.json({ data });
+      }),
       http.get("*/methods", ({ request }) => {
         const url = new URL(request.url);
         seenSkills.push(url.searchParams.get("skill") ?? "");
@@ -270,6 +289,7 @@ describe("critical flow: skilling routes", () => {
                     id: "variant-1",
                     slug: "main",
                     label: "Main",
+                    icon_id: 2001,
                     gpPerXpHigh: 4.2,
                     gpPerXpLow: 3.1,
                     xpHour: [
@@ -300,6 +320,7 @@ describe("critical flow: skilling routes", () => {
                     id: "variant-2",
                     slug: "alt",
                     label: "Alt",
+                    icon_id: 2002,
                     gpPerXpHigh: 2.1,
                     gpPerXpLow: 1.4,
                     xpHour: [{ skill: "Magic", experience: 90000 }],
@@ -337,6 +358,7 @@ describe("critical flow: skilling routes", () => {
     expect(
       screen.getByRole("link", { name: "Main" })
     ).toHaveAttribute("href", "/moneyMakingMethod/bursting-monkeys/main");
+    expect(await screen.findByAltText("Bursting monkeys icon")).toBeInTheDocument();
 
     const requirementsOverflowButton = screen.getByRole("button", {
       name: /and 2 more/i,
@@ -354,6 +376,11 @@ describe("critical flow: skilling routes", () => {
       .getByRole("link", { name: "Runecrafting alt" })
       .closest("tr");
     expect(runecraftingRow).not.toBeNull();
+    expect(
+      within(runecraftingRow as HTMLTableRowElement).getByAltText(
+        "Runecrafting alt icon"
+      )
+    ).toBeInTheDocument();
     expect(
       within(runecraftingRow as HTMLTableRowElement).getByAltText("crafting_icon")
     ).toBeInTheDocument();

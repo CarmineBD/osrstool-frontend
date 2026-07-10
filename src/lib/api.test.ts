@@ -13,6 +13,7 @@ describe("api update payload helpers", () => {
   it("maps input/output item types in the method update payload", () => {
     const variant: Variant = {
       label: "Main",
+      icon_id: 3145,
       members: true,
       description: "Primera linea\nSegunda linea\n\nTercera linea",
       xpHour: [],
@@ -27,10 +28,13 @@ describe("api update payload helpers", () => {
         category: "skilling",
         description: "desc",
         enabled: true,
+        icon_id: 3145,
       },
       [variant]
     );
 
+    expect(payload.icon_id).toBe(3145);
+    expect(payload.variants[0]?.icon_id).toBe(3145);
     expect(payload.variants[0]?.inputs[0]?.type).toBe("input");
     expect(payload.variants[0]?.outputs[0]?.type).toBe("output");
     expect(payload.variants[0]?.outputs[0]?.reason).toBeNull();
@@ -44,6 +48,7 @@ describe("api update payload helpers", () => {
     const variants: Variant[] = [
       {
         label: "A",
+        icon_id: 100,
         members: false,
         xpHour: [],
         requirements: {},

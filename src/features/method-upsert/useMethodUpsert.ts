@@ -28,11 +28,21 @@ import { QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
 
 export type MethodUpsertMode = "create" | "edit";
 
-export const methodFormSchema = z.object({
-  name: z.string().min(1, { message: "Name is required" }),
-  category: z.string().min(1, { message: "Category is required" }),
-  description: z.string().optional(),
-});
+export const methodFormSchema = z
+  .object({
+    name: z.string().min(1, { message: "Name is required" }),
+    category: z.string().min(1, { message: "Category is required" }),
+    description: z.string().optional(),
+    icon_id: z.number().int().positive().optional(),
+  })
+  .superRefine((values, ctx) => {
+    if (values.icon_id !== undefined) return;
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["icon_id"],
+      message: "Method icon is required",
+    });
+  });
 
 export type MethodUpsertFormValues = z.infer<typeof methodFormSchema>;
 
@@ -55,6 +65,12 @@ const createEmptyVariant = (): Variant => ({
 
 function normalizeVariantLabel(label: string): string {
   return label.trim().toLowerCase();
+}
+
+function normalizeIconId(value: number | null | undefined): number | undefined {
+  return Number.isInteger(value) && (value as number) > 0
+    ? (value as number)
+    : undefined;
 }
 
 export function useMethodUpsert(mode: MethodUpsertMode) {
@@ -141,6 +157,8 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showVariantValidationErrors, setShowVariantValidationErrors] =
+    useState(false);
   const isSavingRef = useRef(false);
   const isDeletingRef = useRef(false);
 
@@ -148,7 +166,7 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
 
   const form = useForm<MethodUpsertFormValues>({
     resolver: zodResolver(methodFormSchema),
-    defaultValues: { name: "", category: "", description: "" },
+    defaultValues: { name: "", category: "", description: "", icon_id: undefined },
   });
 
   useEffect(() => {
@@ -168,6 +186,7 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
       name: method.name,
       category: (method.category ?? "").toLowerCase().trim(),
       description: method.description ?? "",
+      icon_id: normalizeIconId(method.icon_id),
     });
   }, [form, isEditMode, method]);
 
@@ -207,6 +226,11 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
     return (labelCounts.get(key) ?? 0) > 1;
   };
 
+  const hasVariantIconErrors = useMemo(
+    () => variants.some((variant) => !normalizeIconId(variant.icon_id)),
+    [variants],
+  );
+
   const navigateToMethodDetail = (savedMethod: Method) => {
     navigate(`/moneyMakingMethod/${savedMethod.slug}`);
   };
@@ -241,9 +265,14 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
     values: MethodUpsertFormValues,
     enabledValue: boolean
   ) => {
+    const methodIconId = normalizeIconId(values.icon_id);
+    if (!methodIconId) {
+      throw new Error("Method icon is required");
+    }
+
     if (!isEditMode) {
       const createdMethod = await createMethodWithVariants(
-        { ...values, enabled: enabledValue },
+        { ...values, icon_id: methodIconId, enabled: enabledValue },
         variants
       );
       await invalidateMethodCaches(createdMethod.slug);
@@ -257,17 +286,21 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
       initialVariantsSignature ?? getVariantsSignature(method.variants ?? []);
     const variantsChanged =
       baselineSignature !== getVariantsSignature(variants);
+    const methodIconChanged =
+      normalizeIconId(method.icon_id) !== normalizeIconId(values.icon_id);
 
     let updatedMethod: Method;
-    if (variantsChanged) {
+    if (variantsChanged || methodIconChanged) {
       updatedMethod = await updateMethodWithVariants(
         method.id,
-        { ...values, enabled: enabledValue },
+        { ...values, icon_id: methodIconId, enabled: enabledValue },
         variants
       );
     } else {
       updatedMethod = await updateMethodBasic(method.id, {
-        ...values,
+        name: values.name,
+        category: values.category,
+        description: values.description,
         enabled: enabledValue,
       });
     }
@@ -277,6 +310,9 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
   };
 
   const onSubmit = async (values: MethodUpsertFormValues) => {
+    setShowVariantValidationErrors(true);
+    if (hasVariantIconErrors) return;
+
     if (isSavingRef.current) return;
     isSavingRef.current = true;
     setIsSaving(true);
@@ -411,6 +447,8 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
     setConfirmOpen,
     deleteConfirmOpen,
     setDeleteConfirmOpen,
+    showVariantValidationErrors,
+    setShowVariantValidationErrors,
     onSubmit,
     handleFormKeyDown,
     handleCancel,

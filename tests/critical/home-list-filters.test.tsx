@@ -6,7 +6,7 @@ import { Home } from "@/pages/Home";
 import { server } from "../msw/server";
 import { renderWithProviders } from "../utils/render";
 
-function buildMethod(id: string, name: string, slug: string) {
+function buildMethod(id: string, name: string, slug: string, iconId: number) {
   return {
     id,
     slug,
@@ -18,6 +18,7 @@ function buildMethod(id: string, name: string, slug: string) {
       {
         slug: `${slug}-main`,
         label: "Main",
+        icon_id: iconId,
         requirements: {},
         inputs: [],
         outputs: [],
@@ -31,14 +32,36 @@ describe("critical flow: list render + filters", () => {
     const seenNames: string[] = [];
 
     server.use(
+      http.get("*/items", ({ request }) => {
+        const requestUrl = new URL(request.url);
+        const ids = (requestUrl.searchParams.get("ids") ?? "")
+          .split(",")
+          .map((value) => Number(value))
+          .filter((value) => Number.isFinite(value));
+        const data = Object.fromEntries(
+          ids.map((id) => [
+            id,
+            id === 1001
+              ? {
+                  name: "Shark fishing icon",
+                  iconUrl: "https://example.com/shark-fishing.png",
+                }
+              : {
+                  name: "Dragon bones run icon",
+                  iconUrl: "https://example.com/dragon-bones-run.png",
+                },
+          ])
+        );
+        return HttpResponse.json({ data });
+      }),
       http.get("*/methods", ({ request }) => {
         const requestUrl = new URL(request.url);
         const name = requestUrl.searchParams.get("name") ?? "";
         seenNames.push(name);
 
         const methods = name.toLowerCase().includes("dragon")
-          ? [buildMethod("method-2", "Dragon bones run", "dragon-bones-run")]
-          : [buildMethod("method-1", "Shark fishing", "shark-fishing")];
+          ? [buildMethod("method-2", "Dragon bones run", "dragon-bones-run", 1002)]
+          : [buildMethod("method-1", "Shark fishing", "shark-fishing", 1001)];
 
         return HttpResponse.json({
           data: {
@@ -56,6 +79,7 @@ describe("critical flow: list render + filters", () => {
     expect(
       await screen.findByRole("link", { name: "Shark fishing" })
     ).toBeInTheDocument();
+    expect(await screen.findByAltText("Shark fishing icon")).toBeInTheDocument();
 
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: /show filters/i }));
@@ -67,6 +91,7 @@ describe("critical flow: list render + filters", () => {
     expect(
       await screen.findByRole("link", { name: "Dragon bones run" })
     ).toBeInTheDocument();
+    expect(await screen.findByAltText("Dragon bones run icon")).toBeInTheDocument();
     expect(seenNames).toContain("dragon");
   });
 });

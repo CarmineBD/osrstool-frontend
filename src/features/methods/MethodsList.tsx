@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMethods } from "./hooks";
 import { Link } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Table,
   TableHeader,
@@ -65,6 +65,7 @@ interface Row {
   variantLabel: string;
   variantCount: number;
   members: boolean;
+  iconId?: number;
   name: string;
   category: string;
   xpHour: { skill: string; experience: number }[];
@@ -173,6 +174,7 @@ export function MethodsList({
         variantLabel: variant.label,
         variantCount,
         members: variant.members,
+        iconId: variant.icon_id ?? undefined,
         name: method.name,
         category: method.category,
         xpHour,
@@ -191,6 +193,25 @@ export function MethodsList({
       };
     }),
   );
+
+  const variantIconIds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          rows
+            .map((row) => row.iconId)
+            .filter((iconId): iconId is number => Number.isInteger(iconId)),
+        ),
+      ).sort((a, b) => a - b),
+    [rows],
+  );
+
+  const { data: variantIcons = {} } = useQuery<Record<number, Item>>({
+    queryKey: getItemsQueryKey(variantIconIds),
+    queryFn: () => fetchItems(variantIconIds),
+    enabled: variantIconIds.length > 0,
+    staleTime: QUERY_STALE_TIME_MS,
+  });
 
   const calculatedPageCount =
     data?.total !== undefined && data?.perPage !== undefined && data.perPage > 0
@@ -505,24 +526,35 @@ export function MethodsList({
 
   const renderMethodCell = (row: Row, className?: string) => (
     <TableCell className={cn("min-w-0 font-medium", className)}>
-      <div className="space-y-1">
-        <Link
-          to={`/moneyMakingMethod/${row.methodSlug}${
-            row.variantCount > 1 ? `/${row.variantSlug}` : ""
-          }`}
-          className="block min-w-0 truncate text-blue-600 hover:underline"
-          onMouseEnter={() => scheduleMethodPrefetch(row.methodSlug)}
-          onMouseLeave={clearPrefetchTimer}
-          onFocus={() => scheduleMethodPrefetch(row.methodSlug)}
-          onBlur={clearPrefetchTimer}
-          onMouseDown={() => prefetchMethodDetail(row.methodSlug)}
-          onTouchStart={() => prefetchMethodDetail(row.methodSlug)}
-        >
-          {row.name}
-        </Link>
-        {!isSkillTable ? (
-          <VariantMembershipBadge members={row.members} compact />
+      <div className="flex items-start gap-2">
+        {row.iconId && variantIcons[row.iconId]?.iconUrl ? (
+          <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
+            <img
+              src={variantIcons[row.iconId]?.iconUrl}
+              alt={`${row.name} icon`}
+              className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
+            />
+          </div>
         ) : null}
+        <div className="min-w-0 space-y-1">
+          <Link
+            to={`/moneyMakingMethod/${row.methodSlug}${
+              row.variantCount > 1 ? `/${row.variantSlug}` : ""
+            }`}
+            className="block min-w-0 truncate text-blue-600 hover:underline"
+            onMouseEnter={() => scheduleMethodPrefetch(row.methodSlug)}
+            onMouseLeave={clearPrefetchTimer}
+            onFocus={() => scheduleMethodPrefetch(row.methodSlug)}
+            onBlur={clearPrefetchTimer}
+            onMouseDown={() => prefetchMethodDetail(row.methodSlug)}
+            onTouchStart={() => prefetchMethodDetail(row.methodSlug)}
+          >
+            {row.name}
+          </Link>
+          {!isSkillTable ? (
+            <VariantMembershipBadge members={row.members} compact />
+          ) : null}
+        </div>
       </div>
     </TableCell>
   );

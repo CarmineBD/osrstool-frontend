@@ -22,6 +22,25 @@ export const server = setupServer(
   ),
   http.get("*/achievement-diaries", () => HttpResponse.json([])),
   http.get("*/achievement_diaries", () => HttpResponse.json([])),
+  http.get("*/items", ({ request }) => {
+    const url = new URL(request.url);
+    const ids = (url.searchParams.get("ids") ?? "")
+      .split(",")
+      .map((value) => Number(value))
+      .filter((value) => Number.isFinite(value));
+
+    const data = Object.fromEntries(
+      ids.map((id) => [
+        id,
+        {
+          name: `Item ${id}`,
+          iconUrl: `https://example.com/items/${id}.png`,
+        },
+      ])
+    );
+
+    return HttpResponse.json({ data });
+  }),
   http.get("*/quests", () => HttpResponse.json([])),
   http.get("*/methods/trending-profit", ({ request }) => {
     const url = new URL(request.url);

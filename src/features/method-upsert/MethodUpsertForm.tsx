@@ -6,6 +6,7 @@ import type {
   SkillOption,
   Variant,
 } from "@/lib/api";
+import { ItemIconField } from "@/components/ItemIconField";
 import { VariantForm } from "@/components/VariantForm";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,6 +40,7 @@ interface MethodUpsertFormProps {
   enabled: boolean;
   onEnabledChange: (checked: boolean) => void;
   onSubmit: (values: MethodUpsertFormValues) => void | Promise<void>;
+  onSubmitAttempt: () => void;
   onFormKeyDown: (event: KeyboardEvent<HTMLFormElement>) => void;
   selectorCatalogLoading: boolean;
   selectorCatalogError: unknown;
@@ -52,6 +54,7 @@ interface MethodUpsertFormProps {
   onUpdateVariant: (index: number, value: Variant) => void;
   isVariantLabelDuplicate: (label: string) => boolean;
   hasDuplicateVariantLabels: boolean;
+  showVariantValidationErrors: boolean;
   isSaving: boolean;
   isDeleting: boolean;
   onCancel: () => void;
@@ -107,6 +110,7 @@ export function MethodUpsertForm({
   enabled,
   onEnabledChange,
   onSubmit,
+  onSubmitAttempt,
   onFormKeyDown,
   selectorCatalogLoading,
   selectorCatalogError,
@@ -120,6 +124,7 @@ export function MethodUpsertForm({
   onUpdateVariant,
   isVariantLabelDuplicate,
   hasDuplicateVariantLabels,
+  showVariantValidationErrors,
   isSaving,
   isDeleting,
   onCancel,
@@ -128,7 +133,10 @@ export function MethodUpsertForm({
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(onSubmit)}
+        onSubmit={(event) => {
+          onSubmitAttempt();
+          void form.handleSubmit(onSubmit)(event);
+        }}
         onKeyDown={onFormKeyDown}
         className="space-y-6"
       >
@@ -139,7 +147,7 @@ export function MethodUpsertForm({
 
         <section>
           <h2 className="mb-2 font-semibold">Method details</h2>
-          <div className="mb-4 flex flex-col gap-4 md:flex-row">
+          <div className="mb-4 grid gap-4 md:grid-cols-2">
             <FormField
               control={form.control}
               name="name"
@@ -150,6 +158,23 @@ export function MethodUpsertForm({
                     <Input placeholder="Method name" {...field} />
                   </FormControl>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="icon_id"
+              render={({ field, fieldState }) => (
+                <FormItem>
+                  <ItemIconField
+                    label="Method icon"
+                    value={field.value}
+                    onChange={field.onChange}
+                    error={fieldState.error?.message}
+                    searchAriaLabel="Method icon search"
+                    optionsAriaLabel="Method icon search options"
+                  />
                 </FormItem>
               )}
             />
@@ -189,7 +214,7 @@ export function MethodUpsertForm({
               control={form.control}
               name="description"
               render={({ field }) => (
-                <FormItem className="flex-1">
+                <FormItem className="md:col-span-2">
                   <FormLabel>Description</FormLabel>
                   <FormControl>
                     <Textarea
@@ -244,10 +269,12 @@ export function MethodUpsertForm({
                 onRemove={() => onRemoveVariant(index)}
                 onDuplicate={() => onDuplicateVariant(index)}
                 isLabelDuplicate={isVariantLabelDuplicate(variant.label ?? "")}
+                index={index}
                 skillOptions={skillOptions}
                 questOptions={questOptions}
                 achievementDiaryOptions={achievementDiaryOptions}
                 variant={variant}
+                showValidationErrors={showVariantValidationErrors}
                 onChange={(value) => onUpdateVariant(index, value)}
               />
             ))
