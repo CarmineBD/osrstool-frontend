@@ -88,4 +88,32 @@ describe("critical flow: create/edit form validations", () => {
     expect(await screen.findByText("Name is required")).toBeInTheDocument();
     expect(updateRequests).toBe(0);
   });
+
+  it("requires method and variant icon selection in create mode", async () => {
+    let createRequests = 0;
+
+    server.use(
+      http.post("*/methods", () => {
+        createRequests += 1;
+        return HttpResponse.json({}, { status: 201 });
+      })
+    );
+
+    renderWithProviders(
+      <Routes>
+        <Route path="/moneyMakingMethod/new" element={<MethodUpsert mode="create" />} />
+      </Routes>,
+      { route: "/moneyMakingMethod/new" }
+    );
+
+    const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole("button", { name: /New variant/i })
+    );
+    await user.click(screen.getByRole("button", { name: "Guardar" }));
+
+    expect(await screen.findByText("Method icon is required")).toBeInTheDocument();
+    expect(await screen.findByText("Variant icon is required")).toBeInTheDocument();
+    expect(createRequests).toBe(0);
+  });
 });

@@ -37,6 +37,7 @@ export function MethodUpsert({ mode }: Props) {
         enabled={state.enabled}
         onEnabledChange={state.setEnabled}
         onSubmit={state.onSubmit}
+        onSubmitAttempt={() => state.setShowVariantValidationErrors(true)}
         onFormKeyDown={state.handleFormKeyDown}
         selectorCatalogLoading={state.selectorCatalogLoading}
         selectorCatalogError={state.selectorCatalogError}
@@ -50,6 +51,7 @@ export function MethodUpsert({ mode }: Props) {
         onUpdateVariant={state.updateVariantAt}
         isVariantLabelDuplicate={state.isVariantLabelDuplicate}
         hasDuplicateVariantLabels={state.hasDuplicateVariantLabels}
+        showVariantValidationErrors={state.showVariantValidationErrors}
         isSaving={state.isSaving}
         isDeleting={state.isDeleting}
         onCancel={state.handleCancel}

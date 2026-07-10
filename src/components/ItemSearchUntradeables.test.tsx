@@ -2,6 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ItemIconField } from "@/components/ItemIconField";
 import { IoItemsField } from "@/components/IoItemsField";
 import { RequirementsRecommendationsField } from "@/components/RequirementsRecommendationsField";
 import { fetchItems, searchItems, type Variant } from "@/lib/api";
@@ -87,6 +88,44 @@ describe("item search untradeables toggle", () => {
     const searchInput = screen.getByPlaceholderText(
       "Buscar items, quests, achievement diaries o skills..."
     );
+    await user.type(searchInput, "coal");
+
+    await waitFor(() => expect(searchItems).toHaveBeenCalled());
+    expect(vi.mocked(searchItems).mock.calls.at(-1)?.[0]).toBe("coal");
+    expect(vi.mocked(searchItems).mock.calls.at(-1)?.[4]).toEqual({
+      showUntradeables: true,
+    });
+  });
+
+  it("defaults to false and updates icon item search when enabled", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ItemIconField
+        label="Method icon"
+        value={undefined}
+        onChange={vi.fn()}
+        searchAriaLabel="Method icon search"
+        optionsAriaLabel="Method icon search options"
+      />
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "Method icon search options" })
+    );
+
+    const showUntradeablesSwitch = await screen.findByRole("switch", {
+      name: "Show untradeables",
+    });
+    expect(showUntradeablesSwitch).toHaveAttribute("aria-checked", "false");
+
+    await user.click(showUntradeablesSwitch);
+    expect(showUntradeablesSwitch).toHaveAttribute("aria-checked", "true");
+    await user.keyboard("{Escape}");
+
+    const searchInput = screen.getByRole("combobox", {
+      name: "Method icon search",
+    });
     await user.type(searchInput, "coal");
 
     await waitFor(() => expect(searchItems).toHaveBeenCalled());

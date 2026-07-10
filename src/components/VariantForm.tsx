@@ -1,38 +1,44 @@
 import { useEffect, useState } from "react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogTrigger,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogCancel,
-  AlertDialogAction,
-} from "@/components/ui/alert-dialog";
+  IconChevronDown,
+  IconDotsVertical,
+  IconX,
+} from "@tabler/icons-react";
 import type {
   AchievementDiaryOption,
   QuestOption,
   SkillOption,
   Variant,
-} from "../lib/api";
-import { IconDotsVertical, IconX, IconChevronDown } from "@tabler/icons-react";
-import { Textarea } from "@/components/ui/textarea";
+} from "@/lib/api";
+import { ItemIconField } from "@/components/ItemIconField";
+import { IoItemsField } from "@/components/IoItemsField";
+import { RequirementsRecommendationsField } from "@/components/RequirementsRecommendationsField";
+import { XpSkillsField } from "@/components/XpSkillsField";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { IoItemsField } from "@/components/IoItemsField";
-import { XpSkillsField } from "@/components/XpSkillsField";
-import { RequirementsRecommendationsField } from "@/components/RequirementsRecommendationsField";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 interface VariantFormProps {
+  index: number;
   onRemove: () => void;
   variant: Variant;
   skillOptions: SkillOption[];
@@ -41,9 +47,17 @@ interface VariantFormProps {
   onChange?: (updated: Variant) => void;
   onDuplicate?: () => void;
   isLabelDuplicate?: boolean;
+  showValidationErrors?: boolean;
+}
+
+function normalizeIconId(value: number | null | undefined): number | undefined {
+  return Number.isInteger(value) && (value as number) > 0
+    ? (value as number)
+    : undefined;
 }
 
 export function VariantForm({
+  index,
   onRemove,
   variant,
   skillOptions,
@@ -52,24 +66,33 @@ export function VariantForm({
   onChange,
   onDuplicate,
   isLabelDuplicate,
+  showValidationErrors,
 }: VariantFormProps) {
   const [open, setOpen] = useState(false);
   const [label, setLabel] = useState<string>(variant.label);
-  const [description, setDescription] = useState<string>(variant.description ?? "");
+  const [iconId, setIconId] = useState<number | undefined>(
+    normalizeIconId(variant.icon_id),
+  );
+  const [description, setDescription] = useState<string>(
+    variant.description ?? "",
+  );
   const [members, setMembers] = useState<boolean>(variant.members ?? false);
-  const [wilderness, setWilderness] = useState<boolean>(variant.wilderness ?? false);
+  const [wilderness, setWilderness] = useState<boolean>(
+    variant.wilderness ?? false,
+  );
   const [afkiness, setAfkiness] = useState<number | undefined>(variant.afkiness);
   const [clickIntensity, setClickIntensity] = useState<number | undefined>(
-    variant.clickIntensity ?? variant.actionsPerHour
+    variant.clickIntensity ?? variant.actionsPerHour,
   );
   const [xpHour, setXpHour] = useState<NonNullable<Variant["xpHour"]>>(
-    variant.xpHour ?? []
+    variant.xpHour ?? [],
   );
   const [inputs, setInputs] = useState<Variant["inputs"]>(variant.inputs ?? []);
   const [outputs, setOutputs] = useState<Variant["outputs"]>(variant.outputs ?? []);
 
   useEffect(() => {
     setLabel(variant.label);
+    setIconId(normalizeIconId(variant.icon_id));
     setDescription(variant.description ?? "");
     setMembers(variant.members ?? false);
     setWilderness(variant.wilderness ?? false);
@@ -80,20 +103,23 @@ export function VariantForm({
     setOutputs(variant.outputs ?? []);
   }, [variant]);
 
+  const iconError =
+    showValidationErrors && !iconId ? "Variant icon is required" : undefined;
+
   return (
-    <div className="border rounded mb-4">
+    <div className="mb-4 rounded border">
       <div className="flex items-center justify-between p-4">
-      <button
-        type="button"
-        className="flex items-center gap-2 flex-1 text-left"
-        onClick={() => setOpen(!open)}
-      >
-        <span>{label}</span>
-        <IconChevronDown
-          size={16}
-          className={cn("transition-transform", open && "rotate-180")}
-        />
-      </button>
+        <button
+          type="button"
+          className="flex flex-1 items-center gap-2 text-left"
+          onClick={() => setOpen(!open)}
+        >
+          <span>{label}</span>
+          <IconChevronDown
+            size={16}
+            className={cn("transition-transform", open && "rotate-180")}
+          />
+        </button>
         <div className="flex items-center gap-2">
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -104,10 +130,10 @@ export function VariantForm({
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>
-                  ¿Estás seguro que quieres eliminar este variant?
+                  Are you sure you want to delete this variant?
                 </AlertDialogTitle>
                 <AlertDialogDescription>
-                  Esta acción no se puede deshacer.
+                  This action cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -132,40 +158,57 @@ export function VariantForm({
           </DropdownMenu>
         </div>
       </div>
-      {open && (
-        <div className="p-4 space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Label</label>
-            <Input
-              value={label}
-              className={cn(
-                isLabelDuplicate && "border-red-500 focus-visible:ring-red-500"
-              )}
-              onChange={(e) => {
-                const next = e.target.value;
-                setLabel(next);
-                onChange?.({ ...variant, label: next });
+
+      {open ? (
+        <div className="space-y-4 p-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="mb-2 block text-sm font-medium">Label</label>
+              <Input
+                value={label}
+                className={cn(
+                  isLabelDuplicate && "border-red-500 focus-visible:ring-red-500",
+                )}
+                onChange={(event) => {
+                  const next = event.target.value;
+                  setLabel(next);
+                  onChange?.({ ...variant, label: next });
+                }}
+              />
+              {isLabelDuplicate ? (
+                <p className="mt-1 text-sm text-red-500">
+                  Este nombre ya existe en otro variant.
+                </p>
+              ) : null}
+            </div>
+
+            <ItemIconField
+              label="Variant icon"
+              value={iconId}
+              onChange={(next) => {
+                setIconId(next);
+                onChange?.({ ...variant, icon_id: next });
               }}
+              error={iconError}
+              searchAriaLabel={`Variant ${index + 1} icon search`}
+              optionsAriaLabel={`Variant ${index + 1} icon search options`}
             />
-            {isLabelDuplicate && (
-              <p className="mt-1 text-sm text-red-500">
-                Este nombre ya existe en otro variant.
-              </p>
-            )}
           </div>
+
           <div>
-            <label className="block text-sm font-medium mb-2">Description</label>
+            <label className="mb-2 block text-sm font-medium">Description</label>
             <Textarea
               placeholder="Describe this variant"
               className="min-h-[100px]"
               value={description}
-              onChange={(e) => {
-                const next = e.target.value;
+              onChange={(event) => {
+                const next = event.target.value;
                 setDescription(next);
                 onChange?.({ ...variant, description: next });
               }}
             />
           </div>
+
           <div className="flex flex-wrap items-center gap-6">
             <div className="flex items-center space-x-2">
               <Switch
@@ -188,36 +231,40 @@ export function VariantForm({
               <span className="text-sm">Wilderness</span>
             </div>
           </div>
+
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium mb-2">AFKiness</label>
+              <label className="mb-2 block text-sm font-medium">AFKiness</label>
               <Input
                 type="number"
                 value={afkiness ?? ""}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  const num = v === "" ? undefined : Number(v);
-                  setAfkiness(num);
-                  onChange?.({ ...variant, afkiness: num });
+                onChange={(event) => {
+                  const nextValue = event.target.value;
+                  const numericValue =
+                    nextValue === "" ? undefined : Number(nextValue);
+                  setAfkiness(numericValue);
+                  onChange?.({ ...variant, afkiness: numericValue });
                 }}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label className="mb-2 block text-sm font-medium">
                 Clicks per hour (clickIntensity)
               </label>
               <Input
                 type="number"
                 value={clickIntensity ?? ""}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  const num = v === "" ? undefined : Number(v);
-                  setClickIntensity(num);
-                  onChange?.({ ...variant, clickIntensity: num });
+                onChange={(event) => {
+                  const nextValue = event.target.value;
+                  const numericValue =
+                    nextValue === "" ? undefined : Number(nextValue);
+                  setClickIntensity(numericValue);
+                  onChange?.({ ...variant, clickIntensity: numericValue });
                 }}
               />
             </div>
           </div>
+
           <XpSkillsField
             label="XP per hour"
             skills={skillOptions}
@@ -227,6 +274,7 @@ export function VariantForm({
               onChange?.({ ...variant, xpHour: next });
             }}
           />
+
           <div className="grid gap-4 md:grid-cols-2">
             <IoItemsField
               label="Inputs"
@@ -245,6 +293,7 @@ export function VariantForm({
               }}
             />
           </div>
+
           <RequirementsRecommendationsField
             requirements={variant.requirements}
             recommendations={variant.recommendations}
@@ -260,7 +309,7 @@ export function VariantForm({
             }}
           />
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
