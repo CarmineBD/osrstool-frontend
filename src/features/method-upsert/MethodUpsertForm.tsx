@@ -3,18 +3,28 @@ import { IconPlus } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import type { UseFormReturn } from "react-hook-form";
 import { ItemIconField } from "@/components/ItemIconField";
+import {
+  EDITOR_BODY_TEXT_CLASS,
+  EDITOR_CARD_CONTENT_CLASS,
+  EDITOR_CARD_HEADER_CLASS,
+  EDITOR_DASHED_ACTION_CLASS,
+  EDITOR_ERROR_TEXT_CLASS,
+  EDITOR_FIELD_LABEL_CLASS,
+  EDITOR_META_TEXT_CLASS,
+  EDITOR_NESTED_SURFACE_CLASS,
+  EDITOR_PRIMARY_CARD_CLASS,
+  EDITOR_SECONDARY_CARD_CLASS,
+  EDITOR_TAB_LIST_CLASS,
+  EmptySelectionState,
+  InlineSwitchField,
+  SectionHeader,
+} from "@/components/method-editor/MethodEditorPrimitives";
 import { RequiredMark } from "@/components/RequiredMark";
 import { VariantTabLabel } from "@/components/VariantTabLabel";
 import { VariantForm } from "@/components/VariantForm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -33,7 +43,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { fetchItems, type Item } from "@/lib/api";
@@ -49,6 +58,7 @@ import {
 } from "@/features/method-upsert/useMethodUpsert";
 import { getItemsQueryKey } from "@/lib/queryKeys";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
+import { cn } from "@/lib/utils";
 
 interface MethodUpsertFormProps {
   isEditMode: boolean;
@@ -180,19 +190,21 @@ export function MethodUpsertForm({
       >
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_280px]">
           <div className="space-y-6">
-            <Card className="gap-0 border-border/70 bg-muted/[0.18] shadow-sm">
-              <CardContent className="space-y-4 p-4">
-                <div className="flex flex-col gap-3 border-b border-border/60 pb-4 md:flex-row md:items-center md:justify-between">
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                    Method basics
-                  </p>
+            <Card className={EDITOR_PRIMARY_CARD_CLASS}>
+              <CardHeader className={EDITOR_CARD_HEADER_CLASS}>
+                <SectionHeader
+                  title="Method details"
+                  description="Set the shared identity and metadata used across every variant."
+                  actions={
+                    <Badge variant="outline" size="sm">
+                      {isEditMode ? "Editing" : "Creating"}
+                    </Badge>
+                  }
+                />
+              </CardHeader>
 
-                  <Badge variant="outline" size="sm">
-                    {isEditMode ? "Editing" : "Creating"}
-                  </Badge>
-                </div>
-
-                <div className="grid gap-x-3 gap-y-4 lg:grid-cols-[max-content_minmax(0,1.6fr)_minmax(0,11rem)_minmax(0,8rem)]">
+              <CardContent className={EDITOR_CARD_CONTENT_CLASS}>
+                <div className="grid gap-4 lg:grid-cols-[max-content_minmax(0,1.6fr)_minmax(0,11rem)_minmax(0,8rem)]">
                   <FormField
                     control={form.control}
                     name="icon_id"
@@ -216,16 +228,12 @@ export function MethodUpsertForm({
                     name="name"
                     render={({ field }) => (
                       <FormItem className="space-y-0">
-                        <FormLabel className="mb-2 block">
+                        <FormLabel className={EDITOR_FIELD_LABEL_CLASS}>
                           Name
                           <RequiredMark />
                         </FormLabel>
                         <FormControl>
-                          <Input
-                            placeholder="Method name"
-                            className="bg-background/90"
-                            {...field}
-                          />
+                          <Input placeholder="Method name" className="bg-background" {...field} />
                         </FormControl>
                         <FormMessage className="mt-2" />
                       </FormItem>
@@ -237,7 +245,7 @@ export function MethodUpsertForm({
                     name="category"
                     render={({ field }) => (
                       <FormItem className="space-y-0">
-                        <FormLabel className="mb-2 block">
+                        <FormLabel className={EDITOR_FIELD_LABEL_CLASS}>
                           Category
                           <RequiredMark />
                         </FormLabel>
@@ -247,7 +255,7 @@ export function MethodUpsertForm({
                           value={field.value}
                         >
                           <FormControl>
-                            <SelectTrigger className="w-full bg-background/90">
+                            <SelectTrigger className="w-full bg-background">
                               <SelectValue placeholder="Select a category" />
                             </SelectTrigger>
                           </FormControl>
@@ -266,29 +274,25 @@ export function MethodUpsertForm({
                     )}
                   />
 
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium">Enabled</label>
-                    <div className="flex h-10 items-center gap-3">
-                      <Switch
-                        checked={enabled}
-                        onCheckedChange={onEnabledChange}
-                      />
-                      <span className="text-sm font-medium">
-                        {enabled ? "Enabled" : "Disabled"}
-                      </span>
-                    </div>
-                  </div>
+                  <InlineSwitchField
+                    label="Enabled"
+                    checked={enabled}
+                    stateLabel={enabled ? "Enabled" : "Disabled"}
+                    onCheckedChange={onEnabledChange}
+                  />
 
                   <FormField
                     control={form.control}
                     name="description"
                     render={({ field }) => (
                       <FormItem className="space-y-0 lg:col-span-4">
-                        <FormLabel className="mb-2 block">Description</FormLabel>
+                        <FormLabel className={EDITOR_FIELD_LABEL_CLASS}>
+                          Description
+                        </FormLabel>
                         <FormControl>
                           <Textarea
                             placeholder="Describe the method"
-                            className="min-h-[150px] bg-background/90"
+                            className="min-h-[150px] bg-background"
                             {...field}
                           />
                         </FormControl>
@@ -300,27 +304,27 @@ export function MethodUpsertForm({
               </CardContent>
             </Card>
 
-            <Card className="gap-0 border-border/70 bg-muted/[0.18] shadow-sm">
-              <CardHeader className="gap-4 border-b border-border/60 pb-5">
-                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                  <div className="space-y-1">
-                    <CardTitle>Variants</CardTitle>
-                    <CardDescription>
-                      Split the method into actionable variants with their own
-                      requirements, loot and XP profile.
-                    </CardDescription>
-                  </div>
-                  <Badge variant="outline" size="sm">
-                    {variants.length}{" "}
-                    {variants.length === 1 ? "variant" : "variants"}
-                  </Badge>
-                </div>
-              </CardHeader>
+            <Card className={EDITOR_PRIMARY_CARD_CLASS}>
+              {selectorCatalogLoading ? (
+                <>
+                  <CardHeader className={cn(EDITOR_CARD_HEADER_CLASS, "space-y-4")}>
+                    <SectionHeader
+                      title="Variants"
+                      description="Split the method into clear scenarios with distinct requirements, loot, and XP profiles."
+                      actions={
+                        <Badge variant="outline" size="sm">
+                          {variants.length}{" "}
+                          {variants.length === 1 ? "variant" : "variants"}
+                        </Badge>
+                      }
+                    />
 
-              <CardContent className="space-y-4 pt-6">
-                {selectorCatalogLoading ? (
-                  <div className="space-y-3">
-                    <div className="flex flex-wrap gap-2 rounded-xl border border-border/60 bg-background/70 p-3">
+                    <div
+                      className={cn(
+                        "flex flex-wrap gap-2 p-3",
+                        EDITOR_NESTED_SURFACE_CLASS,
+                      )}
+                    >
                       {Array.from({ length: Math.max(variants.length, 2) }).map(
                         (_, index) => (
                           <Skeleton
@@ -331,8 +335,10 @@ export function MethodUpsertForm({
                       )}
                       <Skeleton className="h-9 w-40 rounded-md" />
                     </div>
+                  </CardHeader>
 
-                    <div className="rounded-xl border border-border/60 bg-background/70 p-4">
+                  <CardContent className={EDITOR_CARD_CONTENT_CLASS}>
+                    <div className={cn("p-4", EDITOR_NESTED_SURFACE_CLASS)}>
                       <div className="mb-4 flex items-center justify-between">
                         <Skeleton className="h-5 w-28" />
                         <div className="flex gap-2">
@@ -348,105 +354,136 @@ export function MethodUpsertForm({
                         <Skeleton className="h-32 w-full md:col-span-2 lg:col-span-4" />
                       </div>
                     </div>
-                  </div>
-                ) : variants.length > 0 ? (
-                  <div className="space-y-4">
-                    <Tabs
-                      value={getVariantTabValue(activeVariantIndex)}
-                      onValueChange={(value) => {
-                        const nextIndex = Number(value.replace("variant-", ""));
-                        if (!Number.isNaN(nextIndex)) {
-                          setActiveVariantIndex(nextIndex);
-                        }
-                      }}
-                      className="w-full gap-4"
-                    >
-                      <TabsList className="h-auto w-full flex-wrap justify-start gap-1 rounded-xl bg-muted/70 p-1">
-                        {variants.map((variant, index) => (
-                          <TabsTrigger
-                            key={getVariantTabValue(index)}
-                            value={getVariantTabValue(index)}
-                            className="h-10 max-w-full flex-none px-3"
-                          >
-                            <VariantTabLabel
-                              label={
-                                variant.label?.trim() || `Variant ${index + 1}`
-                              }
-                              iconUrl={
-                                variant.icon_id
-                                  ? variantIcons[variant.icon_id]?.iconUrl
-                                  : undefined
-                              }
-                            />
-                          </TabsTrigger>
-                        ))}
+                  </CardContent>
+                </>
+              ) : variants.length > 0 ? (
+                <Tabs
+                  value={getVariantTabValue(activeVariantIndex)}
+                  onValueChange={(value) => {
+                    const nextIndex = Number(value.replace("variant-", ""));
+                    if (!Number.isNaN(nextIndex)) {
+                      setActiveVariantIndex(nextIndex);
+                    }
+                  }}
+                  className="w-full gap-0"
+                >
+                  <CardHeader className={cn(EDITOR_CARD_HEADER_CLASS, "space-y-4")}>
+                    <SectionHeader
+                      title="Variants"
+                      description="Split the method into clear scenarios with distinct requirements, loot, and XP profiles."
+                      actions={
+                        <Badge variant="outline" size="sm">
+                          {variants.length}{" "}
+                          {variants.length === 1 ? "variant" : "variants"}
+                        </Badge>
+                      }
+                    />
 
-                        <button
-                          type="button"
-                          onClick={handleAddVariant}
-                          className="inline-flex h-9 flex-none items-center justify-center gap-2 rounded-md border border-dashed border-border/70 px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
-                        >
-                          <IconPlus size={16} />
-                          <span>Add variant</span>
-                        </button>
-                      </TabsList>
-
+                    <TabsList className={EDITOR_TAB_LIST_CLASS}>
                       {variants.map((variant, index) => (
-                        <TabsContent
+                        <TabsTrigger
                           key={getVariantTabValue(index)}
                           value={getVariantTabValue(index)}
+                          className="h-10 max-w-full flex-none px-3"
                         >
-                          <VariantForm
-                            onRemove={() => handleRemoveVariant(index)}
-                            onDuplicate={() => handleDuplicateVariant(index)}
-                            isLabelDuplicate={isVariantLabelDuplicate(
-                              variant.label ?? "",
-                            )}
-                            index={index}
-                            skillOptions={skillOptions}
-                            questOptions={questOptions}
-                            achievementDiaryOptions={achievementDiaryOptions}
-                            variant={variant}
-                            showValidationErrors={showVariantValidationErrors}
-                            onChange={(value) => onUpdateVariant(index, value)}
+                          <VariantTabLabel
+                            label={
+                              variant.label?.trim() || `Variant ${index + 1}`
+                            }
+                            iconUrl={
+                              variant.icon_id
+                                ? variantIcons[variant.icon_id]?.iconUrl
+                                : undefined
+                            }
                           />
-                        </TabsContent>
+                        </TabsTrigger>
                       ))}
-                    </Tabs>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="flex flex-wrap gap-2 rounded-xl border border-border/60 bg-muted/70 p-1">
+
                       <button
                         type="button"
                         onClick={handleAddVariant}
-                        className="inline-flex h-9 flex-none items-center justify-center gap-2 rounded-md border border-dashed border-border/70 px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
+                        className={EDITOR_DASHED_ACTION_CLASS}
+                      >
+                        <IconPlus size={16} />
+                        <span>Add variant</span>
+                      </button>
+                    </TabsList>
+                  </CardHeader>
+
+                  <CardContent className={EDITOR_CARD_CONTENT_CLASS}>
+                    {variants.map((variant, index) => (
+                      <TabsContent
+                        key={getVariantTabValue(index)}
+                        value={getVariantTabValue(index)}
+                      >
+                        <VariantForm
+                          onRemove={() => handleRemoveVariant(index)}
+                          onDuplicate={() => handleDuplicateVariant(index)}
+                          isLabelDuplicate={isVariantLabelDuplicate(
+                            variant.label ?? "",
+                          )}
+                          index={index}
+                          skillOptions={skillOptions}
+                          questOptions={questOptions}
+                          achievementDiaryOptions={achievementDiaryOptions}
+                          variant={variant}
+                          showValidationErrors={showVariantValidationErrors}
+                          onChange={(value) => onUpdateVariant(index, value)}
+                        />
+                      </TabsContent>
+                    ))}
+                  </CardContent>
+                </Tabs>
+              ) : (
+                <>
+                  <CardHeader className={cn(EDITOR_CARD_HEADER_CLASS, "space-y-4")}>
+                    <SectionHeader
+                      title="Variants"
+                      description="Split the method into clear scenarios with distinct requirements, loot, and XP profiles."
+                      actions={
+                        <Badge variant="outline" size="sm">
+                          {variants.length}{" "}
+                          {variants.length === 1 ? "variant" : "variants"}
+                        </Badge>
+                      }
+                    />
+
+                    <div
+                      className={cn(
+                        "flex flex-wrap gap-2 p-1",
+                        EDITOR_NESTED_SURFACE_CLASS,
+                      )}
+                    >
+                      <button
+                        type="button"
+                        onClick={handleAddVariant}
+                        className={EDITOR_DASHED_ACTION_CLASS}
                       >
                         <IconPlus size={16} />
                         <span>Add variant</span>
                       </button>
                     </div>
+                  </CardHeader>
 
-                    <div className="rounded-xl border border-dashed border-border/70 bg-background/65 p-6 text-center">
-                      <p className="text-sm font-medium">No variants yet</p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        Add the first variant to define inputs, outputs, XP and
-                        requirements.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
+                  <CardContent className={EDITOR_CARD_CONTENT_CLASS}>
+                    <EmptySelectionState
+                      title="No variants yet"
+                      description="Add the first variant to define inputs, outputs, XP, and requirements."
+                    />
+                  </CardContent>
+                </>
+              )}
             </Card>
           </div>
 
           <aside className="space-y-4 xl:sticky xl:top-24 xl:self-start">
-            <Card className="gap-0 border-border/70 bg-background shadow-sm">
-              <CardHeader className="gap-1 border-b border-border/60 pb-4">
-                <CardTitle>Actions</CardTitle>
-                <CardDescription>
-                  Save after reviewing labels, requirements and loot.
-                </CardDescription>
+            <Card className={EDITOR_PRIMARY_CARD_CLASS}>
+              <CardHeader className={EDITOR_CARD_HEADER_CLASS}>
+                <SectionHeader
+                  title="Actions"
+                  description="Save after reviewing labels, requirements, and loot."
+                  level="h2"
+                />
               </CardHeader>
               <CardContent className="space-y-3 pt-6">
                 <Button
@@ -482,11 +519,11 @@ export function MethodUpsertForm({
                 ) : null}
 
                 {hasDuplicateVariantLabels ? (
-                  <p className="text-sm text-destructive">
+                  <p className={EDITOR_ERROR_TEXT_CLASS}>
                     Resolve duplicate variant labels before saving.
                   </p>
                 ) : (
-                  <p className="text-xs text-muted-foreground">
+                  <p className={EDITOR_META_TEXT_CLASS}>
                     Keep each variant focused and named by the exact scenario it
                     represents.
                   </p>
@@ -494,21 +531,26 @@ export function MethodUpsertForm({
               </CardContent>
             </Card>
 
-            <Card className="gap-0 border-border/60 bg-muted/[0.14] shadow-none">
-              <CardHeader className="gap-1 pb-3">
-                <CardTitle>Flow</CardTitle>
-                <CardDescription>
-                  A simpler order for completing the form.
-                </CardDescription>
+            <Card className={EDITOR_SECONDARY_CARD_CLASS}>
+              <CardHeader className={EDITOR_CARD_HEADER_CLASS}>
+                <SectionHeader
+                  title="Flow"
+                  description="A simple order for completing the form."
+                  level="h2"
+                />
               </CardHeader>
-              <CardContent className="space-y-2 pt-0 text-sm text-muted-foreground">
-                <p>1. Define the method name, icon and category.</p>
-                <p>2. Create variants with clear labels and specific loot.</p>
-                <p>
+              <CardContent className="space-y-3 pt-6">
+                <p className={EDITOR_BODY_TEXT_CLASS}>
+                  1. Define the method name, icon, and category.
+                </p>
+                <p className={EDITOR_BODY_TEXT_CLASS}>
+                  2. Create variants with clear labels and specific loot.
+                </p>
+                <p className={EDITOR_BODY_TEXT_CLASS}>
                   3. Review requirements and save only when each variant is
                   distinct.
                 </p>
-                <p>
+                <p className={EDITOR_META_TEXT_CLASS}>
                   <span className="text-destructive">*</span> Required fields
                 </p>
               </CardContent>
