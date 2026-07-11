@@ -48,7 +48,7 @@ describe("item search untradeables toggle", () => {
     expect(showUntradeablesSwitch).toHaveAttribute("aria-checked", "true");
     await user.keyboard("{Escape}");
 
-    const searchInput = screen.getByPlaceholderText("Buscar item...");
+    const searchInput = screen.getByPlaceholderText("Search for an item...");
     await user.type(searchInput, "coal");
 
     await waitFor(() => expect(searchItems).toHaveBeenCalled());
@@ -110,6 +110,8 @@ describe("item search untradeables toggle", () => {
       />
     );
 
+    await user.click(screen.getByRole("button", { name: "Open Method icon" }));
+
     await user.click(
       screen.getByRole("button", { name: "Method icon search options" })
     );
@@ -133,6 +135,35 @@ describe("item search untradeables toggle", () => {
     expect(vi.mocked(searchItems).mock.calls.at(-1)?.[4]).toEqual({
       showUntradeables: true,
     });
+  });
+
+  it("prefills the icon search input with the selected item name when opened", async () => {
+    const user = userEvent.setup();
+
+    vi.mocked(fetchItems).mockResolvedValue({
+      1609: {
+        name: "Opal",
+        iconUrl: "/opal.png",
+      },
+    });
+
+    render(
+      <ItemIconField
+        label="Method icon"
+        value={1609}
+        onChange={vi.fn()}
+        searchAriaLabel="Method icon search"
+        optionsAriaLabel="Method icon search options"
+      />
+    );
+
+    await waitFor(() => expect(fetchItems).toHaveBeenCalledWith([1609]));
+
+    await user.click(screen.getByRole("button", { name: "Open Method icon" }));
+
+    expect(
+      screen.getByRole("combobox", { name: "Method icon search" }),
+    ).toHaveValue("Opal");
   });
 
   it("preserves blank spaces in requirement reasons while keeping the input single-line", async () => {
