@@ -1,6 +1,7 @@
 import { MethodUpsertDialogs } from "@/features/method-upsert/MethodUpsertDialogs";
 import { MethodUpsertForm } from "@/features/method-upsert/MethodUpsertForm";
 import { MethodUpsertSkeleton } from "@/features/method-upsert/MethodUpsertSkeleton";
+import { SectionHeader } from "@/components/method-editor/MethodEditorPrimitives";
 import {
   type MethodUpsertMode,
   useMethodUpsert,
@@ -26,17 +27,14 @@ export function MethodUpsert({ mode }: Props) {
   }
 
   return (
-    <div className="container mx-auto space-y-6 px-4 py-4 md:px-6">
-      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-        Method editor
-      </p>
-      <h1 className="mt-1 text-3xl font-bold">
-        {state.isEditMode ? "Edit method" : "Create method"}
-      </h1>
-      <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-        Organize the core method details first, then structure each variant so
-        the form is easier to scan and maintain.
-      </p>
+    <div className="container mx-auto space-y-6 px-4 py-6 md:px-6">
+      <SectionHeader
+        eyebrow="Method editor"
+        title={state.isEditMode ? "Edit method" : "Create method"}
+        description="Organize the shared method details first, then define each variant with clear requirements, loot, and XP data."
+        level="h1"
+        bodyClassName="max-w-3xl"
+      />
 
       <MethodUpsertForm
         isEditMode={state.isEditMode}

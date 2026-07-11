@@ -9,6 +9,13 @@ import {
 } from "react";
 import { IconAdjustmentsHorizontal, IconPhoto } from "@tabler/icons-react";
 import {
+  EDITOR_ERROR_TEXT_CLASS,
+  EDITOR_FIELD_LABEL_CLASS,
+  EDITOR_BODY_TEXT_CLASS,
+  EDITOR_META_TEXT_CLASS,
+  PixelArtIcon,
+} from "@/components/method-editor/MethodEditorPrimitives";
+import {
   fetchItems,
   searchItems,
   type ItemSearchResponse,
@@ -315,8 +322,8 @@ export function ItemIconField({
   );
 
   return (
-    <div className="space-y-2 self-start">
-      <label className="block text-sm font-medium">
+    <div className="self-start">
+      <label className={EDITOR_FIELD_LABEL_CLASS}>
         {label}
         {required ? <RequiredMark /> : null}
       </label>
@@ -335,26 +342,26 @@ export function ItemIconField({
             type="button"
             variant="outline"
             className={cn(
-              "h-10 w-10 shrink-0 rounded-md border-border/60 bg-background/90 p-0",
+              "h-10 w-10 shrink-0 rounded-md border-border/70 bg-background p-0",
               hasError && "border-destructive focus-visible:ring-destructive/30",
             )}
             aria-label={`Open ${label}`}
           >
             {selectedPreview?.iconUrl ? (
-              <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
-                <img
-                  src={selectedPreview.iconUrl}
-                  alt={selectedPreview.name}
-                  className="h-auto w-auto max-h-full max-w-full [image-rendering:pixelated]"
-                />
-              </span>
+              <PixelArtIcon
+                src={selectedPreview.iconUrl}
+                alt={selectedPreview.name}
+              />
             ) : (
               <IconPhoto size={16} className="text-muted-foreground" />
             )}
           </Button>
         </PopoverTrigger>
 
-        <PopoverContent align="start" className="w-[360px] p-3">
+        <PopoverContent
+          align="start"
+          className="w-[360px] rounded-lg border-border/70 p-3"
+        >
           <div className="flex items-center gap-2">
             <Input
               role="combobox"
@@ -427,27 +434,17 @@ export function ItemIconField({
                       onClick={() => handleSelectItem(item)}
                       disabled={isSelected}
                     >
-                      {item.iconUrl ? (
-                        <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
-                          <img
-                            src={item.iconUrl}
-                            alt={item.name}
-                            className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
-                          />
-                        </div>
-                      ) : null}
+                      <PixelArtIcon src={item.iconUrl} alt={item.name} />
                       <span className="flex-1">{item.name}</span>
                       {isSelected ? (
-                        <span className="text-xs text-muted-foreground">
-                          Selected
-                        </span>
+                        <span className={EDITOR_META_TEXT_CLASS}>Selected</span>
                       ) : null}
                     </button>
                   );
                 })}
 
             {!loading && results.length === 0 ? (
-              <p className="py-4 text-center text-sm text-muted-foreground">
+              <p className={cn("py-4 text-center", EDITOR_BODY_TEXT_CLASS)}>
                 {emptyMessage}
               </p>
             ) : null}
@@ -463,12 +460,14 @@ export function ItemIconField({
           </div>
 
           {errorMessage ? (
-            <div className="mt-2 text-xs text-destructive">{errorMessage}</div>
+            <div className={cn("mt-2", EDITOR_ERROR_TEXT_CLASS)}>
+              {errorMessage}
+            </div>
           ) : null}
         </PopoverContent>
       </Popover>
 
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {error ? <p className={cn("mt-2", EDITOR_ERROR_TEXT_CLASS)}>{error}</p> : null}
     </div>
   );
 }

@@ -1,4 +1,11 @@
 import { useEffect, useState } from "react";
+import {
+  EDITOR_ERROR_TEXT_CLASS,
+  EDITOR_FIELD_LABEL_CLASS,
+  EDITOR_NESTED_SURFACE_CLASS,
+  EditorSubsection,
+  InlineSwitchField,
+} from "@/components/method-editor/MethodEditorPrimitives";
 import { ItemIconField } from "@/components/ItemIconField";
 import { IoItemsField } from "@/components/IoItemsField";
 import { RequirementsRecommendationsField } from "@/components/RequirementsRecommendationsField";
@@ -16,7 +23,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import type {
   AchievementDiaryOption,
@@ -103,14 +109,12 @@ export function VariantForm({
     showValidationErrors && !iconId ? "Variant icon is required" : undefined;
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border/60 bg-background/75">
-      <div className="space-y-4 p-4">
-        <div className="flex flex-col gap-3 border-b border-border/60 pb-4 md:flex-row md:items-center md:justify-between">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-            Variant basics
-          </p>
-
-          <div className="flex flex-wrap items-center gap-2">
+    <div className={cn("overflow-hidden", EDITOR_NESTED_SURFACE_CLASS)}>
+      <EditorSubsection
+        title="Basics"
+        bordered={false}
+        actions={
+          <>
             {onDuplicate ? (
               <Button
                 type="button"
@@ -151,177 +155,154 @@ export function VariantForm({
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-          </div>
-        </div>
+          </>
+        }
+        contentClassName="grid gap-4 lg:grid-cols-[max-content_minmax(0,1.6fr)_minmax(0,8rem)_minmax(0,8rem)]"
+      >
+        <ItemIconField
+          label="Icon"
+          value={iconId}
+          onChange={(next) => {
+            setIconId(next);
+            onChange?.({ ...variant, icon_id: next });
+          }}
+          error={iconError}
+          required
+          searchAriaLabel={`Variant ${index + 1} icon search`}
+          optionsAriaLabel={`Variant ${index + 1} icon search options`}
+        />
 
-        <div className="grid gap-x-3 gap-y-4 lg:grid-cols-[max-content_minmax(0,1.6fr)_minmax(0,8rem)_minmax(0,8rem)]">
-          <ItemIconField
-            label="Icon"
-            value={iconId}
-            onChange={(next) => {
-              setIconId(next);
-              onChange?.({ ...variant, icon_id: next });
-            }}
-            error={iconError}
-            required
-            searchAriaLabel={`Variant ${index + 1} icon search`}
-            optionsAriaLabel={`Variant ${index + 1} icon search options`}
-          />
-
-          <div>
-            <label className="mb-2 block text-sm font-medium">Name</label>
-            <Input
-              value={label}
-              className={cn(
-                "bg-background/90",
-                isLabelDuplicate && "border-red-500 focus-visible:ring-red-500",
-              )}
-              onChange={(event) => {
-                const next = event.target.value;
-                setLabel(next);
-                onChange?.({ ...variant, label: next });
-              }}
-            />
-            {isLabelDuplicate ? (
-              <p className="mt-1 text-sm text-red-500">
-                This name is already used by another variant.
-              </p>
-            ) : null}
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">Members</label>
-            <div className="flex h-10 items-center gap-3">
-              <Switch
-                checked={members}
-                onCheckedChange={(checked) => {
-                  setMembers(checked);
-                  onChange?.({ ...variant, members: checked });
-                }}
-              />
-              <span className="text-sm font-medium">
-                {members ? "Members-only" : "Free-to-play"}
-              </span>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">Wilderness</label>
-            <div className="flex h-10 items-center gap-3">
-              <Switch
-                checked={wilderness}
-                onCheckedChange={(checked) => {
-                  setWilderness(checked);
-                  onChange?.({ ...variant, wilderness: checked });
-                }}
-              />
-              <span className="text-sm font-medium">{wilderness ? "Yes" : "No"}</span>
-            </div>
-          </div>
-
-          <div className="lg:col-span-4">
-            <label className="mb-2 block text-sm font-medium">
-              Description
-            </label>
-            <Textarea
-              placeholder="Describe this variant"
-              className="min-h-[150px] bg-background/90"
-              value={description}
-              onChange={(event) => {
-                const next = event.target.value;
-                setDescription(next);
-                onChange?.({ ...variant, description: next });
-              }}
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-5 border-t border-border/60 px-4 pt-6 pb-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-          Metrics
-        </p>
-
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,7rem)_minmax(0,7rem)] lg:items-start">
-          <XpSkillsField
-            label="XP per hour"
-            skills={skillOptions}
-            entries={xpHour}
-            placeholder="Search for a skill..."
-            onChange={(next) => {
-              setXpHour(next);
-              onChange?.({ ...variant, xpHour: next });
+        <div>
+          <label className={EDITOR_FIELD_LABEL_CLASS}>Name</label>
+          <Input
+            value={label}
+            className={cn(
+              "bg-background",
+              isLabelDuplicate && "border-red-500 focus-visible:ring-red-500",
+            )}
+            onChange={(event) => {
+              const next = event.target.value;
+              setLabel(next);
+              onChange?.({ ...variant, label: next });
             }}
           />
-
-          <div>
-            <label className="mb-2 block text-sm font-medium">AFK %</label>
-            <Input
-              type="text"
-              inputMode="numeric"
-              maxLength={3}
-              className="h-10 w-full max-w-[7rem] bg-background/90"
-              value={afkiness !== undefined ? String(afkiness) : ""}
-              onChange={(event) => {
-                const nextValue = normalizeDigits(event.target.value, 3);
-                const numericValue =
-                  nextValue === "" ? undefined : Number(nextValue);
-                setAfkiness(numericValue);
-                onChange?.({ ...variant, afkiness: numericValue });
-              }}
-            />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium">Clicks/hr</label>
-            <Input
-              type="text"
-              inputMode="numeric"
-              maxLength={5}
-              className="h-10 w-full max-w-[7rem] bg-background/90"
-              value={clickIntensity !== undefined ? String(clickIntensity) : ""}
-              onChange={(event) => {
-                const nextValue = normalizeDigits(event.target.value, 5);
-                const numericValue =
-                  nextValue === "" ? undefined : Number(nextValue);
-                setClickIntensity(numericValue);
-                onChange?.({ ...variant, clickIntensity: numericValue });
-              }}
-            />
-          </div>
+          {isLabelDuplicate ? (
+            <p className={cn("mt-2", EDITOR_ERROR_TEXT_CLASS)}>
+              This name is already used by another variant.
+            </p>
+          ) : null}
         </div>
-      </div>
 
-      <div className="space-y-5 border-t border-border/60 px-4 pt-6 pb-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-          Inputs & Outputs
-        </p>
+        <InlineSwitchField
+          label="Members"
+          checked={members}
+          stateLabel={members ? "Members-only" : "Free-to-play"}
+          onCheckedChange={(checked) => {
+            setMembers(checked);
+            onChange?.({ ...variant, members: checked });
+          }}
+        />
 
-        <div className="grid gap-6 md:grid-cols-2">
-          <IoItemsField
-            label="Inputs"
-            items={inputs}
-            onChange={(next) => {
-              setInputs(next);
-              onChange?.({ ...variant, inputs: next });
-            }}
-          />
-          <IoItemsField
-            label="Outputs"
-            items={outputs}
-            onChange={(next) => {
-              setOutputs(next);
-              onChange?.({ ...variant, outputs: next });
+        <InlineSwitchField
+          label="Wilderness"
+          checked={wilderness}
+          stateLabel={wilderness ? "Yes" : "No"}
+          onCheckedChange={(checked) => {
+            setWilderness(checked);
+            onChange?.({ ...variant, wilderness: checked });
+          }}
+        />
+
+        <div className="lg:col-span-4">
+          <label className={EDITOR_FIELD_LABEL_CLASS}>Description</label>
+          <Textarea
+            placeholder="Describe this variant"
+            className="min-h-[150px] bg-background"
+            value={description}
+            onChange={(event) => {
+              const next = event.target.value;
+              setDescription(next);
+              onChange?.({ ...variant, description: next });
             }}
           />
         </div>
-      </div>
+      </EditorSubsection>
 
-      <div className="space-y-5 border-t border-border/60 px-4 pt-6 pb-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-          Requirements & Recommendations
-        </p>
+      <EditorSubsection
+        title="Metrics"
+        contentClassName="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,7rem)_minmax(0,7rem)] lg:items-start"
+      >
+        <XpSkillsField
+          label="XP per hour"
+          skills={skillOptions}
+          entries={xpHour}
+          placeholder="Search for a skill..."
+          onChange={(next) => {
+            setXpHour(next);
+            onChange?.({ ...variant, xpHour: next });
+          }}
+        />
 
+        <div>
+          <label className={EDITOR_FIELD_LABEL_CLASS}>AFK %</label>
+          <Input
+            type="text"
+            inputMode="numeric"
+            maxLength={3}
+            className="h-10 w-full max-w-[7rem] bg-background"
+            value={afkiness !== undefined ? String(afkiness) : ""}
+            onChange={(event) => {
+              const nextValue = normalizeDigits(event.target.value, 3);
+              const numericValue =
+                nextValue === "" ? undefined : Number(nextValue);
+              setAfkiness(numericValue);
+              onChange?.({ ...variant, afkiness: numericValue });
+            }}
+          />
+        </div>
+
+        <div>
+          <label className={EDITOR_FIELD_LABEL_CLASS}>Clicks/hr</label>
+          <Input
+            type="text"
+            inputMode="numeric"
+            maxLength={5}
+            className="h-10 w-full max-w-[7rem] bg-background"
+            value={clickIntensity !== undefined ? String(clickIntensity) : ""}
+            onChange={(event) => {
+              const nextValue = normalizeDigits(event.target.value, 5);
+              const numericValue =
+                nextValue === "" ? undefined : Number(nextValue);
+              setClickIntensity(numericValue);
+              onChange?.({ ...variant, clickIntensity: numericValue });
+            }}
+          />
+        </div>
+      </EditorSubsection>
+
+      <EditorSubsection
+        title="Inputs & outputs"
+        contentClassName="grid gap-6 md:grid-cols-2"
+      >
+        <IoItemsField
+          label="Inputs"
+          items={inputs}
+          onChange={(next) => {
+            setInputs(next);
+            onChange?.({ ...variant, inputs: next });
+          }}
+        />
+        <IoItemsField
+          label="Outputs"
+          items={outputs}
+          onChange={(next) => {
+            setOutputs(next);
+            onChange?.({ ...variant, outputs: next });
+          }}
+        />
+      </EditorSubsection>
+
+      <EditorSubsection title="Requirements & recommendations">
         <RequirementsRecommendationsField
           searchLabel="Unified search"
           searchPlaceholder="Search items, skills, quests, or achievement diaries"
@@ -338,7 +319,7 @@ export function VariantForm({
             });
           }}
         />
-      </div>
+      </EditorSubsection>
     </div>
   );
 }

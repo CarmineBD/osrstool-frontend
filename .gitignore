@@ -33,5 +33,6 @@ dist-ssr
 # Other 
 pr_msg.md
 AGENTS.md
+.local/
 playwright-report/
 test-results/
