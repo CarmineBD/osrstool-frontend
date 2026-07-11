@@ -96,6 +96,9 @@ export interface EntrySelectionState {
 }
 
 export interface RequirementsRecommendationsFieldProps {
+  label?: string;
+  searchLabel?: string;
+  searchPlaceholder?: string;
   requirements: RequirementPayload;
   recommendations?: RecommendationPayload;
   skillOptions: SkillOption[];

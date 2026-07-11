@@ -53,8 +53,8 @@ export const METHOD_CATEGORY_OPTIONS = [
   "processing",
 ] as const;
 
-const createEmptyVariant = (): Variant => ({
-  label: "New variant",
+const createEmptyVariant = (label = "New variant"): Variant => ({
+  label,
   members: false,
   description: "",
   xpHour: [],
@@ -65,6 +65,26 @@ const createEmptyVariant = (): Variant => ({
 
 function normalizeVariantLabel(label: string): string {
   return label.trim().toLowerCase();
+}
+
+function getNextAvailableVariantLabel(baseLabel: string, variants: Variant[]) {
+  const normalizedBaseLabel = normalizeVariantLabel(baseLabel);
+  const existingLabels = new Set(
+    variants.map((variant) => normalizeVariantLabel(variant.label ?? "")),
+  );
+
+  if (!existingLabels.has(normalizedBaseLabel)) {
+    return baseLabel;
+  }
+
+  let suffix = 2;
+  while (
+    existingLabels.has(normalizeVariantLabel(`${baseLabel} ${suffix}`))
+  ) {
+    suffix += 1;
+  }
+
+  return `${baseLabel} ${suffix}`;
 }
 
 function normalizeIconId(value: number | null | undefined): number | undefined {
@@ -197,12 +217,12 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
 
   useEffect(() => {
     if (!error) return;
-    setUserError("Failed to fetch user");
+    setUserError("Unable to load this method.");
   }, [error, setUserError]);
 
   useEffect(() => {
     if (!selectorCatalogError) return;
-    setUserError("Failed to fetch method edit selector options");
+    setUserError("Unable to load the editor options.");
   }, [selectorCatalogError, setUserError]);
 
   const labelCounts = useMemo(() => {
@@ -385,7 +405,12 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
   };
 
   const addVariant = () =>
-    setVariants((currentVariants) => [...currentVariants, createEmptyVariant()]);
+    setVariants((currentVariants) => [
+      ...currentVariants,
+      createEmptyVariant(
+        getNextAvailableVariantLabel("New variant", currentVariants),
+      ),
+    ]);
 
   const removeVariant = (index: number) =>
     setVariants((currentVariants) =>
@@ -407,7 +432,10 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
         typeof structuredClone === "function"
           ? structuredClone(original)
           : (JSON.parse(JSON.stringify(original)) as Variant);
-      const nextLabel = `copy of ${original.label ?? ""}`;
+      const nextLabel = getNextAvailableVariantLabel(
+        `Copy of ${original.label ?? "variant"}`.trim(),
+        currentVariants,
+      );
       const nextVariant: Variant = {
         ...cloned,
         id: undefined,

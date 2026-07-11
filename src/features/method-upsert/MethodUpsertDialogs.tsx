@@ -57,15 +57,18 @@ export function MethodUpsertDialogs({
       <AlertDialog open={confirmOpen} onOpenChange={onConfirmOpenChange}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              Estas seguro de salir sin guardar los cambios?
-            </AlertDialogTitle>
+            <AlertDialogTitle>Discard your unsaved changes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Any edits you made on this screen will be lost.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => onConfirmOpenChange(false)}>
-              No
+              Keep editing
             </AlertDialogCancel>
-            <AlertDialogAction onClick={onDiscardConfirmed}>Si</AlertDialogAction>
+            <AlertDialogAction onClick={onDiscardConfirmed}>
+              Discard changes
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

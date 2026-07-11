@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { IconX } from "@tabler/icons-react";
 import { getUrlByType } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,10 @@ import {
 } from "@/components/requirements-recommendations/requirementsRecommendations.utils";
 
 type EntryUpdater = (entry: UnifiedEntry) => UnifiedEntry;
+const TABLE_HEADER_CLASS_NAME =
+  "bg-slate-100/90 text-slate-700 dark:bg-slate-800/80 dark:text-slate-200";
+const NAME_COLUMN_CLASS_NAME = "w-[24%]";
+const REASON_COLUMN_CLASS_NAME = "w-[36%]";
 
 interface RequirementsEntriesTablesProps {
   itemEntries: UnifiedItemEntry[];
@@ -37,6 +42,37 @@ interface RequirementsEntriesTablesProps {
   getItemIcon: (entry: UnifiedItemEntry) => string | undefined;
   updateEntry: (entryKey: string, updater: EntryUpdater) => void;
   removeEntry: (entryKey: string) => void;
+}
+
+function TruncatedTitleText({ text }: { text: string }) {
+  const ref = useRef<HTMLSpanElement | null>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+
+    const updateOverflow = () => {
+      setIsTruncated(element.scrollWidth > element.clientWidth);
+    };
+
+    updateOverflow();
+
+    if (typeof ResizeObserver === "function") {
+      const observer = new ResizeObserver(updateOverflow);
+      observer.observe(element);
+      return () => observer.disconnect();
+    }
+
+    window.addEventListener("resize", updateOverflow);
+    return () => window.removeEventListener("resize", updateOverflow);
+  }, [text]);
+
+  return (
+    <span ref={ref} className="truncate" title={isTruncated ? text : undefined}>
+      {text}
+    </span>
+  );
 }
 
 function RequiredToggle({
@@ -68,32 +104,38 @@ export function RequirementsEntriesTables({
   updateEntry,
   removeEntry,
 }: RequirementsEntriesTablesProps) {
-  return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <h4 className="text-sm font-semibold">Items</h4>
-        <Table className="rounded-md border">
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead className="w-[140px]">Quantity</TableHead>
-              <TableHead className="w-[260px]">Reason</TableHead>
-              <TableHead className="w-[140px]">Is required</TableHead>
-              <TableHead className="w-[80px] text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {itemEntries.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-sm text-muted-foreground">
-                  No hay items agregados.
-                </TableCell>
+  const hasEntries =
+    itemEntries.length > 0 ||
+    questEntries.length > 0 ||
+    achievementDiaryEntries.length > 0 ||
+    skillEntries.length > 0;
+
+  if (!hasEntries) {
+    return null;
+  }
+
+  const sections = [
+    {
+      key: "items",
+      visible: itemEntries.length > 0,
+      content: (
+        <div className="space-y-2">
+          <h4 className="text-sm font-semibold">Items</h4>
+          <Table className="table-fixed rounded-md border">
+            <TableHeader className={TABLE_HEADER_CLASS_NAME}>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className={NAME_COLUMN_CLASS_NAME}>Name</TableHead>
+                <TableHead className="w-[140px]">Quantity</TableHead>
+                <TableHead className={REASON_COLUMN_CLASS_NAME}>Reason</TableHead>
+                <TableHead className="w-[140px]">Requirement type</TableHead>
+                <TableHead className="w-[80px] text-right">Actions</TableHead>
               </TableRow>
-            ) : (
-              itemEntries.map((entry) => (
+            </TableHeader>
+            <TableBody>
+              {itemEntries.map((entry) => (
                 <TableRow key={entry.key}>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
+                  <TableCell className="align-top">
+                    <div className="flex min-w-0 items-center gap-2">
                       {getItemIcon(entry) ? (
                         <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
                           <img
@@ -103,7 +145,7 @@ export function RequirementsEntriesTables({
                           />
                         </div>
                       ) : null}
-                      <span>{getItemName(entry)}</span>
+                      <TruncatedTitleText text={getItemName(entry)} />
                     </div>
                   </TableCell>
                   <TableCell>
@@ -126,10 +168,10 @@ export function RequirementsEntriesTables({
                       className="w-24"
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="align-top">
                     <Input
                       type="text"
-                      placeholder="Opcional"
+                      placeholder="Optional"
                       value={entry.reason ?? ""}
                       onChange={(event) =>
                         updateEntry(entry.key, (current) => ({
@@ -162,36 +204,33 @@ export function RequirementsEntriesTables({
                     </Button>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      <div className="space-y-2">
-        <h4 className="text-sm font-semibold">Quests</h4>
-        <Table className="rounded-md border">
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead className="w-[160px]">Completed</TableHead>
-              <TableHead className="w-[260px]">Reason</TableHead>
-              <TableHead className="w-[140px]">Is required</TableHead>
-              <TableHead className="w-[80px] text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {questEntries.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-sm text-muted-foreground">
-                  No hay quests agregadas.
-                </TableCell>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      ),
+    },
+    {
+      key: "quests",
+      visible: questEntries.length > 0,
+      content: (
+        <div className="space-y-2">
+          <h4 className="text-sm font-semibold">Quests</h4>
+          <Table className="table-fixed rounded-md border">
+            <TableHeader className={TABLE_HEADER_CLASS_NAME}>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className={NAME_COLUMN_CLASS_NAME}>Name</TableHead>
+                <TableHead className="w-[160px]">Completed</TableHead>
+                <TableHead className={REASON_COLUMN_CLASS_NAME}>Reason</TableHead>
+                <TableHead className="w-[140px]">Requirement type</TableHead>
+                <TableHead className="w-[80px] text-right">Actions</TableHead>
               </TableRow>
-            ) : (
-              questEntries.map((entry) => (
+            </TableHeader>
+            <TableBody>
+              {questEntries.map((entry) => (
                 <TableRow key={entry.key}>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
+                  <TableCell className="align-top">
+                    <div className="flex min-w-0 items-center gap-2">
                       {questIconUrl ? (
                         <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
                           <img
@@ -201,7 +240,7 @@ export function RequirementsEntriesTables({
                           />
                         </div>
                       ) : null}
-                      <span>{entry.name}</span>
+                      <TruncatedTitleText text={entry.name} />
                     </div>
                   </TableCell>
                   <TableCell>
@@ -221,10 +260,10 @@ export function RequirementsEntriesTables({
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="align-top">
                     <Input
                       type="text"
-                      placeholder="Opcional"
+                      placeholder="Optional"
                       value={entry.reason ?? ""}
                       onChange={(event) =>
                         updateEntry(entry.key, (current) => ({
@@ -257,36 +296,33 @@ export function RequirementsEntriesTables({
                     </Button>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      <div className="space-y-2">
-        <h4 className="text-sm font-semibold">Achievement Diaries</h4>
-        <Table className="rounded-md border">
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead className="w-[160px]">Completed</TableHead>
-              <TableHead className="w-[260px]">Reason</TableHead>
-              <TableHead className="w-[140px]">Is required</TableHead>
-              <TableHead className="w-[80px] text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {achievementDiaryEntries.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-sm text-muted-foreground">
-                  No hay achievement diaries agregadas.
-                </TableCell>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      ),
+    },
+    {
+      key: "achievement-diaries",
+      visible: achievementDiaryEntries.length > 0,
+      content: (
+        <div className="space-y-2">
+          <h4 className="text-sm font-semibold">Achievement diaries</h4>
+          <Table className="table-fixed rounded-md border">
+            <TableHeader className={TABLE_HEADER_CLASS_NAME}>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className={NAME_COLUMN_CLASS_NAME}>Name</TableHead>
+                <TableHead className="w-[160px]">Completed</TableHead>
+                <TableHead className={REASON_COLUMN_CLASS_NAME}>Reason</TableHead>
+                <TableHead className="w-[140px]">Requirement type</TableHead>
+                <TableHead className="w-[80px] text-right">Actions</TableHead>
               </TableRow>
-            ) : (
-              achievementDiaryEntries.map((entry) => (
+            </TableHeader>
+            <TableBody>
+              {achievementDiaryEntries.map((entry) => (
                 <TableRow key={entry.key}>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
+                  <TableCell className="align-top">
+                    <div className="flex min-w-0 items-center gap-2">
                       {achievementDiaryIconUrl ? (
                         <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
                           <img
@@ -296,7 +332,9 @@ export function RequirementsEntriesTables({
                           />
                         </div>
                       ) : null}
-                      <span>{formatAchievementDiaryLabel(entry.name, entry.tier)}</span>
+                      <TruncatedTitleText
+                        text={formatAchievementDiaryLabel(entry.name, entry.tier)}
+                      />
                     </div>
                   </TableCell>
                   <TableCell>
@@ -316,10 +354,10 @@ export function RequirementsEntriesTables({
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="align-top">
                     <Input
                       type="text"
-                      placeholder="Opcional"
+                      placeholder="Optional"
                       value={entry.reason ?? ""}
                       onChange={(event) =>
                         updateEntry(entry.key, (current) => ({
@@ -352,36 +390,33 @@ export function RequirementsEntriesTables({
                     </Button>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      <div className="space-y-2">
-        <h4 className="text-sm font-semibold">Skills</h4>
-        <Table className="rounded-md border">
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead className="w-[140px]">Level</TableHead>
-              <TableHead className="w-[260px]">Reason</TableHead>
-              <TableHead className="w-[140px]">Is required</TableHead>
-              <TableHead className="w-[80px] text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {skillEntries.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-sm text-muted-foreground">
-                  No hay skills agregadas.
-                </TableCell>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      ),
+    },
+    {
+      key: "skills",
+      visible: skillEntries.length > 0,
+      content: (
+        <div className="space-y-2">
+          <h4 className="text-sm font-semibold">Skills</h4>
+          <Table className="table-fixed rounded-md border">
+            <TableHeader className={TABLE_HEADER_CLASS_NAME}>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className={NAME_COLUMN_CLASS_NAME}>Name</TableHead>
+                <TableHead className="w-[140px]">Level</TableHead>
+                <TableHead className={REASON_COLUMN_CLASS_NAME}>Reason</TableHead>
+                <TableHead className="w-[140px]">Requirement type</TableHead>
+                <TableHead className="w-[80px] text-right">Actions</TableHead>
               </TableRow>
-            ) : (
-              skillEntries.map((entry) => (
+            </TableHeader>
+            <TableBody>
+              {skillEntries.map((entry) => (
                 <TableRow key={entry.key}>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
+                  <TableCell className="align-top">
+                    <div className="flex min-w-0 items-center gap-2">
                       {getUrlByType(entry.skill) ? (
                         <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
                           <img
@@ -391,7 +426,7 @@ export function RequirementsEntriesTables({
                           />
                         </div>
                       ) : null}
-                      <span>{entry.skill}</span>
+                      <TruncatedTitleText text={entry.skill} />
                     </div>
                   </TableCell>
                   <TableCell>
@@ -414,10 +449,10 @@ export function RequirementsEntriesTables({
                       className="w-24"
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="align-top">
                     <Input
                       type="text"
-                      placeholder="Opcional"
+                      placeholder="Optional"
                       value={entry.reason ?? ""}
                       onChange={(event) =>
                         updateEntry(entry.key, (current) => ({
@@ -450,11 +485,19 @@ export function RequirementsEntriesTables({
                     </Button>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      ),
+    },
+  ].filter((section) => section.visible);
+
+  return (
+    <div className="space-y-4">
+      {sections.map((section) => (
+        <div key={section.key}>{section.content}</div>
+      ))}
     </div>
   );
 }
