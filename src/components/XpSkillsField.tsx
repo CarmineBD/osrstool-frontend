@@ -9,14 +9,6 @@ import {
   ComboboxItem,
   ComboboxList,
 } from "@/components/ui/combobox";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { IconX } from "@tabler/icons-react";
@@ -24,7 +16,7 @@ import { IconX } from "@tabler/icons-react";
 type XpHourEntry = NonNullable<Variant["xpHour"]>[number];
 
 interface XpSkillsFieldProps {
-  label: string;
+  label?: string;
   skills: SkillOption[];
   entries: XpHourEntry[];
   onChange: (next: XpHourEntry[]) => void;
@@ -32,9 +24,14 @@ interface XpSkillsFieldProps {
 }
 
 const MAX_SKILL_RESULTS = 25;
+const MAX_XP_DIGITS = 8;
 
 function normalizeSkill(value: string): string {
   return value.trim().toLowerCase();
+}
+
+function normalizeDigits(value: string, maxDigits: number): string {
+  return value.replace(/\D/g, "").slice(0, maxDigits);
 }
 
 export function XpSkillsField({
@@ -64,6 +61,12 @@ export function XpSkillsField({
       a.name.localeCompare(b.name)
     );
   }, [skills]);
+
+  const skillLookup = useMemo(() => {
+    return new Map(
+      uniqueSkills.map((skill) => [normalizeSkill(skill.name), skill] as const)
+    );
+  }, [uniqueSkills]);
 
   const filteredSkills = useMemo(() => {
     const trimmed = query.trim().toLowerCase();
@@ -97,7 +100,8 @@ export function XpSkillsField({
   };
 
   const handleExperienceChange = (skillName: string, value: string) => {
-    const nextExperience = value === "" ? 0 : Number(value);
+    const normalizedValue = normalizeDigits(value, MAX_XP_DIGITS);
+    const nextExperience = normalizedValue === "" ? 0 : Number(normalizedValue);
     if (!Number.isFinite(nextExperience)) return;
     const target = normalizeSkill(skillName);
     onChange(
@@ -109,11 +113,11 @@ export function XpSkillsField({
     );
   };
 
-  const emptyMessage = query.trim() ? "Sin resultados" : "Escribe para buscar";
+  const emptyMessage = query.trim() ? "No results found" : "Type to search";
 
   return (
     <div className="space-y-3">
-      <label className="block text-sm font-medium">{label}</label>
+      {label ? <label className="block text-sm font-medium">{label}</label> : null}
       <Combobox<SkillOption>
         inputValue={query}
         onInputValueChange={(value) => setQuery(value)}
@@ -128,7 +132,7 @@ export function XpSkillsField({
       >
         <ComboboxInput
           className="w-full"
-          placeholder={placeholder ?? "Buscar skill..."}
+          placeholder={placeholder ?? "Search for a skill..."}
           showClear={query.trim().length > 0}
         />
         <ComboboxContent>
@@ -148,7 +152,7 @@ export function XpSkillsField({
                     <span>{skill.name}</span>
                     {isAdded ? (
                       <span className="text-xs text-muted-foreground">
-                        Agregado
+                        Added
                       </span>
                     ) : null}
                   </div>
@@ -160,65 +164,61 @@ export function XpSkillsField({
         </ComboboxContent>
       </Combobox>
 
-      <Table className="rounded-md border">
-        <TableHeader>
-          <TableRow>
-            <TableHead>Skill</TableHead>
-            <TableHead className="w-[160px]">XP/hr</TableHead>
-            <TableHead className="w-[80px] text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {entries.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={3} className="text-muted-foreground text-sm">
-                No hay skills agregadas.
-              </TableCell>
-            </TableRow>
-          ) : (
-            entries.map((entry) => (
-              <TableRow key={normalizeSkill(entry.skill)}>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    {getUrlByType(entry.skill) ? (
-                      <img
-                        src={getUrlByType(entry.skill) ?? ""}
-                        alt={`${entry.skill}_icon`}
-                        className="h-6 w-6 object-contain"
-                      />
-                    ) : null}
-                    <span>{entry.skill}</span>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Input
-                    type="number"
-                    min={0}
-                    step="any"
-                    inputMode="decimal"
-                    value={entry.experience}
-                    onChange={(e) =>
-                      handleExperienceChange(entry.skill, e.target.value)
-                    }
-                    className="w-28"
-                  />
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Remove skill"
-                    onClick={() => handleRemoveSkill(entry.skill)}
-                  >
-                    <IconX size={16} />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+      {entries.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {entries.map((entry) => {
+            const normalizedEntrySkill = normalizeSkill(entry.skill);
+            const skill = skillLookup.get(normalizedEntrySkill);
+            const skillName = skill?.name ?? entry.skill;
+            const iconUrl = getUrlByType(skillName);
+            return (
+              <div
+                key={normalizedEntrySkill}
+                className="flex items-center gap-2 rounded-full border border-border/60 bg-background/90 px-2 py-1.5"
+              >
+                <div
+                  className="flex h-6 w-6 shrink-0 items-center justify-center"
+                  title={skillName}
+                >
+                  {iconUrl ? (
+                    <img
+                      src={iconUrl}
+                      alt=""
+                      className="h-5 w-5 object-contain"
+                    />
+                  ) : null}
+                </div>
+
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={MAX_XP_DIGITS}
+                  value={entry.experience > 0 ? String(entry.experience) : ""}
+                  aria-label={`XP per hour for ${skillName}`}
+                  placeholder="XP"
+                  onChange={(event) =>
+                    handleExperienceChange(entry.skill, event.target.value)
+                  }
+                  className="h-8 w-24 rounded-full border-border/60 bg-background px-3 text-sm"
+                />
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  className="h-6 w-6 rounded-full"
+                  aria-label={`Remove ${skillName}`}
+                  onClick={() => handleRemoveSkill(entry.skill)}
+                >
+                  <IconX size={14} />
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">No skills added yet.</p>
+      )}
     </div>
   );
 }

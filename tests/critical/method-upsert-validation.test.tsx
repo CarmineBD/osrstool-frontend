@@ -26,7 +26,9 @@ describe("critical flow: create/edit form validations", () => {
     );
 
     const user = userEvent.setup();
-    await user.click(await screen.findByRole("button", { name: "Guardar" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Create method" })
+    );
 
     expect(await screen.findByText("Name is required")).toBeInTheDocument();
     expect(await screen.findByText("Category is required")).toBeInTheDocument();
@@ -83,7 +85,7 @@ describe("critical flow: create/edit form validations", () => {
     const nameInput = await screen.findByDisplayValue("Rune dragons");
     const user = userEvent.setup();
     await user.clear(nameInput);
-    await user.click(screen.getByRole("button", { name: "Guardar" }));
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
 
     expect(await screen.findByText("Name is required")).toBeInTheDocument();
     expect(updateRequests).toBe(0);
@@ -107,10 +109,7 @@ describe("critical flow: create/edit form validations", () => {
     );
 
     const user = userEvent.setup();
-    await user.click(
-      await screen.findByRole("button", { name: /New variant/i })
-    );
-    await user.click(screen.getByRole("button", { name: "Guardar" }));
+    await user.click(screen.getByRole("button", { name: "Create method" }));
 
     expect(await screen.findByText("Method icon is required")).toBeInTheDocument();
     expect(await screen.findByText("Variant icon is required")).toBeInTheDocument();

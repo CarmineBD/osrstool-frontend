@@ -226,7 +226,7 @@ export function useRequirementsRecommendations({
           setItemSearchError(
             error instanceof Error
               ? error.message
-              : "No se pudieron cargar los items."
+              : "Unable to load items."
           );
         });
     }, ITEM_SEARCH_DEBOUNCE_MS);
@@ -292,7 +292,7 @@ export function useRequirementsRecommendations({
         console.error("Item search failed", error);
         setItemSearchLoadingMore(false);
         setItemSearchError(
-          error instanceof Error ? error.message : "No se pudieron cargar los items."
+          error instanceof Error ? error.message : "Unable to load items."
         );
       })
       .finally(() => {
@@ -461,7 +461,7 @@ export function useRequirementsRecommendations({
         { id: "quests", label: "Quests", options: questSearchOptions },
         {
           id: "achievement_diaries",
-          label: "Achievement diaries",
+          label: "Achievement Diaries",
           options: achievementDiarySearchOptions,
         },
         { id: "skills", label: "Skills", options: skillSearchOptions },
@@ -506,7 +506,7 @@ export function useRequirementsRecommendations({
     trimmedQuery,
   ]);
 
-  const emptyMessage = trimmedQuery ? "Sin resultados" : "Escribe para buscar";
+  const emptyMessage = trimmedQuery ? "No results found" : "Type to search";
 
   const updateEntry = useCallback(
     (entryKey: string, updater: EntryUpdater) => {

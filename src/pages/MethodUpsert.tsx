@@ -22,14 +22,21 @@ export function MethodUpsert({ mode }: Props) {
   }
 
   if (state.isEditMode && !state.method) {
-    return <p>No se encontro el metodo.</p>;
+    return <p>Method not found.</p>;
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-4">
-      <h1 className="text-3xl font-bold">
-        {state.isEditMode ? "Edit method" : "Add new method"}
+    <div className="container mx-auto space-y-6 px-4 py-4 md:px-6">
+      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+        Method editor
+      </p>
+      <h1 className="mt-1 text-3xl font-bold">
+        {state.isEditMode ? "Edit method" : "Create method"}
       </h1>
+      <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+        Organize the core method details first, then structure each variant so
+        the form is easier to scan and maintain.
+      </p>
 
       <MethodUpsertForm
         isEditMode={state.isEditMode}
@@ -40,7 +47,6 @@ export function MethodUpsert({ mode }: Props) {
         onSubmitAttempt={() => state.setShowVariantValidationErrors(true)}
         onFormKeyDown={state.handleFormKeyDown}
         selectorCatalogLoading={state.selectorCatalogLoading}
-        selectorCatalogError={state.selectorCatalogError}
         skillOptions={state.skillOptions}
         questOptions={state.questOptions}
         achievementDiaryOptions={state.achievementDiaryOptions}

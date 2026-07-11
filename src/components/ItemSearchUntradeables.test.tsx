@@ -48,7 +48,7 @@ describe("item search untradeables toggle", () => {
     expect(showUntradeablesSwitch).toHaveAttribute("aria-checked", "true");
     await user.keyboard("{Escape}");
 
-    const searchInput = screen.getByPlaceholderText("Buscar item...");
+    const searchInput = screen.getByPlaceholderText("Search for an item...");
     await user.type(searchInput, "coal");
 
     await waitFor(() => expect(searchItems).toHaveBeenCalled());
@@ -86,7 +86,7 @@ describe("item search untradeables toggle", () => {
     await user.keyboard("{Escape}");
 
     const searchInput = screen.getByPlaceholderText(
-      "Buscar items, quests, achievement diaries o skills..."
+      "Search items, skills, quests, or achievement diaries"
     );
     await user.type(searchInput, "coal");
 
@@ -95,6 +95,30 @@ describe("item search untradeables toggle", () => {
     expect(vi.mocked(searchItems).mock.calls.at(-1)?.[4]).toEqual({
       showUntradeables: true,
     });
+  });
+
+  it("hides empty requirement tables until entries are selected", () => {
+    render(
+      <RequirementsRecommendationsField
+        requirements={{}}
+        recommendations={{}}
+        skillOptions={[]}
+        questOptions={[]}
+        achievementDiaryOptions={[]}
+        onChange={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("Unified search")).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText(
+        "Search items, skills, quests, or achievement diaries"
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Items")).not.toBeInTheDocument();
+    expect(screen.queryByText("Quests")).not.toBeInTheDocument();
+    expect(screen.queryByText("Achievement Diaries")).not.toBeInTheDocument();
+    expect(screen.queryByText("Skills")).not.toBeInTheDocument();
   });
 
   it("defaults to false and updates icon item search when enabled", async () => {
@@ -109,6 +133,8 @@ describe("item search untradeables toggle", () => {
         optionsAriaLabel="Method icon search options"
       />
     );
+
+    await user.click(screen.getByRole("button", { name: "Open Method icon" }));
 
     await user.click(
       screen.getByRole("button", { name: "Method icon search options" })
@@ -133,6 +159,35 @@ describe("item search untradeables toggle", () => {
     expect(vi.mocked(searchItems).mock.calls.at(-1)?.[4]).toEqual({
       showUntradeables: true,
     });
+  });
+
+  it("prefills the icon search input with the selected item name when opened", async () => {
+    const user = userEvent.setup();
+
+    vi.mocked(fetchItems).mockResolvedValue({
+      1609: {
+        name: "Opal",
+        iconUrl: "/opal.png",
+      },
+    });
+
+    render(
+      <ItemIconField
+        label="Method icon"
+        value={1609}
+        onChange={vi.fn()}
+        searchAriaLabel="Method icon search"
+        optionsAriaLabel="Method icon search options"
+      />
+    );
+
+    await waitFor(() => expect(fetchItems).toHaveBeenCalledWith([1609]));
+
+    await user.click(screen.getByRole("button", { name: "Open Method icon" }));
+
+    expect(
+      screen.getByRole("combobox", { name: "Method icon search" }),
+    ).toHaveValue("Opal");
   });
 
   it("preserves blank spaces in requirement reasons while keeping the input single-line", async () => {
@@ -166,7 +221,7 @@ describe("item search untradeables toggle", () => {
     const attackRow = screen.getByText("Attack").closest("tr");
     expect(attackRow).not.toBeNull();
     const input = within(attackRow as HTMLTableRowElement).getByPlaceholderText(
-      "Opcional"
+      "Optional"
     );
 
     await user.type(input, "main hand ");
@@ -211,7 +266,7 @@ describe("item search untradeables toggle", () => {
     render(<Wrapper />);
 
     const searchInput = screen.getByPlaceholderText(
-      "Buscar items, quests, achievement diaries o skills..."
+      "Search items, skills, quests, or achievement diaries"
     );
     const getComboboxItem = () =>
       document.querySelector("[data-slot='combobox-item']") as HTMLElement | null;
@@ -244,7 +299,7 @@ describe("item search untradeables toggle", () => {
 
     await user.clear(searchInput);
     await user.type(searchInput, "att");
-    expect(await screen.findByText("Completo")).toBeInTheDocument();
+    expect(await screen.findByText("Complete")).toBeInTheDocument();
   });
 
   it("does not allow duplicate quest or achievement diary entries", async () => {
@@ -296,7 +351,7 @@ describe("item search untradeables toggle", () => {
     render(<Wrapper />);
 
     const searchInput = screen.getByPlaceholderText(
-      "Buscar items, quests, achievement diaries o skills..."
+      "Search items, skills, quests, or achievement diaries"
     );
     const getComboboxItem = () =>
       document.querySelector("[data-slot='combobox-item']") as HTMLElement | null;
@@ -315,7 +370,7 @@ describe("item search untradeables toggle", () => {
 
     await user.clear(searchInput);
     await user.type(searchInput, "fairy");
-    expect(await screen.findByText("Agregado")).toBeInTheDocument();
+    expect(await screen.findByText("Added")).toBeInTheDocument();
 
     await user.clear(searchInput);
     await user.type(searchInput, "lumb");
@@ -336,6 +391,62 @@ describe("item search untradeables toggle", () => {
 
     await user.clear(searchInput);
     await user.type(searchInput, "lumb");
-    expect(await screen.findByText("Agregado")).toBeInTheDocument();
+    expect(await screen.findByText("Added")).toBeInTheDocument();
+  });
+
+  it("shows only the matching category table for the selected requirement type", async () => {
+    const user = userEvent.setup();
+
+    function Wrapper() {
+      const [requirements, setRequirements] = useState<Variant["requirements"]>({});
+      const [recommendations, setRecommendations] = useState<
+        Variant["recommendations"]
+      >();
+
+      return (
+        <RequirementsRecommendationsField
+          requirements={requirements}
+          recommendations={recommendations}
+          skillOptions={[]}
+          questOptions={[
+            {
+              label: "Fairy Tale II",
+              value: "fairy-tale-ii",
+              name: "Fairy Tale II",
+              stage: 2,
+            },
+          ]}
+          achievementDiaryOptions={[]}
+          onChange={({ requirements: nextRequirements, recommendations: nextRecommendations }) => {
+            setRequirements(nextRequirements);
+            setRecommendations(nextRecommendations);
+          }}
+        />
+      );
+    }
+
+    render(<Wrapper />);
+
+    const searchInput = screen.getByPlaceholderText(
+      "Search items, skills, quests, or achievement diaries"
+    );
+    const getComboboxItem = () =>
+      document.querySelector("[data-slot='combobox-item']") as HTMLElement | null;
+
+    await user.click(searchInput);
+    await user.type(searchInput, "fairy");
+    await waitFor(() => expect(getComboboxItem()).not.toBeNull());
+    await user.click(getComboboxItem() as HTMLElement);
+
+    expect(screen.getByRole("heading", { name: "Quests" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Items" })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Achievement diaries" })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Skills" })
+    ).not.toBeInTheDocument();
   });
 });

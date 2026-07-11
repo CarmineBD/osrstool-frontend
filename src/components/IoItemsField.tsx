@@ -51,6 +51,8 @@ import { cn } from "@/lib/utils";
 const SEARCH_LIMIT = 10;
 const DEBOUNCE_MS = 200;
 const SCROLL_BOTTOM_THRESHOLD_PX = 24;
+const TABLE_HEADER_CLASS_NAME =
+  "bg-slate-100/90 text-slate-700 dark:bg-slate-800/80 dark:text-slate-200";
 
 function hasMoreItemPages(
   response: ItemSearchResponse,
@@ -190,7 +192,7 @@ export function IoItemsField({
           setError(
             err instanceof Error
               ? err.message
-              : "No se pudieron cargar los items."
+              : "Unable to load items."
           );
         });
     }, DEBOUNCE_MS);
@@ -250,7 +252,7 @@ export function IoItemsField({
         console.error("Item search failed", err);
         setLoadingMore(false);
         setError(
-          err instanceof Error ? err.message : "No se pudieron cargar los items."
+          err instanceof Error ? err.message : "Unable to load items."
         );
       })
       .finally(() => {
@@ -366,7 +368,8 @@ export function IoItemsField({
   const getItemIcon = (id: number) =>
     itemsMap[id]?.iconUrl ?? searchCache[id]?.iconUrl;
 
-  const emptyMessage = query.trim() ? "Sin resultados" : "Escribe para buscar";
+  const emptyMessage = query.trim() ? "No results found" : "Type to search";
+  const emptySelectionMessage = "No items selected yet.";
 
   return (
     <div className="space-y-3">
@@ -386,7 +389,7 @@ export function IoItemsField({
         >
           <ComboboxInput
             className="w-full"
-            placeholder={placeholder ?? "Buscar item..."}
+            placeholder={placeholder ?? "Search for an item..."}
             showClear={query.trim().length > 0}
           />
           <ComboboxContent>
@@ -420,7 +423,7 @@ export function IoItemsField({
                           <span>{item.name}</span>
                           {isAdded ? (
                             <span className="text-xs text-muted-foreground">
-                              Agregado
+                              Added
                             </span>
                           ) : null}
                         </div>
@@ -468,27 +471,22 @@ export function IoItemsField({
         </DropdownMenu>
       </div>
 
-      <Table className="rounded-md border">
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead className="w-[140px]">Quantity</TableHead>
-            <TableHead className="w-[260px]">Reason</TableHead>
-            <TableHead className="w-[120px] text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {items.length === 0 ? (
-            <TableRow>
-              <TableCell
-                colSpan={4}
-                className="text-muted-foreground text-sm"
-              >
-                No hay items agregados.
-              </TableCell>
+      {items.length === 0 ? (
+        <div className="rounded-md border border-dashed border-border/70 bg-muted/20 px-4 py-6 text-center text-sm text-muted-foreground/80">
+          {emptySelectionMessage}
+        </div>
+      ) : (
+        <Table className="rounded-md border">
+          <TableHeader className={TABLE_HEADER_CLASS_NAME}>
+            <TableRow className="hover:bg-transparent">
+              <TableHead>Name</TableHead>
+              <TableHead className="w-[140px]">Quantity</TableHead>
+              <TableHead className="w-[260px]">Reason</TableHead>
+              <TableHead className="w-[120px] text-right">Actions</TableHead>
             </TableRow>
-          ) : (
-            items.map((entry) => {
+          </TableHeader>
+          <TableBody>
+            {items.map((entry) => {
               const iconUrl = getItemIcon(entry.id);
               return (
                 <TableRow
@@ -531,7 +529,7 @@ export function IoItemsField({
                   </TableCell>
                   <TableCell className="align-top">
                     <Textarea
-                      placeholder="Opcional"
+                      placeholder="Optional"
                       value={entry.reason ?? ""}
                       onChange={(e) =>
                         handleReasonChange(entry.id, e.target.value)
@@ -567,10 +565,10 @@ export function IoItemsField({
                   </TableCell>
                 </TableRow>
               );
-            })
-          )}
-        </TableBody>
-      </Table>
+            })}
+          </TableBody>
+        </Table>
+      )}
     </div>
   );
 }

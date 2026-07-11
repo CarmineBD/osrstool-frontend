@@ -1,34 +1,31 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
   type UIEvent,
 } from "react";
+import { IconAdjustmentsHorizontal, IconPhoto } from "@tabler/icons-react";
 import {
   fetchItems,
   searchItems,
   type ItemSearchResponse,
   type ItemSearchResult,
 } from "@/lib/api";
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-} from "@/components/ui/combobox";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { RequiredMark } from "@/components/RequiredMark";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
-import { IconAdjustmentsHorizontal, IconX } from "@tabler/icons-react";
+import { cn } from "@/lib/utils";
 
 const SEARCH_LIMIT = 10;
 const DEBOUNCE_MS = 200;
@@ -69,6 +66,7 @@ interface ItemIconFieldProps {
   onChange: (next: number | undefined) => void;
   placeholder?: string;
   error?: string;
+  required?: boolean;
   searchAriaLabel?: string;
   optionsAriaLabel?: string;
 }
@@ -79,9 +77,11 @@ export function ItemIconField({
   onChange,
   placeholder,
   error,
+  required = false,
   searchAriaLabel,
   optionsAriaLabel,
 }: ItemIconFieldProps) {
+  const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ItemSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -96,6 +96,7 @@ export function ItemIconField({
   >({});
   const requestIdRef = useRef(0);
   const loadMoreControllerRef = useRef<AbortController | null>(null);
+  const listboxId = useId();
 
   useEffect(() => {
     return () => {
@@ -188,7 +189,7 @@ export function ItemIconField({
           setErrorMessage(
             searchError instanceof Error
               ? searchError.message
-              : "No se pudieron cargar los items.",
+              : "Unable to load items.",
           );
         });
     }, DEBOUNCE_MS);
@@ -249,7 +250,7 @@ export function ItemIconField({
         setErrorMessage(
           searchError instanceof Error
             ? searchError.message
-            : "No se pudieron cargar los items.",
+            : "Unable to load items.",
         );
       })
       .finally(() => {
@@ -277,8 +278,7 @@ export function ItemIconField({
     [loadMoreResults],
   );
 
-  const handleSelectItem = (item: ItemSearchResult | null) => {
-    if (!item) return;
+  const handleSelectItem = (item: ItemSearchResult) => {
     setSelectedItem({
       id: item.id,
       name: item.name,
@@ -287,6 +287,7 @@ export function ItemIconField({
     setSearchCache((prev) => ({ ...prev, [item.id]: item }));
     onChange(item.id);
     setQuery("");
+    setOpen(false);
   };
 
   const selectedPreview = useMemo(() => {
@@ -300,152 +301,172 @@ export function ItemIconField({
     );
   }, [normalizedValue, searchCache, selectedItem]);
 
-  const emptyMessage = query.trim() ? "Sin resultados" : "Escribe para buscar";
+  const emptyMessage = query.trim() ? "No results found" : "Type to search";
+  const triggerLabel = searchAriaLabel ?? `${label} search`;
+  const hasError = Boolean(error);
+  const handleOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (nextOpen) {
+        setQuery(selectedPreview?.name ?? "");
+      }
+      setOpen(nextOpen);
+    },
+    [selectedPreview],
+  );
 
   return (
-    <div className="space-y-3">
-      <label className="block text-sm font-medium">{label}</label>
+    <div className="space-y-2 self-start">
+      <label className="block text-sm font-medium">
+        {label}
+        {required ? <RequiredMark /> : null}
+      </label>
 
-      <div className="flex items-start gap-2">
-        <Combobox<ItemSearchResult>
-          inputValue={query}
-          onInputValueChange={(nextValue) => setQuery(nextValue)}
-          onValueChange={(nextValue) => handleSelectItem(nextValue)}
-          filter={null}
-          itemToStringLabel={(item) => item.name}
-          itemToStringValue={(item) => item.id.toString()}
-          isItemEqualToValue={(a, b) => {
-            if (!a || !b) return false;
-            return a.id === b.id;
-          }}
-        >
-          <ComboboxInput
-            className="w-full"
-            aria-label={searchAriaLabel ?? `${label} search`}
-            placeholder={placeholder ?? "Buscar item para icono..."}
-            showClear={query.trim().length > 0}
-          />
-          <ComboboxContent>
-            <ComboboxList onScroll={handleResultsScroll}>
-              {loading && results.length === 0
-                ? Array.from({ length: 6 }).map((_, index) => (
-                    <div
-                      key={`icon-search-skeleton-${index}`}
-                      className="px-2 py-1.5"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Skeleton className="h-[30px] w-[30px]" />
-                        <Skeleton className="h-4 w-40" />
-                      </div>
-                    </div>
-                  ))
-                : results.map((item) => {
-                    const isSelected = normalizedValue === item.id;
-                    return (
-                      <ComboboxItem
-                        key={item.id}
-                        value={item}
-                        disabled={isSelected}
-                      >
-                        <div className="flex items-center gap-2">
-                          {item.iconUrl ? (
-                            <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
-                              <img
-                                src={item.iconUrl}
-                                alt={item.name}
-                                className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
-                              />
-                            </div>
-                          ) : null}
-                          <span>{item.name}</span>
-                          {isSelected ? (
-                            <span className="text-xs text-muted-foreground">
-                              Seleccionado
-                            </span>
-                          ) : null}
-                        </div>
-                      </ComboboxItem>
-                    );
-                  })}
-              {loadingMore ? (
-                <div className="px-2 py-1.5">
-                  <div className="flex items-center gap-2">
-                    <Skeleton className="h-[30px] w-[30px]" />
-                    <Skeleton className="h-4 w-36" />
-                  </div>
-                </div>
-              ) : null}
-            </ComboboxList>
-            <ComboboxEmpty>{emptyMessage}</ComboboxEmpty>
-            {errorMessage ? (
-              <div className="px-2 py-1 text-xs text-destructive">
-                {errorMessage}
-              </div>
-            ) : null}
-          </ComboboxContent>
-        </Combobox>
+      <input
+        aria-label={triggerLabel}
+        className="sr-only"
+        role="combobox"
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+      />
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              aria-label={optionsAriaLabel ?? `${label} search options`}
-              className="shrink-0"
-            >
-              <IconAdjustmentsHorizontal size={16} />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-64">
-            <div className="flex items-center justify-between gap-3 px-2 py-1.5">
-              <span className="text-sm">Show untradeables</span>
-              <Switch
-                checked={showUntradeables}
-                onCheckedChange={setShowUntradeables}
-                aria-label="Show untradeables"
-              />
-            </div>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+      <Popover open={open} onOpenChange={handleOpenChange}>
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            className={cn(
+              "h-10 w-10 shrink-0 rounded-md border-border/60 bg-background/90 p-0",
+              hasError && "border-destructive focus-visible:ring-destructive/30",
+            )}
+            aria-label={`Open ${label}`}
+          >
+            {selectedPreview?.iconUrl ? (
+              <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
+                <img
+                  src={selectedPreview.iconUrl}
+                  alt={selectedPreview.name}
+                  className="h-auto w-auto max-h-full max-w-full [image-rendering:pixelated]"
+                />
+              </span>
+            ) : (
+              <IconPhoto size={16} className="text-muted-foreground" />
+            )}
+          </Button>
+        </PopoverTrigger>
 
-      <div className="rounded-md border bg-muted/10 p-3">
-        {selectedPreview ? (
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              {selectedPreview.iconUrl ? (
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded border bg-background/80">
-                  <img
-                    src={selectedPreview.iconUrl}
-                    alt={selectedPreview.name}
-                    className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
+        <PopoverContent align="start" className="w-[360px] p-3">
+          <div className="flex items-center gap-2">
+            <Input
+              role="combobox"
+              aria-label={`${triggerLabel} panel`}
+              aria-expanded={open}
+              aria-controls={listboxId}
+              placeholder={placeholder ?? "Search for an item icon..."}
+              value={query}
+              autoFocus
+              onChange={(event) => setQuery(event.target.value)}
+            />
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  aria-label={optionsAriaLabel ?? `${label} search options`}
+                  className="shrink-0"
+                >
+                  <IconAdjustmentsHorizontal size={16} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64">
+                <div className="flex items-center justify-between gap-3 px-2 py-1.5">
+                  <span className="text-sm">Show untradeables</span>
+                  <Switch
+                    checked={showUntradeables}
+                    onCheckedChange={setShowUntradeables}
+                    aria-label="Show untradeables"
                   />
                 </div>
-              ) : null}
-              <div>
-                <p className="text-sm font-medium">{selectedPreview.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  item id: {selectedPreview.id}
-                </p>
-              </div>
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              aria-label={`Clear ${label}`}
-              onClick={() => onChange(undefined)}
-            >
-              <IconX size={16} />
-            </Button>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            No icon selected. Search an OSRS item and pick one.
-          </p>
-        )}
-      </div>
+
+          <div
+            id={listboxId}
+            role="listbox"
+            className="mt-3 max-h-72 space-y-1 overflow-y-auto"
+            onScroll={handleResultsScroll}
+          >
+            {loading && results.length === 0
+              ? Array.from({ length: 6 }).map((_, index) => (
+                  <div
+                    key={`icon-search-skeleton-${index}`}
+                    className="rounded-md px-2 py-1.5"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-[30px] w-[30px]" />
+                      <Skeleton className="h-4 w-40" />
+                    </div>
+                  </div>
+                ))
+              : results.map((item) => {
+                  const isSelected = normalizedValue === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      role="option"
+                      aria-selected={isSelected}
+                      className={cn(
+                        "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors",
+                        isSelected
+                          ? "bg-accent text-accent-foreground"
+                          : "hover:bg-accent/70",
+                      )}
+                      onClick={() => handleSelectItem(item)}
+                      disabled={isSelected}
+                    >
+                      {item.iconUrl ? (
+                        <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
+                          <img
+                            src={item.iconUrl}
+                            alt={item.name}
+                            className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
+                          />
+                        </div>
+                      ) : null}
+                      <span className="flex-1">{item.name}</span>
+                      {isSelected ? (
+                        <span className="text-xs text-muted-foreground">
+                          Selected
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+
+            {!loading && results.length === 0 ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">
+                {emptyMessage}
+              </p>
+            ) : null}
+
+            {loadingMore ? (
+              <div className="px-2 py-1.5">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-[30px] w-[30px]" />
+                  <Skeleton className="h-4 w-36" />
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          {errorMessage ? (
+            <div className="mt-2 text-xs text-destructive">{errorMessage}</div>
+          ) : null}
+        </PopoverContent>
+      </Popover>
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
     </div>
