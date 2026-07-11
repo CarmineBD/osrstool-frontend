@@ -24,6 +24,15 @@ import {
   ComboboxList,
 } from "@/components/ui/combobox";
 import {
+  EDITOR_ERROR_TEXT_CLASS,
+  EDITOR_FIELD_LABEL_CLASS,
+  EDITOR_META_TEXT_CLASS,
+  EDITOR_TABLE_HEADER_CLASS,
+  EDITOR_TABLE_SURFACE_CLASS,
+  EmptySelectionState,
+  PixelArtIcon,
+} from "@/components/method-editor/MethodEditorPrimitives";
+import {
   Table,
   TableBody,
   TableCell,
@@ -51,8 +60,11 @@ import { cn } from "@/lib/utils";
 const SEARCH_LIMIT = 10;
 const DEBOUNCE_MS = 200;
 const SCROLL_BOTTOM_THRESHOLD_PX = 24;
-const TABLE_HEADER_CLASS_NAME =
-  "bg-slate-100/90 text-slate-700 dark:bg-slate-800/80 dark:text-slate-200";
+const IO_TABLE_MIN_WIDTH_CLASS = "min-w-[380px]";
+const IO_NAME_COLUMN_CLASS = "w-[36%]";
+const IO_QUANTITY_COLUMN_CLASS = "w-[88px]";
+const IO_REASON_COLUMN_CLASS = "w-[160px]";
+const IO_ACTIONS_COLUMN_CLASS = "w-[72px]";
 
 function hasMoreItemPages(
   response: ItemSearchResponse,
@@ -372,8 +384,8 @@ export function IoItemsField({
   const emptySelectionMessage = "No items selected yet.";
 
   return (
-    <div className="space-y-3">
-      <label className="block text-sm font-medium">{label}</label>
+    <div>
+      <label className={EDITOR_FIELD_LABEL_CLASS}>{label}</label>
       <div className="flex items-start gap-2">
         <Combobox<ItemSearchResult>
           inputValue={query}
@@ -411,20 +423,10 @@ export function IoItemsField({
                     return (
                       <ComboboxItem key={item.id} value={item} disabled={isAdded}>
                         <div className="flex items-center gap-2">
-                          {item.iconUrl ? (
-                            <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
-                              <img
-                                src={item.iconUrl}
-                                alt={item.name}
-                                className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
-                              />
-                            </div>
-                          ) : null}
+                          <PixelArtIcon src={item.iconUrl} alt={item.name} />
                           <span>{item.name}</span>
                           {isAdded ? (
-                            <span className="text-xs text-muted-foreground">
-                              Added
-                            </span>
+                            <span className={EDITOR_META_TEXT_CLASS}>Added</span>
                           ) : null}
                         </div>
                       </ComboboxItem>
@@ -441,7 +443,9 @@ export function IoItemsField({
             </ComboboxList>
             <ComboboxEmpty>{emptyMessage}</ComboboxEmpty>
             {error ? (
-              <div className="px-2 py-1 text-xs text-destructive">{error}</div>
+              <div className={cn("px-2 py-1", EDITOR_ERROR_TEXT_CLASS)}>
+                {error}
+              </div>
             ) : null}
           </ComboboxContent>
         </Combobox>
@@ -471,104 +475,102 @@ export function IoItemsField({
         </DropdownMenu>
       </div>
 
-      {items.length === 0 ? (
-        <div className="rounded-md border border-dashed border-border/70 bg-muted/20 px-4 py-6 text-center text-sm text-muted-foreground/80">
-          {emptySelectionMessage}
-        </div>
-      ) : (
-        <Table className="rounded-md border">
-          <TableHeader className={TABLE_HEADER_CLASS_NAME}>
-            <TableRow className="hover:bg-transparent">
-              <TableHead>Name</TableHead>
-              <TableHead className="w-[140px]">Quantity</TableHead>
-              <TableHead className="w-[260px]">Reason</TableHead>
-              <TableHead className="w-[120px] text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((entry) => {
-              const iconUrl = getItemIcon(entry.id);
-              return (
-                <TableRow
-                  key={entry.id}
-                  onDragOver={(event) => handleDragOver(event, entry.id)}
-                  onDrop={(event) => handleDrop(event, entry.id)}
-                  className={cn(
-                    dragOverId === entry.id &&
-                      "outline outline-1 outline-primary/40"
-                  )}
-                >
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      {iconUrl ? (
-                        <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
-                          <img
-                            src={iconUrl}
-                            alt={getItemName(entry.id)}
-                            className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
-                          />
-                        </div>
-                      ) : null}
-                      <span className={cn(!iconUrl && "pl-1")}>
-                        {getItemName(entry.id)}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      type="number"
-                      min={0}
-                      step="any"
-                      inputMode="decimal"
-                      value={entry.quantity}
-                      onChange={(e) =>
-                        handleQuantityChange(entry.id, e.target.value)
-                      }
-                      className="w-24"
-                    />
-                  </TableCell>
-                  <TableCell className="align-top">
-                    <Textarea
-                      placeholder="Optional"
-                      value={entry.reason ?? ""}
-                      onChange={(e) =>
-                        handleReasonChange(entry.id, e.target.value)
-                      }
-                      className="min-h-[64px] resize-y"
-                    />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        aria-label="Remove item"
-                        onClick={() => handleRemoveItem(entry.id)}
-                      >
-                        <IconX size={16} />
-                      </Button>
-                      <button
-                        type="button"
-                        aria-label="Reorder item"
-                        className={cn(
-                          "cursor-grab rounded-md p-2 text-muted-foreground transition hover:text-foreground",
-                          draggingId === entry.id && "cursor-grabbing"
-                        )}
-                        draggable
-                        onDragStart={(event) => handleDragStart(event, entry.id)}
-                        onDragEnd={handleDragEnd}
-                      >
-                        <IconGripVertical size={16} />
-                      </button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      )}
+      <div className="mt-4">
+        {items.length === 0 ? (
+          <EmptySelectionState description={emptySelectionMessage} />
+        ) : (
+          <Table
+            className={cn(EDITOR_TABLE_SURFACE_CLASS, IO_TABLE_MIN_WIDTH_CLASS)}
+          >
+            <TableHeader className={EDITOR_TABLE_HEADER_CLASS}>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className={IO_NAME_COLUMN_CLASS}>Name</TableHead>
+                <TableHead className={IO_QUANTITY_COLUMN_CLASS}>
+                  Quantity
+                </TableHead>
+                <TableHead className={IO_REASON_COLUMN_CLASS}>Reason</TableHead>
+                <TableHead className={cn(IO_ACTIONS_COLUMN_CLASS, "text-right")}>
+                  Actions
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {items.map((entry) => {
+                const iconUrl = getItemIcon(entry.id);
+                return (
+                  <TableRow
+                    key={entry.id}
+                    onDragOver={(event) => handleDragOver(event, entry.id)}
+                    onDrop={(event) => handleDrop(event, entry.id)}
+                    className={cn(
+                      dragOverId === entry.id &&
+                        "outline outline-1 outline-primary/40"
+                    )}
+                  >
+                    <TableCell className="align-top">
+                      <div className="flex min-w-0 items-start gap-2">
+                        <PixelArtIcon src={iconUrl} alt={getItemName(entry.id)} />
+                        <span className={cn("leading-5", !iconUrl && "pl-1")}>
+                          {getItemName(entry.id)}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        min={0}
+                        step="any"
+                        inputMode="decimal"
+                        value={entry.quantity}
+                        onChange={(e) =>
+                          handleQuantityChange(entry.id, e.target.value)
+                        }
+                        className="w-full"
+                      />
+                    </TableCell>
+                    <TableCell className="align-top">
+                      <Textarea
+                        placeholder="Optional"
+                        value={entry.reason ?? ""}
+                        onChange={(e) =>
+                          handleReasonChange(entry.id, e.target.value)
+                        }
+                        className="min-h-[64px] resize-y"
+                      />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Remove item"
+                          onClick={() => handleRemoveItem(entry.id)}
+                        >
+                          <IconX size={16} />
+                        </Button>
+                        <button
+                          type="button"
+                          aria-label="Reorder item"
+                          className={cn(
+                            "cursor-grab rounded-md p-2 text-muted-foreground transition hover:text-foreground",
+                            draggingId === entry.id && "cursor-grabbing"
+                          )}
+                          draggable
+                          onDragStart={(event) => handleDragStart(event, entry.id)}
+                          onDragEnd={handleDragEnd}
+                        >
+                          <IconGripVertical size={16} />
+                        </button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
+      </div>
     </div>
   );
 }

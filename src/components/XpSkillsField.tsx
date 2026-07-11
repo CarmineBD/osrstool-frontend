@@ -1,4 +1,10 @@
 import { useMemo, useState } from "react";
+import {
+  EDITOR_BODY_TEXT_CLASS,
+  EDITOR_FIELD_LABEL_CLASS,
+  EDITOR_META_TEXT_CLASS,
+  PixelArtIcon,
+} from "@/components/method-editor/MethodEditorPrimitives";
 import type { SkillOption, Variant } from "@/lib/api";
 import { getUrlByType } from "@/lib/utils";
 import {
@@ -12,6 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { IconX } from "@tabler/icons-react";
+import { cn } from "@/lib/utils";
 
 type XpHourEntry = NonNullable<Variant["xpHour"]>[number];
 
@@ -116,8 +123,8 @@ export function XpSkillsField({
   const emptyMessage = query.trim() ? "No results found" : "Type to search";
 
   return (
-    <div className="space-y-3">
-      {label ? <label className="block text-sm font-medium">{label}</label> : null}
+    <div>
+      {label ? <label className={EDITOR_FIELD_LABEL_CLASS}>{label}</label> : null}
       <Combobox<SkillOption>
         inputValue={query}
         onInputValueChange={(value) => setQuery(value)}
@@ -142,18 +149,14 @@ export function XpSkillsField({
               return (
                 <ComboboxItem key={skill.value} value={skill} disabled={isAdded}>
                   <div className="flex items-center gap-2">
-                    {getUrlByType(skill.name) ? (
-                      <img
-                        src={getUrlByType(skill.name) ?? ""}
-                        alt={`${skill.name}_icon`}
-                        className="h-5 w-5 object-contain"
-                      />
-                    ) : null}
+                    <PixelArtIcon
+                      src={getUrlByType(skill.name)}
+                      alt={`${skill.name}_icon`}
+                      size="sm"
+                    />
                     <span>{skill.name}</span>
                     {isAdded ? (
-                      <span className="text-xs text-muted-foreground">
-                        Added
-                      </span>
+                      <span className={EDITOR_META_TEXT_CLASS}>Added</span>
                     ) : null}
                   </div>
                 </ComboboxItem>
@@ -165,7 +168,7 @@ export function XpSkillsField({
       </Combobox>
 
       {entries.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-wrap gap-2">
           {entries.map((entry) => {
             const normalizedEntrySkill = normalizeSkill(entry.skill);
             const skill = skillLookup.get(normalizedEntrySkill);
@@ -174,20 +177,15 @@ export function XpSkillsField({
             return (
               <div
                 key={normalizedEntrySkill}
-                className="flex items-center gap-2 rounded-full border border-border/60 bg-background/90 px-2 py-1.5"
+                className="flex items-center gap-2 rounded-full border border-border/70 bg-background px-2 py-1.5"
               >
-                <div
-                  className="flex h-6 w-6 shrink-0 items-center justify-center"
+                <PixelArtIcon
+                  src={iconUrl}
+                  alt=""
+                  size="sm"
+                  className="h-6 w-6"
                   title={skillName}
-                >
-                  {iconUrl ? (
-                    <img
-                      src={iconUrl}
-                      alt=""
-                      className="h-5 w-5 object-contain"
-                    />
-                  ) : null}
-                </div>
+                />
 
                 <Input
                   type="text"
@@ -217,7 +215,7 @@ export function XpSkillsField({
           })}
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground">No skills added yet.</p>
+        <p className={cn("mt-3", EDITOR_BODY_TEXT_CLASS)}>No skills added yet.</p>
       )}
     </div>
   );

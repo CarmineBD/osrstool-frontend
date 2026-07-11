@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { IconX } from "@tabler/icons-react";
+import {
+  EDITOR_META_TEXT_CLASS,
+  EDITOR_NAME_COLUMN_CLASS,
+  EDITOR_REASON_COLUMN_CLASS,
+  EDITOR_TABLE_HEADER_CLASS,
+  EDITOR_TABLE_SURFACE_CLASS,
+  PixelArtIcon,
+} from "@/components/method-editor/MethodEditorPrimitives";
 import { getUrlByType } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,10 +34,6 @@ import {
 } from "@/components/requirements-recommendations/requirementsRecommendations.utils";
 
 type EntryUpdater = (entry: UnifiedEntry) => UnifiedEntry;
-const TABLE_HEADER_CLASS_NAME =
-  "bg-slate-100/90 text-slate-700 dark:bg-slate-800/80 dark:text-slate-200";
-const NAME_COLUMN_CLASS_NAME = "w-[24%]";
-const REASON_COLUMN_CLASS_NAME = "w-[36%]";
 
 interface RequirementsEntriesTablesProps {
   itemEntries: UnifiedItemEntry[];
@@ -85,9 +89,7 @@ function RequiredToggle({
   return (
     <div className="flex items-center gap-2">
       <Switch checked={isRequired} onCheckedChange={onCheckedChange} />
-      <span className="text-xs text-muted-foreground">
-        {formatRequiredLabel(isRequired)}
-      </span>
+      <span className={EDITOR_META_TEXT_CLASS}>{formatRequiredLabel(isRequired)}</span>
     </div>
   );
 }
@@ -120,13 +122,13 @@ export function RequirementsEntriesTables({
       visible: itemEntries.length > 0,
       content: (
         <div className="space-y-2">
-          <h4 className="text-sm font-semibold">Items</h4>
-          <Table className="table-fixed rounded-md border">
-            <TableHeader className={TABLE_HEADER_CLASS_NAME}>
+          <h4 className="text-sm font-semibold leading-5">Items</h4>
+          <Table className={EDITOR_TABLE_SURFACE_CLASS}>
+            <TableHeader className={EDITOR_TABLE_HEADER_CLASS}>
               <TableRow className="hover:bg-transparent">
-                <TableHead className={NAME_COLUMN_CLASS_NAME}>Name</TableHead>
+                <TableHead className={EDITOR_NAME_COLUMN_CLASS}>Name</TableHead>
                 <TableHead className="w-[140px]">Quantity</TableHead>
-                <TableHead className={REASON_COLUMN_CLASS_NAME}>Reason</TableHead>
+                <TableHead className={EDITOR_REASON_COLUMN_CLASS}>Reason</TableHead>
                 <TableHead className="w-[140px]">Requirement type</TableHead>
                 <TableHead className="w-[80px] text-right">Actions</TableHead>
               </TableRow>
@@ -136,15 +138,10 @@ export function RequirementsEntriesTables({
                 <TableRow key={entry.key}>
                   <TableCell className="align-top">
                     <div className="flex min-w-0 items-center gap-2">
-                      {getItemIcon(entry) ? (
-                        <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
-                          <img
-                            src={getItemIcon(entry)}
-                            alt={getItemName(entry)}
-                            className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
-                          />
-                        </div>
-                      ) : null}
+                      <PixelArtIcon
+                        src={getItemIcon(entry)}
+                        alt={getItemName(entry)}
+                      />
                       <TruncatedTitleText text={getItemName(entry)} />
                     </div>
                   </TableCell>
@@ -215,13 +212,13 @@ export function RequirementsEntriesTables({
       visible: questEntries.length > 0,
       content: (
         <div className="space-y-2">
-          <h4 className="text-sm font-semibold">Quests</h4>
-          <Table className="table-fixed rounded-md border">
-            <TableHeader className={TABLE_HEADER_CLASS_NAME}>
+          <h4 className="text-sm font-semibold leading-5">Quests</h4>
+          <Table className={EDITOR_TABLE_SURFACE_CLASS}>
+            <TableHeader className={EDITOR_TABLE_HEADER_CLASS}>
               <TableRow className="hover:bg-transparent">
-                <TableHead className={NAME_COLUMN_CLASS_NAME}>Name</TableHead>
+                <TableHead className={EDITOR_NAME_COLUMN_CLASS}>Name</TableHead>
                 <TableHead className="w-[160px]">Completed</TableHead>
-                <TableHead className={REASON_COLUMN_CLASS_NAME}>Reason</TableHead>
+                <TableHead className={EDITOR_REASON_COLUMN_CLASS}>Reason</TableHead>
                 <TableHead className="w-[140px]">Requirement type</TableHead>
                 <TableHead className="w-[80px] text-right">Actions</TableHead>
               </TableRow>
@@ -231,15 +228,7 @@ export function RequirementsEntriesTables({
                 <TableRow key={entry.key}>
                   <TableCell className="align-top">
                     <div className="flex min-w-0 items-center gap-2">
-                      {questIconUrl ? (
-                        <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
-                          <img
-                            src={questIconUrl}
-                            alt="quests_icon"
-                            className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
-                          />
-                        </div>
-                      ) : null}
+                      <PixelArtIcon src={questIconUrl} alt="quests_icon" />
                       <TruncatedTitleText text={entry.name} />
                     </div>
                   </TableCell>
@@ -255,7 +244,7 @@ export function RequirementsEntriesTables({
                           )
                         }
                       />
-                      <span className="text-xs text-muted-foreground">
+                      <span className={EDITOR_META_TEXT_CLASS}>
                         {entry.stage === 2 ? "Completed" : "Started"}
                       </span>
                     </div>
@@ -307,13 +296,13 @@ export function RequirementsEntriesTables({
       visible: achievementDiaryEntries.length > 0,
       content: (
         <div className="space-y-2">
-          <h4 className="text-sm font-semibold">Achievement diaries</h4>
-          <Table className="table-fixed rounded-md border">
-            <TableHeader className={TABLE_HEADER_CLASS_NAME}>
+          <h4 className="text-sm font-semibold leading-5">Achievement diaries</h4>
+          <Table className={EDITOR_TABLE_SURFACE_CLASS}>
+            <TableHeader className={EDITOR_TABLE_HEADER_CLASS}>
               <TableRow className="hover:bg-transparent">
-                <TableHead className={NAME_COLUMN_CLASS_NAME}>Name</TableHead>
+                <TableHead className={EDITOR_NAME_COLUMN_CLASS}>Name</TableHead>
                 <TableHead className="w-[160px]">Completed</TableHead>
-                <TableHead className={REASON_COLUMN_CLASS_NAME}>Reason</TableHead>
+                <TableHead className={EDITOR_REASON_COLUMN_CLASS}>Reason</TableHead>
                 <TableHead className="w-[140px]">Requirement type</TableHead>
                 <TableHead className="w-[80px] text-right">Actions</TableHead>
               </TableRow>
@@ -323,15 +312,10 @@ export function RequirementsEntriesTables({
                 <TableRow key={entry.key}>
                   <TableCell className="align-top">
                     <div className="flex min-w-0 items-center gap-2">
-                      {achievementDiaryIconUrl ? (
-                        <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
-                          <img
-                            src={achievementDiaryIconUrl}
-                            alt="achievement_diaries_icon"
-                            className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
-                          />
-                        </div>
-                      ) : null}
+                      <PixelArtIcon
+                        src={achievementDiaryIconUrl}
+                        alt="achievement_diaries_icon"
+                      />
                       <TruncatedTitleText
                         text={formatAchievementDiaryLabel(entry.name, entry.tier)}
                       />
@@ -349,7 +333,7 @@ export function RequirementsEntriesTables({
                           )
                         }
                       />
-                      <span className="text-xs text-muted-foreground">
+                      <span className={EDITOR_META_TEXT_CLASS}>
                         {entry.stage === 2 ? "Completed" : "Started"}
                       </span>
                     </div>
@@ -401,13 +385,13 @@ export function RequirementsEntriesTables({
       visible: skillEntries.length > 0,
       content: (
         <div className="space-y-2">
-          <h4 className="text-sm font-semibold">Skills</h4>
-          <Table className="table-fixed rounded-md border">
-            <TableHeader className={TABLE_HEADER_CLASS_NAME}>
+          <h4 className="text-sm font-semibold leading-5">Skills</h4>
+          <Table className={EDITOR_TABLE_SURFACE_CLASS}>
+            <TableHeader className={EDITOR_TABLE_HEADER_CLASS}>
               <TableRow className="hover:bg-transparent">
-                <TableHead className={NAME_COLUMN_CLASS_NAME}>Name</TableHead>
+                <TableHead className={EDITOR_NAME_COLUMN_CLASS}>Name</TableHead>
                 <TableHead className="w-[140px]">Level</TableHead>
-                <TableHead className={REASON_COLUMN_CLASS_NAME}>Reason</TableHead>
+                <TableHead className={EDITOR_REASON_COLUMN_CLASS}>Reason</TableHead>
                 <TableHead className="w-[140px]">Requirement type</TableHead>
                 <TableHead className="w-[80px] text-right">Actions</TableHead>
               </TableRow>
@@ -417,15 +401,10 @@ export function RequirementsEntriesTables({
                 <TableRow key={entry.key}>
                   <TableCell className="align-top">
                     <div className="flex min-w-0 items-center gap-2">
-                      {getUrlByType(entry.skill) ? (
-                        <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
-                          <img
-                            src={getUrlByType(entry.skill) ?? ""}
-                            alt={`${entry.skill}_icon`}
-                            className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
-                          />
-                        </div>
-                      ) : null}
+                      <PixelArtIcon
+                        src={getUrlByType(entry.skill)}
+                        alt={`${entry.skill}_icon`}
+                      />
                       <TruncatedTitleText text={entry.skill} />
                     </div>
                   </TableCell>

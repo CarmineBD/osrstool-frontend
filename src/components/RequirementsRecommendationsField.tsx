@@ -1,3 +1,7 @@
+import {
+  EDITOR_FIELD_LABEL_CLASS,
+  EmptySelectionState,
+} from "@/components/method-editor/MethodEditorPrimitives";
 import { RequirementsEntriesTables } from "@/components/requirements-recommendations/RequirementsEntriesTables";
 import { RequirementsSearchCombobox } from "@/components/requirements-recommendations/RequirementsSearchCombobox";
 import type { RequirementsRecommendationsFieldProps } from "@/components/requirements-recommendations/requirementsRecommendations.types";
@@ -19,8 +23,8 @@ export function RequirementsRecommendationsField(
     state.skillEntries.length > 0;
 
   return (
-    <div className="space-y-4">
-      {label ? <label className="block text-sm font-medium">{label}</label> : null}
+    <div>
+      {label ? <label className={EDITOR_FIELD_LABEL_CLASS}>{label}</label> : null}
 
       <RequirementsSearchCombobox
         label={searchLabel}
@@ -41,20 +45,24 @@ export function RequirementsRecommendationsField(
         achievementDiaryIconUrl={state.achievementDiaryIconUrl}
       />
 
-      {hasSelectedEntries ? (
-        <RequirementsEntriesTables
-          itemEntries={state.itemEntries}
-          questEntries={state.questEntries}
-          achievementDiaryEntries={state.achievementDiaryEntries}
-          skillEntries={state.skillEntries}
-          questIconUrl={state.questIconUrl}
-          achievementDiaryIconUrl={state.achievementDiaryIconUrl}
-          getItemName={state.getItemName}
-          getItemIcon={state.getItemIcon}
-          updateEntry={state.updateEntry}
-          removeEntry={state.removeEntry}
-        />
-      ) : null}
+      <div className="mt-4">
+        {hasSelectedEntries ? (
+          <RequirementsEntriesTables
+            itemEntries={state.itemEntries}
+            questEntries={state.questEntries}
+            achievementDiaryEntries={state.achievementDiaryEntries}
+            skillEntries={state.skillEntries}
+            questIconUrl={state.questIconUrl}
+            achievementDiaryIconUrl={state.achievementDiaryIconUrl}
+            getItemName={state.getItemName}
+            getItemIcon={state.getItemIcon}
+            updateEntry={state.updateEntry}
+            removeEntry={state.removeEntry}
+          />
+        ) : (
+          <EmptySelectionState description="No requirements or recommendations selected yet." />
+        )}
+      </div>
     </div>
   );
 }
