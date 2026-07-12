@@ -18,6 +18,8 @@ export const EDITOR_META_TEXT_CLASS =
 export const EDITOR_ERROR_TEXT_CLASS =
   "text-[13px] font-medium leading-[18px] text-destructive";
 
+export const EDITOR_PAGE_SHELL_CLASS =
+  "rounded-xl border border-border/70 bg-card shadow-sm";
 export const EDITOR_PRIMARY_CARD_CLASS =
   "gap-0 rounded-xl border border-border/70 bg-card shadow-sm";
 export const EDITOR_SECONDARY_CARD_CLASS =
@@ -26,6 +28,8 @@ export const EDITOR_CARD_HEADER_CLASS = "gap-4 border-b border-border/60 pb-6";
 export const EDITOR_CARD_CONTENT_CLASS = "space-y-6 pt-6";
 export const EDITOR_NESTED_SURFACE_CLASS =
   "rounded-lg border border-border/70 bg-muted/20";
+export const EDITOR_SECTION_CARD_CLASS =
+  "space-y-4 rounded-lg border border-border/70 bg-muted/20 p-6";
 export const EDITOR_TAB_LIST_CLASS =
   "h-auto w-full flex-wrap justify-start gap-1 rounded-lg bg-muted/30 p-1";
 export const EDITOR_DASHED_ACTION_CLASS =

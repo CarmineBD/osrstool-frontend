@@ -50,7 +50,7 @@ export function LikeButton({
       onClick={handleClick}
       disabled={toggleLikeMutation.isPending}
       aria-label={isLiked ? "Unlike method" : "Like method"}
-      className={cn("h-8 gap-1.5 px-2", className)}
+      className={cn("h-8 gap-2 px-2", className)}
     >
       <Heart
         className={cn(

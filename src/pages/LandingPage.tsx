@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, TrendingDown, TrendingUp } from "lucide-react";
+import { PixelArtIcon } from "@/components/method-editor/MethodEditorPrimitives";
 import { Button } from "@/components/ui/button";
 import { VariantMembershipBadge } from "@/components/VariantMembershipBadge";
 import {
@@ -18,10 +19,13 @@ import {
 } from "@/content/changelog";
 import { useSeo } from "@/hooks/useSeo";
 import {
+  fetchItems,
   fetchTrendingProfitMethods,
+  type Item,
   type Method,
   type Variant,
 } from "@/lib/api";
+import { getItemsQueryKey } from "@/lib/queryKeys";
 import {
   QUERY_REFETCH_INTERVAL_MS,
   QUERY_STALE_TIME_MS,
@@ -118,9 +122,11 @@ function getTrendingVariant(method: Method): Variant | undefined {
 function TrendingMethodCard({
   method,
   index,
+  variantIconUrl,
 }: {
   method: Method;
   index: number;
+  variantIconUrl?: string;
 }) {
   const variant = getTrendingVariant(method);
   const growthPct = getGrowthPct(variant);
@@ -146,9 +152,16 @@ function TrendingMethodCard({
 
         <div className="flex min-w-0 items-start justify-between gap-4">
           <div className="min-w-0">
-            <h2 className="line-clamp-2 text-xl font-black leading-tight text-slate-950">
-              {method.name}
-            </h2>
+            <div className="flex min-w-0 items-start gap-3">
+              <PixelArtIcon
+                src={variantIconUrl}
+                alt={variant?.label ? `${variant.label} icon` : ""}
+                className="mt-0.5 h-[30px] w-[30px]"
+              />
+              <h2 className="line-clamp-2 text-xl font-black leading-tight text-slate-950">
+                {method.name}
+              </h2>
+            </div>
             {variant?.label ? (
               <div className="mt-1 flex flex-wrap items-center gap-2">
                 <p className="line-clamp-1 text-sm font-semibold text-slate-600">
@@ -195,6 +208,32 @@ function TrendingMethodsCarousel() {
     () => (data ?? []).slice(0, TRENDING_METHODS_LIMIT),
     [data],
   );
+  const trendingCards = useMemo(
+    () =>
+      methods.map((method, index) => ({
+        method,
+        index,
+        variant: getTrendingVariant(method),
+      })),
+    [methods],
+  );
+  const variantIconIds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          trendingCards
+            .map(({ variant }) => variant?.icon_id)
+            .filter((iconId): iconId is number => Number.isInteger(iconId)),
+        ),
+      ).sort((a, b) => a - b),
+    [trendingCards],
+  );
+  const { data: variantIcons = {} } = useQuery<Record<number, Item>>({
+    queryKey: getItemsQueryKey(variantIconIds),
+    queryFn: () => fetchItems(variantIconIds),
+    enabled: variantIconIds.length > 0,
+    staleTime: QUERY_STALE_TIME_MS,
+  });
   const isInitialLoading = isLoading || (isFetching && !data);
 
   return (
@@ -243,9 +282,17 @@ function TrendingMethodsCarousel() {
           className="mx-auto w-full px-12"
         >
           <CarouselContent className="-ml-3">
-            {methods.map((method, index) => (
+            {trendingCards.map(({ method, index, variant }) => (
               <CarouselItem key={method.id} className="basis-full pl-3">
-                <TrendingMethodCard method={method} index={index} />
+                <TrendingMethodCard
+                  method={method}
+                  index={index}
+                  variantIconUrl={
+                    variant?.icon_id
+                      ? variantIcons[variant.icon_id]?.iconUrl
+                      : undefined
+                  }
+                />
               </CarouselItem>
             ))}
           </CarouselContent>

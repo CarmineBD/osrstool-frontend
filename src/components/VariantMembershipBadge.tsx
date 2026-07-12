@@ -20,8 +20,8 @@ export function VariantMembershipBadge({
       size={size}
       className={cn(
         members
-          ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-          : "border-slate-200 bg-slate-50 text-slate-700",
+          ? "border-border/70 bg-accent text-accent-foreground"
+          : "border-border/70 bg-muted/30 text-muted-foreground",
         className,
       )}
       {...props}

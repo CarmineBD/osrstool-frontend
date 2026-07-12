@@ -35,11 +35,12 @@ describe("critical flow: landing + all methods routing", () => {
       screen.getByRole("heading", { name: "Changelog de novedades" })
     ).toBeInTheDocument();
     expect(await screen.findByText("Blast Furnace")).toBeInTheDocument();
+    expect(await screen.findByAltText("Steel bars icon")).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: /#1\s+Blast Furnace/i })
+      screen.getByRole("link", { name: /#1\s+Steel bars icon\s+Blast Furnace/i })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: /#2\s+Rune Dragons/i })
+      screen.getByRole("link", { name: /#2\s+Main icon\s+Rune Dragons/i })
     ).toBeInTheDocument();
     expect(screen.getByText("1.2m/hr")).toBeInTheDocument();
     expect(screen.getByText("+5.4%")).toBeInTheDocument();

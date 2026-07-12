@@ -11,6 +11,11 @@ import {
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  EDITOR_META_TEXT_CLASS,
+  EDITOR_TAB_LIST_CLASS,
+  SectionHeader,
+} from "@/components/method-editor/MethodEditorPrimitives";
+import {
   Card,
   CardContent,
   CardHeader,
@@ -24,6 +29,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
+import { getProfitChartMetrics } from "@/components/variant-history-chart.utils";
 import { fetchVariantHistory } from "@/lib/api";
 import {
   QUERY_REFETCH_INTERVAL_MS,
@@ -53,10 +59,16 @@ const RANGE_OPTIONS = [
 
 const chartConfig: ChartConfig = {
   title: {
-    label: "Fecha",
+    label: "Date",
   },
-  lowProfit: { label: "Low Profit", color: "#ef4444" },
-  highProfit: { label: "High Profit", color: "#22c55e" },
+  lowProfit: {
+    label: "Low profit",
+    color: "var(--method-detail-negative)",
+  },
+  highProfit: {
+    label: "High profit",
+    color: "var(--method-detail-positive)",
+  },
 };
 
 const ONE_HOUR_MS = 60 * 60 * 1000;
@@ -227,17 +239,7 @@ export function VariantHistoryChart({
     return [];
   }, [points, range]);
 
-  const yDomain = useMemo(() => {
-    if (!points.length) {
-      return [0, 0];
-    }
-    const lows = points.map((p) => p.lowProfit);
-    const highs = points.map((p) => p.highProfit);
-    const min = Math.min(...lows, ...highs);
-    const max = Math.max(...lows, ...highs);
-    const padding = (max - min) * 0.1 || 1;
-    return [min - padding, max + padding];
-  }, [points]);
+  const chartMetrics = useMemo(() => getProfitChartMetrics(points), [points]);
 
   const snapshots = data?.variant_snapshot ?? [];
   const minPoint = useMemo(
@@ -271,19 +273,36 @@ export function VariantHistoryChart({
     return { label: "last year", value: trendLastYear };
   }, [range, trendLast24h, trendLastMonth, trendLastYear]);
   const isHistoryLoading = isLoading && !data;
+  const trendValueToneClassName =
+    typeof selectedTrend.value !== "number"
+      ? "text-muted-foreground"
+      : selectedTrend.value > 0
+        ? "text-[var(--method-detail-positive)]"
+        : selectedTrend.value < 0
+          ? "text-[var(--method-detail-negative)]"
+          : "text-muted-foreground";
 
   return (
-    <div className="mt-4 flex flex-col gap-4 xl:flex-row">
-      <Card className="flex-1">
-        <CardContent className="pt-4">
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_16rem]">
+      <Card className="gap-0 overflow-hidden rounded-xl border-border/70">
+        <CardHeader className="border-b border-border/60 pb-4">
+          <SectionHeader
+            title="Historical GP range"
+            description="Compare low and high profit over time."
+            level="h3"
+          />
+        </CardHeader>
+        <CardContent className="space-y-4 pt-4">
           <Tabs
             value={range}
             onValueChange={(v) =>
               setRange(v as (typeof RANGE_OPTIONS)[number]["value"])
             }
-            className="mb-4"
+            className="gap-4"
           >
-            <TabsList className="grid h-auto w-full grid-cols-2 gap-1 sm:grid-cols-4">
+            <TabsList
+              className={`${EDITOR_TAB_LIST_CLASS} grid w-full grid-cols-2 sm:grid-cols-4`}
+            >
               {RANGE_OPTIONS.map((opt) => (
                 <TabsTrigger key={opt.value} value={opt.value}>
                   {opt.label}
@@ -302,7 +321,7 @@ export function VariantHistoryChart({
               </div>
             </div>
           ) : error ? (
-            <div className="text-red-500">Error loading history</div>
+            <p className="text-sm text-destructive">Error loading history.</p>
           ) : (
             <ChartContainer config={chartConfig} className="h-64 w-full">
               <LineChart
@@ -330,7 +349,15 @@ export function VariantHistoryChart({
                         : axisDateFormatter.format(date);
                   }}
                 />
-                <YAxis domain={yDomain} hide />
+                <YAxis
+                  domain={chartMetrics.yDomain}
+                  ticks={chartMetrics.yTicks}
+                  width={56}
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  tickFormatter={(value) => formatNumber(Number(value))}
+                />
                 <ChartTooltip
                   cursor={false}
                   content={
@@ -347,11 +374,20 @@ export function VariantHistoryChart({
                   }
                 />
 
+                {chartMetrics.shouldShowZeroReferenceLine ? (
+                  <ReferenceLine
+                    y={0}
+                    stroke="var(--border)"
+                    strokeDasharray="4 4"
+                    ifOverflow="hidden"
+                  />
+                ) : null}
+
                 {snapshots.map((s) => (
                   <ReferenceLine
                     key={s.timestamp}
                     x={new Date(s.timestamp).getTime()}
-                    stroke="#ccc"
+                    stroke="var(--border)"
                     strokeDasharray="4 4"
                     label={{
                       value: s.title,
@@ -379,8 +415,8 @@ export function VariantHistoryChart({
           )}
         </CardContent>
       </Card>
-      <div className="flex w-full flex-col gap-4 xl:w-64">
-        <Card>
+      <div className="flex w-full flex-col gap-4">
+        <Card className="gap-0 rounded-xl border-border/70">
           <CardHeader>
             <CardDescription>Trend {selectedTrend.label}</CardDescription>
             {isHistoryLoading ? (
@@ -392,21 +428,13 @@ export function VariantHistoryChart({
               <>
                 <CardTitle className="flex items-center gap-2 text-2xl font-semibold tabular-nums">
                   {typeof selectedTrend.value === "number" ? (
-                    <div
-                      className={
-                        selectedTrend.value > 0
-                          ? "flex items-center justify-center gap-4 text-green-600"
-                          : selectedTrend.value < 0
-                            ? "flex items-center justify-center gap-4 text-red-600"
-                            : "flex items-center justify-center gap-4 text-muted-foreground"
-                      }
-                    >
-                      <div>{`${formatPercent(selectedTrend.value, 2)}`}</div>
+                    <div className={`flex items-center justify-center gap-3 ${trendValueToneClassName}`}>
+                      <div>{`${formatPercent(selectedTrend.value, 0)}`}</div>
                       <div>
                         {selectedTrend.value > 0 ? (
                           <IconTrendingUp className="size-4" />
                         ) : selectedTrend.value < 0 ? (
-                          <IconTrendingDown className="size-4 mt-1" />
+                          <IconTrendingDown className="size-4" />
                         ) : null}
                       </div>
                     </div>
@@ -417,30 +445,12 @@ export function VariantHistoryChart({
               </>
             )}
           </CardHeader>
-          {/* <CardContent className="flex flex-col gap-1 text-sm">
-            {isHistoryLoading ? (
-              <div className="flex items-center justify-between">
-                <Skeleton className="h-4 w-36" />
-                <Skeleton className="h-4 w-4" />
-              </div>
-            ) : typeof selectedTrend.value === "number" ? (
-              <div>
-                {selectedTrend.value >= 0 ? (
-                  <IconTrendingUp className="size-4" />
-                ) : (
-                  <IconTrendingDown className="size-4" />
-                )}
-              </div>
-            ) : (
-              <span className="text-muted-foreground">N/A</span>
-            )}
-          </CardContent> */}
         </Card>
-        <Card>
+        <Card className="gap-0 rounded-xl border-border/70">
           <CardContent className="pt-4">
             <div className="grid grid-cols-2 gap-4 text-center text-sm">
               <div>
-                <div className="font-medium">Min</div>
+                <div className={EDITOR_META_TEXT_CLASS}>Min</div>
                 {isHistoryLoading ? (
                   <div className="space-y-2">
                     <Skeleton className="mx-auto h-7 w-20" />
@@ -448,11 +458,11 @@ export function VariantHistoryChart({
                   </div>
                 ) : (
                   <>
-                    <div className="text-xl font-semibold">
+                    <div className="text-2xl font-semibold tabular-nums">
                       {minPoint ? formatNumber(minPoint.highProfit) : "N/A"}
                     </div>
                     {minPoint ? (
-                      <div className="text-muted-foreground">
+                      <div className={EDITOR_META_TEXT_CLASS}>
                         {statsDateFormatter.format(
                           new Date(minPoint.timestamp),
                         )}
@@ -462,7 +472,7 @@ export function VariantHistoryChart({
                 )}
               </div>
               <div>
-                <div className="font-medium">Max</div>
+                <div className={EDITOR_META_TEXT_CLASS}>Max</div>
                 {isHistoryLoading ? (
                   <div className="space-y-2">
                     <Skeleton className="mx-auto h-7 w-20" />
@@ -470,11 +480,11 @@ export function VariantHistoryChart({
                   </div>
                 ) : (
                   <>
-                    <div className="text-xl font-semibold">
+                    <div className="text-2xl font-semibold tabular-nums">
                       {maxPoint ? formatNumber(maxPoint.highProfit) : "N/A"}
                     </div>
                     {maxPoint ? (
-                      <div className="text-muted-foreground">
+                      <div className={EDITOR_META_TEXT_CLASS}>
                         {statsDateFormatter.format(
                           new Date(maxPoint.timestamp),
                         )}
