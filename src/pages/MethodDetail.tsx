@@ -1,7 +1,13 @@
 import { useNavigate } from "react-router-dom";
+import {
+  EDITOR_PAGE_EYEBROW_CLASS,
+  EDITOR_PAGE_SHELL_CLASS,
+  EDITOR_TAB_LIST_CLASS,
+  SectionHeader,
+} from "@/components/method-editor/MethodEditorPrimitives";
 import { VariantTabLabel } from "@/components/VariantTabLabel";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
 import { useUsername } from "@/contexts/UsernameContext";
 import { MethodDetailHeader } from "@/features/method-detail/MethodDetailHeader";
 import { MethodDetailSkeleton } from "@/features/method-detail/MethodDetailSkeleton";
@@ -29,7 +35,7 @@ export function MethodDetail(_props: Props) {
 
   if (state.error) {
     return (
-      <div className="container mx-auto rounded border border-destructive/30 bg-destructive/10 p-6 text-sm text-destructive">
+      <div className="container mx-auto rounded-xl border border-destructive/30 bg-destructive/10 p-6 text-sm text-destructive">
         Error: {`${state.error}`}
       </div>
     );
@@ -37,43 +43,28 @@ export function MethodDetail(_props: Props) {
 
   if (!state.method) {
     return (
-      <div className="container mx-auto rounded border p-6 text-sm text-muted-foreground">
+      <div className="container mx-auto rounded-xl border border-border/70 bg-muted/20 p-6 text-sm text-muted-foreground">
         No se encontro el metodo.
       </div>
     );
   }
 
   return (
-    <div className="relative container mx-auto rounded bg-white p-6 shadow">
-      <div className="space-y-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-          Money making method
-        </p>
-        <MethodDetailHeader
-          method={state.method}
-          isSuperAdmin={state.isSuperAdmin}
-          onEditClick={() =>
-            navigate(`/moneyMakingMethod/${state.methodSlug}/edit`)
-          }
-        />
-      </div>
+    <div className="container mx-auto space-y-6">
+      <section className={`${EDITOR_PAGE_SHELL_CLASS} p-6`}>
+        <div className="space-y-3">
+          <p className={EDITOR_PAGE_EYEBROW_CLASS}>Money making method</p>
+          <MethodDetailHeader
+            method={state.method}
+            isSuperAdmin={state.isSuperAdmin}
+            onEditClick={() =>
+              navigate(`/moneyMakingMethod/${state.methodSlug}/edit`)
+            }
+          />
+        </div>
+      </section>
 
-      <Separator className="my-8" />
-
-      <section className="space-y-6">
-        {state.hasMultipleVariants ? (
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-              Details
-            </p>
-            <h1 className="text-xl font-semibold tracking-tight">Variants</h1>
-            <p className="text-sm text-muted-foreground">
-              This method has multiple variants. Select a variant to see its
-              details and metrics.
-            </p>
-          </div>
-        ) : null}
-
+      <section className={`${EDITOR_PAGE_SHELL_CLASS} p-6`}>
         <Tabs
           value={state.activeSlug}
           onValueChange={(value) =>
@@ -85,12 +76,31 @@ export function MethodDetail(_props: Props) {
           }
           className="w-full gap-6"
         >
+          <SectionHeader
+            eyebrow="Details"
+            title={state.hasMultipleVariants ? "Variants" : "Variant"}
+            description={
+              state.hasMultipleVariants
+                ? "Select a variant to compare requirements, loot, metrics, and history without leaving the page."
+                : "Review the active scenario, its requirements, and the performance data for this method."
+            }
+            level="h2"
+            actions={
+              state.hasMultipleVariants ? (
+                <Badge variant="outline" size="sm">
+                  {state.method.variants.length} variants
+                </Badge>
+              ) : undefined
+            }
+          />
+
           {state.hasMultipleVariants ? (
-            <TabsList className="h-10">
+            <TabsList className={EDITOR_TAB_LIST_CLASS}>
               {state.method.variants.map((variant, index) => (
                 <TabsTrigger
                   key={getVariantTabValue(variant, index)}
                   value={getVariantTabValue(variant, index)}
+                  className="h-10 max-w-full flex-none px-3"
                 >
                   <VariantTabLabel
                     label={variant.label}
@@ -110,12 +120,17 @@ export function MethodDetail(_props: Props) {
               key={getVariantTabValue(variant, index)}
               value={getVariantTabValue(variant, index)}
             >
-              <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
+              <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
                 <div className="order-2 min-w-0 lg:order-1">
                   <MethodVariantContent
                     variant={variant}
                     itemsMap={state.itemsMap}
                     username={username}
+                    iconUrl={
+                      variant.icon_id
+                        ? state.itemsMap[variant.icon_id]?.iconUrl
+                        : undefined
+                    }
                     inputsTotal={
                       state.isItemsLoading
                         ? undefined

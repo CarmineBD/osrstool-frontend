@@ -1,4 +1,14 @@
-import { Fragment, lazy, Suspense, useMemo, useState, type ReactNode } from "react";
+import {
+  Fragment,
+  forwardRef,
+  lazy,
+  Suspense,
+  useEffect,
+  useMemo,
+  useState,
+  type ComponentPropsWithoutRef,
+  type ReactNode,
+} from "react";
 import { Link } from "react-router-dom";
 import {
   IconClick,
@@ -7,6 +17,15 @@ import {
   IconTrendingUp,
 } from "@tabler/icons-react";
 import { UsernameFetchNotice } from "@/components/UsernameFetchNotice";
+import {
+  EDITOR_BODY_TEXT_CLASS,
+  EDITOR_META_TEXT_CLASS,
+  EDITOR_NESTED_SURFACE_CLASS,
+  EDITOR_SECTION_CARD_CLASS,
+  EmptySelectionState,
+  PixelArtIcon,
+  SectionHeader,
+} from "@/components/method-editor/MethodEditorPrimitives";
 import { Badge } from "@/components/ui/badge";
 import { VariantMembershipBadge } from "@/components/VariantMembershipBadge";
 import {
@@ -17,9 +36,10 @@ import {
 import {
   Card,
   CardContent,
+  CardHeader,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import Markdown from "@/components/Markdown";
 import OsrsQuantitySprite from "@/components/OsrsQuantitySprite";
@@ -36,10 +56,20 @@ const LazyVariantHistoryChart = lazy(
   () => import("@/components/VariantHistoryChart"),
 );
 
+const ITEM_TRAY_CLASS =
+  "min-h-14 w-full rounded-lg border border-black/15 bg-[var(--method-detail-item-tray)] p-4 shadow-[inset_0_1px_3px_rgba(0,0,0,0.45)]";
+const ITEM_TRAY_TEXT_CLASS = "text-[var(--method-detail-item-tray-foreground)]";
+const ITEM_TRAY_BAR_ACTIVE_CLASS = "bg-[var(--method-detail-item-tray-bar)]";
+const ITEM_TRAY_BAR_MUTED_CLASS =
+  "bg-[var(--method-detail-item-tray-bar-muted)]";
+const POSITIVE_TEXT_CLASS = "text-[var(--method-detail-positive)]";
+const NEGATIVE_TEXT_CLASS = "text-[var(--method-detail-negative)]";
+
 interface MethodVariantContentProps {
   variant: Variant;
   itemsMap: Record<number, Item>;
   username?: string;
+  iconUrl?: string;
   inputsTotal?: number;
   outputsTotal?: number;
   isItemsLoading?: boolean;
@@ -47,7 +77,263 @@ interface MethodVariantContentProps {
 
 function formatLiquidityScore(score?: number): string {
   if (typeof score !== "number") return "N/A";
-  return `${(score * 100).toFixed(2).replace(/\.?0+$/, "")}%`;
+  return `${Math.round(score * 100)}%`;
+}
+
+const MARKET_IMPACT_MAX_PERCENT = 2400;
+
+type MarketImpactRating =
+  | "great"
+  | "very good"
+  | "good"
+  | "bad"
+  | "very bad"
+  | "not viable";
+
+function getMarketImpactPercent(score?: number): number | null {
+  if (typeof score !== "number") return null;
+  return score * 100;
+}
+
+function getMarketImpactRating(percent: number): MarketImpactRating {
+  if (percent < 25) return "great";
+  if (percent < 100) return "very good";
+  if (percent < 400) return "good";
+  if (percent < 1200) return "bad";
+  if (percent < MARKET_IMPACT_MAX_PERCENT) return "very bad";
+  return "not viable";
+}
+
+function getMarketImpactProgressValue(percent: number): number {
+  return Math.min((percent / MARKET_IMPACT_MAX_PERCENT) * 100, 100);
+}
+
+function formatMarketImpactMinutes(percent: number): string {
+  return formatNumber(Math.round((percent / 100) * 60));
+}
+
+function formatMarketImpactHours(percent: number): string {
+  const hours = percent / 100;
+  return hours.toFixed(2).replace(/\.?0+$/, "");
+}
+
+function formatMarketImpactDays(percent: number): string {
+  const days = percent / 100 / 24;
+  return days.toFixed(2).replace(/\.?0+$/, "");
+}
+
+function formatMarketImpactDurationLabel(
+  value: string,
+  singularUnit: string,
+  pluralUnit: string,
+): string {
+  return `${value} ${value === "1" ? singularUnit : pluralUnit}`;
+}
+
+function getMarketImpactToneClassName(rating: MarketImpactRating): string {
+  switch (rating) {
+    case "great":
+      return "border-emerald-400/70 bg-emerald-50 text-emerald-900";
+    case "very good":
+      return "border-lime-300/60 bg-lime-50 text-lime-800";
+    case "good":
+      return "border-amber-300/60 bg-amber-50 text-amber-800";
+    case "bad":
+      return "border-orange-300/60 bg-orange-50 text-orange-800";
+    case "very bad":
+      return "border-rose-300/60 bg-rose-50 text-rose-700";
+    case "not viable":
+      return "border-rose-400/70 bg-rose-100 text-rose-900";
+  }
+}
+
+function MarketImpactTooltipContent({
+  rating,
+  percent,
+}: {
+  rating: MarketImpactRating;
+  percent: number;
+}) {
+  if (rating === "great" || rating === "very good") {
+    const minutes = formatMarketImpactMinutes(percent);
+    return (
+      <p className="m-0">
+        Easy to buy/sell the items involved in this method. It would take
+        approximately{" "}
+        {formatMarketImpactDurationLabel(minutes, "minute", "minutes")}.
+        <br />
+        <br />
+        See how this metric is calculated in the{" "}
+        <Link to="/wiki" className="font-medium underline">
+          wiki
+        </Link>
+        .
+      </p>
+    );
+  }
+
+  if (rating === "good" || rating === "bad" || rating === "very bad") {
+    const hours = formatMarketImpactHours(percent);
+    return (
+      <p className="m-0">
+        Quite hard to buy/sell the items involved in this method. It would
+        take approximately {formatMarketImpactDurationLabel(hours, "hour", "hours")}.
+        <br />
+        <br />
+        See how this metric is calculated in the{" "}
+        <Link to="/wiki" className="font-medium underline">
+          wiki
+        </Link>
+        .
+      </p>
+    );
+  }
+
+  const days = formatMarketImpactDays(percent);
+  return (
+    <p className="m-0">
+      Hard to buy/sell the items involved in this method. It would take
+      approximately {formatMarketImpactDurationLabel(days, "day", "days")}.
+      <br />
+      <br />
+      See how this metric is calculated in the{" "}
+      <Link to="/wiki" className="font-medium underline">
+        wiki
+      </Link>
+      .
+    </p>
+  );
+}
+
+function LabelInfoTooltip({
+  label,
+  tooltip,
+}: {
+  label: string;
+  tooltip: ReactNode;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label={`${label} explanation`}
+          className="inline-flex shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <IconInfoCircle className="size-4" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent
+        sideOffset={6}
+        className="w-max max-w-[360px] whitespace-normal break-words text-wrap text-left"
+      >
+        {tooltip}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function MetricLabelWithInfo({
+  label,
+  tooltip,
+}: {
+  label: string;
+  tooltip?: ReactNode;
+}) {
+  return (
+    <span
+      className={cn(
+        "text-sm text-muted-foreground",
+        tooltip ? "flex items-center gap-2" : "",
+      )}
+    >
+      <span>{label}</span>
+      {tooltip ? <LabelInfoTooltip label={label} tooltip={tooltip} /> : null}
+    </span>
+  );
+}
+
+function MarketImpactIndicator({
+  label,
+  score,
+}: {
+  label: string;
+  score?: number;
+}) {
+  const percent = getMarketImpactPercent(score);
+
+  if (percent === null) {
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <span className={EDITOR_META_TEXT_CLASS}>{label}</span>
+          <span className={EDITOR_META_TEXT_CLASS}>N/A</span>
+        </div>
+        <Progress
+          value={0}
+          className="h-2 bg-muted [&>[data-slot=progress-indicator]]:bg-muted-foreground/25"
+        />
+      </div>
+    );
+  }
+
+  const rating = getMarketImpactRating(percent);
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className={EDITOR_META_TEXT_CLASS}>{label}</span>
+          <Badge
+            variant="outline"
+            size="sm"
+            className={cn("capitalize", getMarketImpactToneClassName(rating))}
+          >
+            {rating}
+          </Badge>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                aria-label={`Market impact explanation for ${label}`}
+                className="inline-flex shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <IconInfoCircle className="size-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent
+              sideOffset={6}
+              className="w-max max-w-[320px] whitespace-normal text-left"
+            >
+              <MarketImpactTooltipContent rating={rating} percent={percent} />
+            </TooltipContent>
+          </Tooltip>
+        </div>
+        <span className="text-sm font-medium tabular-nums text-foreground">
+          {formatLiquidityScore(score)}
+        </span>
+      </div>
+      <Progress
+        value={getMarketImpactProgressValue(percent)}
+        className={cn(
+          "h-2 bg-muted",
+          "[&>[data-slot=progress-indicator]]:transition-all",
+          rating === "great" &&
+            "[&>[data-slot=progress-indicator]]:bg-emerald-600",
+          rating === "very good" &&
+            "[&>[data-slot=progress-indicator]]:bg-lime-500",
+          rating === "good" &&
+            "[&>[data-slot=progress-indicator]]:bg-amber-500",
+          rating === "bad" &&
+            "[&>[data-slot=progress-indicator]]:bg-orange-500",
+          rating === "very bad" &&
+            "[&>[data-slot=progress-indicator]]:bg-rose-400",
+          rating === "not viable" &&
+            "[&>[data-slot=progress-indicator]]:bg-rose-600",
+        )}
+      />
+    </div>
+  );
 }
 
 function toFiniteNumber(value: number | undefined): number | null {
@@ -65,6 +351,53 @@ function formatItemElapsedTime(value: number | undefined): string {
   const parsedValue = toFiniteNumber(value);
   if (parsedValue === null) return "N/A";
   return formatElapsedTimeFromUnix(parsedValue);
+}
+
+function DetailSection({
+  eyebrow,
+  title,
+  description,
+  actions,
+  children,
+  className,
+}: {
+  eyebrow?: string;
+  title: string;
+  description?: string;
+  actions?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={cn(EDITOR_SECTION_CARD_CLASS, className)}>
+      <SectionHeader
+        eyebrow={eyebrow}
+        title={title}
+        description={description}
+        actions={actions}
+        level="h2"
+      />
+      <div className="space-y-4">{children}</div>
+    </section>
+  );
+}
+
+function ItemTooltipToggleButton({
+  expanded,
+  onClick,
+}: {
+  expanded: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="mt-1 w-fit text-left text-xs font-medium text-muted-foreground underline transition-colors hover:text-foreground"
+    >
+      {expanded ? "Hide item details" : "Show item details"}
+    </button>
+  );
 }
 
 function ItemTooltipBody({
@@ -99,29 +432,23 @@ function ItemTooltipBody({
       ) : null}
 
       {!showAdvancedDetails ? (
-        <button
-          type="button"
+        <ItemTooltipToggleButton
+          expanded={false}
           onClick={onToggleAdvancedDetails}
-          className="mt-1 w-fit cursor-pointer text-left text-[11px] text-muted-foreground underline hover:text-foreground"
-        >
-          show more details
-        </button>
+        />
       ) : (
         <>
-          <div className="my-1 border-t border-white/35" />
+          <div className="my-1 border-t border-border/60" />
           <div className="flex flex-col text-muted-foreground">
-            <span>Dailes buys: {formatItemStat(item.high24h)}</span>
-            <span>Dailies sales: {formatItemStat(item.low24h)}</span>
-            <span>last buy: {formatItemElapsedTime(item.highTime)}</span>
-            <span>last sell: {formatItemElapsedTime(item.lowTime)}</span>
+            <span>Daily buys: {formatItemStat(item.high24h)}</span>
+            <span>Daily sales: {formatItemStat(item.low24h)}</span>
+            <span>Last buy: {formatItemElapsedTime(item.highTime)}</span>
+            <span>Last sell: {formatItemElapsedTime(item.lowTime)}</span>
           </div>
-          <button
-            type="button"
+          <ItemTooltipToggleButton
+            expanded
             onClick={onToggleAdvancedDetails}
-            className="mt-1 w-fit cursor-pointer text-left text-[11px] text-muted-foreground underline hover:text-foreground"
-          >
-            show less details
-          </button>
+          />
         </>
       )}
     </div>
@@ -164,6 +491,43 @@ function formatItemQuantity(quantity: number): {
   };
 }
 
+const ItemSprite = forwardRef<
+  HTMLDivElement,
+  {
+    iconUrl: string;
+    itemName: string;
+    quantity: number;
+    quantityDisplay: ReturnType<typeof formatItemQuantity>;
+  } & ComponentPropsWithoutRef<"div">
+>(function ItemSprite(
+  { iconUrl, itemName, quantity, quantityDisplay, className, ...props },
+  ref,
+) {
+  return (
+    <div
+      ref={ref}
+      className={cn("relative grid h-8 w-8 place-items-center", className)}
+      {...props}
+    >
+      <PixelArtIcon
+        src={iconUrl}
+        alt={itemName}
+        className="h-8 w-8"
+        imgClassName="drop-shadow-[1px_1px_0_#333333]"
+      />
+
+      {quantity > 0 ? (
+        <OsrsQuantitySprite
+          text={quantityDisplay.label}
+          color={quantityDisplay.color}
+          scale={1}
+          className="pointer-events-none absolute top-0 left-[2px]"
+        />
+      ) : null}
+    </div>
+  );
+});
+
 type WeightPriceMode = "input" | "output";
 
 function getWeightPrice(item: Item, mode: WeightPriceMode): number {
@@ -205,7 +569,7 @@ function LevelsAndQuestBadges({
     <>
       {(requirement?.levels || []).map(({ skill, level, reason }) => (
         <RequirementReasonBadge key={skill} reason={reason}>
-          <Badge size="lg" variant="secondary">
+          <Badge size="md" variant="secondary">
             <img
               src={getUrlByType(skill) ?? ""}
               alt={`${skill.toLowerCase()}_icon`}
@@ -216,7 +580,7 @@ function LevelsAndQuestBadges({
       ))}
       {(requirement?.quests || []).map(({ name, stage, reason }) => (
         <RequirementReasonBadge key={name} reason={reason}>
-          <Badge size="lg" variant="secondary">
+          <Badge size="md" variant="secondary">
             <img
               src={getUrlByType("quests") ?? ""}
               alt="quests_icon"
@@ -227,7 +591,7 @@ function LevelsAndQuestBadges({
       ))}
       {(requirement?.achievement_diaries || []).map(({ name, tier, reason }) => (
         <RequirementReasonBadge key={`${name}_${tier}`} reason={reason}>
-          <Badge size="lg" variant="secondary">
+          <Badge size="md" variant="secondary">
             <img
               src={getUrlByType("achievement_diaries") ?? ""}
               alt="achievement_diaries_icon"
@@ -263,24 +627,12 @@ function OsrsItemsIcons({
         return (
           <Tooltip key={`${tooltipKeyPrefix}-${entry.id}`}>
             <TooltipTrigger asChild>
-              <div className="relative mx-0.75 grid h-8 w-8 place-items-center">
-                <figure className="grid h-full w-full place-items-center">
-                  <img
-                    src={item.iconUrl}
-                    alt={item.name}
-                    className="max-h-full max-w-full object-contain drop-shadow-[1px_1px_0_#333333] [image-rendering:pixelated]"
-                  />
-                </figure>
-
-                {entry.quantity > 0 ? (
-                  <OsrsQuantitySprite
-                    text={quantityDisplay.label}
-                    color={quantityDisplay.color}
-                    scale={1}
-                    className="pointer-events-none absolute top-0 left-[2px]"
-                  />
-                ) : null}
-              </div>
+              <ItemSprite
+                iconUrl={item.iconUrl}
+                itemName={item.name}
+                quantity={entry.quantity}
+                quantityDisplay={quantityDisplay}
+              />
             </TooltipTrigger>
             <TooltipContent>
               <ItemTooltipBody
@@ -315,8 +667,8 @@ function OsrsItemsContainer({
   onToggleAdvancedDetails: () => void;
 }) {
   return (
-    <div className="min-h-14 w-full rounded-md bg-[#494034] p-4 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)]">
-      <div className="flex flex-start flex-wrap gap-1">
+    <div className={ITEM_TRAY_CLASS}>
+      <div className="flex flex-wrap gap-2">
         {isLoading ? (
           Array.from({
             length: Math.min(12, Math.max(items.length, 6)),
@@ -360,10 +712,16 @@ function MissingRequirementsNotice({
 
   if (hasMissingRequirements) {
     return (
-      <UsernameFetchNotice state="error" className={stickyNoticeClass}>
+      <UsernameFetchNotice
+        state="error"
+        className={stickyNoticeClass}
+        resetKey={variant.id ?? variant.label}
+      >
         <div className="space-y-3">
-          <p>You are missing some requirements to do this method:</p>
-          <div className="flex flex-start flex-wrap gap-2">
+          <p className={EDITOR_BODY_TEXT_CLASS}>
+            You are missing some requirements to do this variant:
+          </p>
+          <div className="flex flex-wrap gap-2">
             <LevelsAndQuestBadges requirement={variant.missingRequirements} />
           </div>
         </div>
@@ -380,6 +738,12 @@ function MetricsCards({ variant }: { variant: Variant }) {
     (total, { experience }) => total + experience,
     0,
   );
+  const trendToneClassName =
+    typeof variant.trendLastMonth !== "number"
+      ? "text-muted-foreground"
+      : variant.trendLastMonth >= 0
+        ? POSITIVE_TEXT_CLASS
+        : NEGATIVE_TEXT_CLASS;
 
   const rowClassName =
     "flex flex-wrap items-start justify-between gap-x-4 gap-y-2 py-3";
@@ -388,8 +752,15 @@ function MetricsCards({ variant }: { variant: Variant }) {
     "text-right text-sm font-medium tabular-nums text-foreground";
 
   return (
-    <Card className="@container/card gap-0">
-      <CardContent>
+    <Card className="@container/card gap-0 overflow-hidden rounded-xl border-border/70">
+      <CardHeader className="border-b border-border/60 pb-6">
+        <SectionHeader
+          title="Summary"
+          description="Key metrics for the active variant."
+          level="h2"
+        />
+      </CardHeader>
+      <CardContent className="pt-6">
         <div className="divide-y divide-border/50">
           <div className={rowClassName}>
             <span className={labelClassName}>Access</span>
@@ -397,9 +768,9 @@ function MetricsCards({ variant }: { variant: Variant }) {
           </div>
 
           <div className={rowClassName}>
-            <span className={labelClassName}>Gp/hr</span>
+            <span className={labelClassName}>GP/hr</span>
             <div className="flex flex-wrap items-center justify-end gap-2">
-              <span className="flex items-center gap-2 text-right text-base font-semibold tabular-nums text-foreground">
+              <span className="flex items-center gap-2 text-right text-2xl font-semibold tabular-nums text-foreground">
                 <figure className="shrink-0">
                   <img
                     src="https://oldschool.runescape.wiki/images/Coins_10000.png"
@@ -416,7 +787,15 @@ function MetricsCards({ variant }: { variant: Variant }) {
           </div>
 
           <div className={rowClassName}>
-            <span className={labelClassName}>Lowest profit</span>
+            <MetricLabelWithInfo
+              label="Low profit"
+              tooltip={
+                <p className="m-0">
+                  The profit expected if the player insta-buys the inputs and
+                  insta-sells the outputs.
+                </p>
+              }
+            />
             <span className={valueClassName}>
               {variant.lowProfit !== undefined
                 ? formatNumber(variant.lowProfit)
@@ -426,7 +805,12 @@ function MetricsCards({ variant }: { variant: Variant }) {
 
           <div className={rowClassName}>
             <span className={labelClassName}>Monthly trend</span>
-            <span className="flex items-center justify-end gap-1.5 text-right text-sm font-medium tabular-nums text-foreground">
+            <span
+              className={cn(
+                "flex items-center justify-end gap-2 text-right text-sm font-medium tabular-nums",
+                trendToneClassName,
+              )}
+            >
               {typeof variant.trendLastMonth === "number" ? (
                 <>
                   {variant.trendLastMonth >= 0 ? (
@@ -434,7 +818,7 @@ function MetricsCards({ variant }: { variant: Variant }) {
                   ) : (
                     <IconTrendingDown className="size-4" />
                   )}
-                  {formatPercent(variant.trendLastMonth)}
+                  {formatPercent(variant.trendLastMonth, 0)}
                 </>
               ) : (
                 "N/A"
@@ -443,13 +827,13 @@ function MetricsCards({ variant }: { variant: Variant }) {
           </div>
 
           <div className={rowClassName}>
-            <span className={labelClassName}>Xp/hr</span>
+            <span className={labelClassName}>XP/hr</span>
             <div className="flex max-w-full flex-col items-end gap-2">
               {xpHourEntries.length === 0 ? (
                 <span className={valueClassName}>N/A</span>
               ) : xpHourEntries.length === 1 ? (
                 xpHourEntries.map(({ skill, experience }) => (
-                  <Badge size="lg" key={skill} variant="secondary">
+                  <Badge size="md" key={skill} variant="secondary">
                     <img
                       src={getUrlByType(skill) ?? ""}
                       alt={`${skill.toLowerCase()}_icon`}
@@ -460,15 +844,15 @@ function MetricsCards({ variant }: { variant: Variant }) {
                 ))
               ) : (
                 <>
-                  <div className="flex flex-col items-end gap-0.5">
-                    <span className="text-xs text-muted-foreground">Total</span>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className={EDITOR_META_TEXT_CLASS}>Total</span>
                     <span className={valueClassName}>
                       {formatNumber(xpHourTotal)}
                     </span>
                   </div>
-                  <div className="flex flex-wrap justify-end gap-1.5">
+                  <div className="flex flex-wrap justify-end gap-2">
                     {xpHourEntries.map(({ skill, experience }) => (
-                      <Badge size="lg" key={skill} variant="secondary">
+                      <Badge size="md" key={skill} variant="secondary">
                         <img
                           src={getUrlByType(skill) ?? ""}
                           alt={`${skill.toLowerCase()}_icon`}
@@ -491,8 +875,15 @@ function MetricsCards({ variant }: { variant: Variant }) {
           </div>
 
           <div className={rowClassName}>
-            <span className={labelClassName}>Click intensity</span>
-            <span className="flex items-center justify-end gap-1.5 text-right text-sm font-medium tabular-nums text-foreground">
+            <MetricLabelWithInfo
+              label="Click intensity"
+              tooltip={
+                <p className="m-0">
+                  The number of clicks required for 1 hour of this method.
+                </p>
+              }
+            />
+            <span className="flex items-center justify-end gap-2 text-right text-sm font-medium tabular-nums text-foreground">
               <IconClick className="size-4" />
               {variant.clickIntensity !== undefined
                 ? `${formatNumber(variant.clickIntensity)} clicks/hr`
@@ -501,37 +892,27 @@ function MetricsCards({ variant }: { variant: Variant }) {
           </div>
 
           <div className={rowClassName}>
-            <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <span>Market impact</span>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="inline-flex cursor-help text-muted-foreground">
-                    <IconInfoCircle className="size-4" />
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent
-                  sideOffset={6}
-                  className="w-max max-w-[360px] whitespace-normal break-words text-wrap text-left"
-                >
-                  <p className="m-0">
-                    {
-                      "% De impacto comparando del valumen de cada item entre la cantidad de cada uno en base a 1 hora. Para mas informacion visita la "
-                    }
-                    <Link to="/wiki" className="underline font-medium">
-                      wiki
-                    </Link>
-                    {"."}
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </span>
-            <div className="space-y-1 text-right text-sm font-medium tabular-nums text-foreground">
-              <div>
-                Patient: {formatLiquidityScore(variant.marketImpactSlow)}
-              </div>
-              <div className="text-muted-foreground">
-                Instant: {formatLiquidityScore(variant.marketImpactInstant)}
-              </div>
+            <MetricLabelWithInfo
+              label="Market impact"
+              tooltip={
+                <p className="m-0">
+                  Estimated market impact from one hour of item volume. See the{" "}
+                  <Link to="/wiki" className="font-medium underline">
+                    wiki
+                  </Link>{" "}
+                  for the calculation details.
+                </p>
+              }
+            />
+            <div className="w-full max-w-[15rem] space-y-3">
+              <MarketImpactIndicator
+                label="Patient"
+                score={variant.marketImpactSlow}
+              />
+              <MarketImpactIndicator
+                label="Instant"
+                score={variant.marketImpactInstant}
+              />
             </div>
           </div>
         </div>
@@ -571,6 +952,7 @@ function IoItemsGrid({
   const [disabledRowKeys, setDisabledRowKeys] = useState<
     Record<string, boolean>
   >({});
+  const canShowWeights = items.length > 1;
   const { weightedItems, enabledTotalCoins } = useMemo(() => {
     const withValues = items
       .map((entry, index) => {
@@ -600,15 +982,24 @@ function IoItemsGrid({
       .sort((a, b) => b.totalCoins - a.totalCoins);
     return { weightedItems: sortedItems, enabledTotalCoins };
   }, [items, itemsMap, weightPriceMode, disabledRowKeys]);
+
+  useEffect(() => {
+    if (!canShowWeights) {
+      setShowWeights(false);
+    }
+  }, [canShowWeights]);
+
   const displayTotal =
     showWeights && !isLoading ? Math.round(enabledTotalCoins) : total;
 
   return (
     <div className="flex-1 space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-1 text-sm font-semibold">
-          <h3>{title}</h3>
-          <span className="text-xs font-normal text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="text-sm font-semibold leading-5 text-foreground">
+            {title}
+          </h3>
+          <span className={EDITOR_META_TEXT_CLASS}>
             {typeof displayTotal === "number"
               ? `(${formatNumber(displayTotal)} gp)`
               : isLoading
@@ -618,17 +1009,19 @@ function IoItemsGrid({
           {isLoading ? <Skeleton className="h-3 w-24" /> : null}
         </div>
 
-        <label className="flex items-center gap-2 text-xs font-normal text-muted-foreground">
-          <Switch checked={showWeights} onCheckedChange={setShowWeights} />
-          view weights
-        </label>
+        {canShowWeights ? (
+          <label className={cn("flex items-center gap-2", EDITOR_META_TEXT_CLASS)}>
+            <Switch checked={showWeights} onCheckedChange={setShowWeights} />
+            View weights
+          </label>
+        ) : null}
       </div>
-      <div className="min-h-14 w-full rounded-md bg-[#494034] p-4 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)]">
+      <div className={ITEM_TRAY_CLASS}>
         <div
           className={
             showWeights && !isLoading
-              ? "grid grid-cols-[2rem_max-content_minmax(0,1fr)_1.25rem] items-center gap-x-1.5 gap-y-2"
-              : "flex flex-start flex-wrap gap-1"
+              ? "grid grid-cols-[2rem_max-content_minmax(0,1fr)_1.25rem] items-center gap-x-2 gap-y-2"
+              : "flex flex-wrap gap-2"
           }
         >
           {isLoading ? (
@@ -651,38 +1044,22 @@ function IoItemsGrid({
                 : "";
               const numberClassName = entry.isDisabled
                 ? "text-muted-foreground"
-                : "text-white";
+                : ITEM_TRAY_TEXT_CLASS;
               const barClassName = entry.isDisabled
-                ? "bg-[#a49f94]"
-                : "bg-[#f2c94c]";
+                ? ITEM_TRAY_BAR_MUTED_CLASS
+                : ITEM_TRAY_BAR_ACTIVE_CLASS;
 
               return (
                 <Fragment key={`${title}-weight-${entry.rowKey}`}>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div
-                        className={cn(
-                          "relative grid h-8 w-8 place-items-center",
-                          rowMutedClass,
-                        )}
-                      >
-                        <figure className="grid h-full w-full place-items-center">
-                          <img
-                            src={entry.item.iconUrl}
-                            alt={entry.item.name}
-                            className="max-h-full max-w-full object-contain drop-shadow-[1px_1px_0_#333333] [image-rendering:pixelated]"
-                          />
-                        </figure>
-
-                        {entry.entry.quantity > 0 ? (
-                          <OsrsQuantitySprite
-                            text={quantityDisplay.label}
-                            color={quantityDisplay.color}
-                            scale={1}
-                            className="pointer-events-none absolute top-0 left-[2px]"
-                          />
-                        ) : null}
-                      </div>
+                      <ItemSprite
+                        iconUrl={entry.item.iconUrl}
+                        itemName={entry.item.name}
+                        quantity={entry.entry.quantity}
+                        quantityDisplay={quantityDisplay}
+                        className={rowMutedClass}
+                      />
                     </TooltipTrigger>
                     <TooltipContent>
                       <ItemTooltipBody
@@ -726,7 +1103,7 @@ function IoItemsGrid({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div className={cn("min-w-0 w-full", rowMutedClass)}>
-                        <div className="h-3 w-full overflow-hidden rounded-full bg-black/35">
+                        <div className="h-3 w-full overflow-hidden rounded-full bg-black/30">
                           <div
                             className={cn("h-full rounded-full", barClassName)}
                             style={{ width: `${entry.weightPercent}%` }}
@@ -742,7 +1119,7 @@ function IoItemsGrid({
                   <input
                     type="checkbox"
                     aria-label={`Include ${entry.item.name} in weight calculation`}
-                    className="justify-self-end size-3.5 cursor-pointer accent-[#f2c94c]"
+                    className="justify-self-end size-3.5 cursor-pointer accent-[var(--method-detail-item-tray-bar)]"
                     checked={!entry.isDisabled}
                     onChange={(event) => {
                       const isEnabled = event.currentTarget.checked;
@@ -775,6 +1152,69 @@ function IoItemsGrid({
   );
 }
 
+function GuidanceColumn({
+  title,
+  requirement,
+  items,
+  itemsMap,
+  isItemsLoading = false,
+  tooltipKeyPrefix,
+  emptyDescription,
+  showAdvancedDetails,
+  onToggleAdvancedDetails,
+}: {
+  title: string;
+  requirement?: Variant["requirements"];
+  items: Variant["inputs"];
+  itemsMap: Record<number, Item>;
+  isItemsLoading?: boolean;
+  tooltipKeyPrefix: string;
+  emptyDescription: string;
+  showAdvancedDetails: boolean;
+  onToggleAdvancedDetails: () => void;
+}) {
+  const hasProgression = Boolean(
+    requirement?.levels?.length ||
+    requirement?.quests?.length ||
+    requirement?.achievement_diaries?.length,
+  );
+  const hasItems = items.length > 0;
+  const hasContent = hasProgression || hasItems;
+
+  return (
+    <section className={cn(EDITOR_NESTED_SURFACE_CLASS, "space-y-4 bg-card p-4")}>
+      <SectionHeader title={title} level="h3" />
+
+      {!hasContent ? (
+        <EmptySelectionState description={emptyDescription} />
+      ) : (
+        <>
+          {hasProgression ? (
+            <div className="flex flex-wrap gap-2">
+              <LevelsAndQuestBadges requirement={requirement} />
+            </div>
+          ) : (
+            <p className={EDITOR_BODY_TEXT_CLASS}>No progression entries.</p>
+          )}
+
+          {hasItems ? (
+            <OsrsItemsContainer
+              items={items}
+              itemsMap={itemsMap}
+              isLoading={isItemsLoading}
+              tooltipKeyPrefix={tooltipKeyPrefix}
+              showAdvancedDetails={showAdvancedDetails}
+              onToggleAdvancedDetails={onToggleAdvancedDetails}
+            />
+          ) : (
+            <p className={EDITOR_BODY_TEXT_CLASS}>No items configured.</p>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
 function RequirementsAndRecommendationsSection({
   variant,
   itemsMap,
@@ -788,99 +1228,30 @@ function RequirementsAndRecommendationsSection({
   showAdvancedDetails: boolean;
   onToggleAdvancedDetails: () => void;
 }) {
-  const hasRequirementProgression = Boolean(
-    variant.requirements?.levels?.length ||
-    variant.requirements?.quests?.length ||
-    variant.requirements?.achievement_diaries?.length,
-  );
-  const requirementItems = variant.requirements?.items ?? [];
-  const hasRequirementItems = requirementItems.length > 0;
-
-  const recommendation = variant.recommendations;
-  const hasRecommendationProgression = Boolean(
-    recommendation?.levels?.length ||
-    recommendation?.quests?.length ||
-    recommendation?.achievement_diaries?.length,
-  );
-  const recommendationItems = recommendation?.items ?? [];
-  const hasRecommendationItems = recommendationItems.length > 0;
-  const showRecommendationsColumn = Boolean(
-    recommendation && (hasRecommendationProgression || hasRecommendationItems),
-  );
-
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-      <section className="space-y-3">
-        <div className="space-y-2">
-          <h3 className="text-base font-semibold tracking-tight">
-            Requirements
-          </h3>
-        </div>
-
-        {hasRequirementProgression ? (
-          <div className="flex flex-wrap gap-2">
-            <LevelsAndQuestBadges requirement={variant.requirements} />
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            No progression requirements.
-          </p>
-        )}
-
-        {hasRequirementItems ? (
-          <OsrsItemsContainer
-            items={requirementItems}
-            itemsMap={itemsMap}
-            isLoading={isItemsLoading}
-            tooltipKeyPrefix="requirements"
-            showAdvancedDetails={showAdvancedDetails}
-            onToggleAdvancedDetails={onToggleAdvancedDetails}
-          />
-        ) : (
-          <p className="text-sm text-muted-foreground">No required items.</p>
-        )}
-      </section>
-
-      <section className="space-y-3">
-        <div className="space-y-2">
-          <h3 className="text-base font-semibold tracking-tight">
-            Recommendations
-          </h3>
-        </div>
-
-        {showRecommendationsColumn ? (
-          <>
-            {hasRecommendationProgression ? (
-              <div className="flex flex-wrap gap-2">
-                <LevelsAndQuestBadges requirement={recommendation} />
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                No progression recommendations.
-              </p>
-            )}
-
-            {hasRecommendationItems ? (
-              <OsrsItemsContainer
-                items={recommendationItems}
-                itemsMap={itemsMap}
-                isLoading={isItemsLoading}
-                tooltipKeyPrefix="recommendations"
-                showAdvancedDetails={showAdvancedDetails}
-                onToggleAdvancedDetails={onToggleAdvancedDetails}
-              />
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                No recommended items.
-              </p>
-            )}
-          </>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            This variant has no recommendations configured.
-          </p>
-        )}
-      </section>
+      <GuidanceColumn
+        title="Requirements"
+        requirement={variant.requirements}
+        items={variant.requirements?.items ?? []}
+        itemsMap={itemsMap}
+        isItemsLoading={isItemsLoading}
+        tooltipKeyPrefix="requirements"
+        emptyDescription="No requirements are configured for this variant."
+        showAdvancedDetails={showAdvancedDetails}
+        onToggleAdvancedDetails={onToggleAdvancedDetails}
+      />
+      <GuidanceColumn
+        title="Recommendations"
+        requirement={variant.recommendations}
+        items={variant.recommendations?.items ?? []}
+        itemsMap={itemsMap}
+        isItemsLoading={isItemsLoading}
+        tooltipKeyPrefix="recommendations"
+        emptyDescription="No recommendations are configured for this variant."
+        showAdvancedDetails={showAdvancedDetails}
+        onToggleAdvancedDetails={onToggleAdvancedDetails}
+      />
     </div>
   );
 }
@@ -889,6 +1260,7 @@ export function MethodVariantContent({
   variant,
   itemsMap,
   username,
+  iconUrl,
   inputsTotal,
   outputsTotal,
   isItemsLoading = false,
@@ -896,33 +1268,43 @@ export function MethodVariantContent({
   const [showAdvancedItemDetails, setShowAdvancedItemDetails] = useState(false);
   const toggleAdvancedItemDetails = () =>
     setShowAdvancedItemDetails((current) => !current);
-  const shouldShowIoSideBySideOnMobile =
-    variant.inputs.length < 8 && variant.outputs.length < 8;
+  const variantTitle = variant.label?.trim() || "Variant";
 
   return (
-    <div className="w-full space-y-8">
+    <div className="w-full space-y-6">
       <MissingRequirementsNotice variant={variant} username={username} />
 
-      <section className="rounded-md border border-gray-300 bg-gray-200 p-5 dark:border-gray-700 dark:bg-gray-800">
-        <Markdown content={variant.description} items={itemsMap} />
-      </section>
+      <DetailSection
+        eyebrow="Active variant"
+        title={variantTitle}
+        description="Scenario-specific notes and setup for the selected variant."
+        actions={
+          <div className="flex items-center gap-2">
+            {iconUrl ? (
+              <PixelArtIcon
+                src={iconUrl}
+                alt={`${variantTitle} icon`}
+                title={variantTitle}
+              />
+            ) : null}
+            <VariantMembershipBadge members={variant.members} />
+          </div>
+        }
+      >
+        {variant.description?.trim() ? (
+          <div className={cn(EDITOR_NESTED_SURFACE_CLASS, "bg-card p-4")}>
+            <Markdown content={variant.description} items={itemsMap} />
+          </div>
+        ) : (
+          <EmptySelectionState description="No description is configured for this variant yet." />
+        )}
+      </DetailSection>
 
-      <section className="space-y-5">
-        <div className="space-y-2">
-          <h2 className="text-xl font-semibold tracking-tight">
-            Inputs and Outputs
-          </h2>
-        </div>
-        <Separator className="bg-border/80" />
-
-        <div
-          className={cn(
-            "grid gap-6",
-            shouldShowIoSideBySideOnMobile
-              ? "grid-cols-2"
-              : "grid-cols-1 xl:grid-cols-2",
-          )}
-        >
+      <DetailSection
+        title="Inputs & outputs"
+        description="Review the setup cost and expected loot for this scenario."
+      >
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <IoItemsGrid
             title="Inputs"
             total={inputsTotal}
@@ -944,22 +1326,12 @@ export function MethodVariantContent({
             onToggleAdvancedDetails={toggleAdvancedItemDetails}
           />
         </div>
-      </section>
+      </DetailSection>
 
-      <section className="space-y-5">
-        <div className="space-y-2">
-          {/* <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-            Access Setup
-          </p> */}
-          <h2 className="text-xl font-semibold tracking-tight">
-            Requirements and Recommendations
-          </h2>
-          {/* <p className="text-sm text-muted-foreground">
-            Mandatory prerequisites first, optional improvements second.
-          </p> */}
-        </div>
-        <Separator className="bg-border/80" />
-
+      <DetailSection
+        title="Requirements & recommendations"
+        description="Mandatory prerequisites first, then optional improvements."
+      >
         <RequirementsAndRecommendationsSection
           variant={variant}
           itemsMap={itemsMap}
@@ -967,15 +1339,12 @@ export function MethodVariantContent({
           showAdvancedDetails={showAdvancedItemDetails}
           onToggleAdvancedDetails={toggleAdvancedItemDetails}
         />
-      </section>
+      </DetailSection>
 
-      <section className="space-y-5">
-        <div className="space-y-2">
-          <h2 className="text-xl font-semibold tracking-tight">
-            History profits
-          </h2>
-        </div>
-        <Separator className="bg-border/80" />
+      <DetailSection
+        title="Profit history"
+        description="Use the trend view to judge short-term and long-term volatility."
+      >
         {variant.id ? (
           <Suspense
             fallback={
@@ -994,8 +1363,10 @@ export function MethodVariantContent({
               trendLastYear={variant.trendLastYear}
             />
           </Suspense>
-        ) : null}
-      </section>
+        ) : (
+          <EmptySelectionState description="History data is not available for this variant yet." />
+        )}
+      </DetailSection>
     </div>
   );
 }

@@ -1,4 +1,9 @@
 import { IconPencil } from "@tabler/icons-react";
+import {
+  EDITOR_BODY_TEXT_CLASS,
+  EDITOR_META_TEXT_CLASS,
+  EDITOR_PAGE_TITLE_CLASS,
+} from "@/components/method-editor/MethodEditorPrimitives";
 import type { Method } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { LikeButton } from "@/features/methods/LikeButton";
@@ -15,33 +20,28 @@ export function MethodDetailHeader({
   onEditClick,
 }: MethodDetailHeaderProps) {
   return (
-    <div className="flex justify-between">
-      <div className="space-y-6">
-        <div className="space-y-3">
-          <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight text-balance">
-            {method.name}
-          </h1>
-        </div>
-        <p className="text-sm text-muted-foreground">{method.description}</p>
-        {/* <div className="text-sm">
-          <span className="font-semibold">Category:</span> {method.category}
-        </div> */}
+    <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+      <div className="space-y-3">
+        <h1 className={EDITOR_PAGE_TITLE_CLASS}>{method.name}</h1>
+        <p className={EDITOR_BODY_TEXT_CLASS}>{method.description}</p>
+        <p className={EDITOR_META_TEXT_CLASS}>
+          Category: {method.category}
+        </p>
       </div>
 
-      <div className="flex items-start gap-4">
-        <div className="flex items-center">
-          <LikeButton
-            methodId={method.id}
-            likedByMe={method.likedByMe}
-            likes={method.likes ?? 0}
-          />
-        </div>
+      <div className="flex items-center gap-2">
+        <LikeButton
+          methodId={method.id}
+          likedByMe={method.likedByMe}
+          likes={method.likes ?? 0}
+        />
         {isSuperAdmin ? (
           <Button
             variant="ghost"
             size="icon"
-            className="relative top-0 right-0"
+            className="shrink-0"
             onClick={onEditClick}
+            aria-label="Edit method"
           >
             <IconPencil size={20} />
           </Button>

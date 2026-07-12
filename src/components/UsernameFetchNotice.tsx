@@ -47,11 +47,12 @@ type UsernameFetchNoticeProps =
     });
 
 const noticeToneClassByState: Record<UsernameFetchNoticeState, string> = {
-  info: "border-sky-300/70 bg-sky-50 text-sky-900 dark:border-sky-900/45 dark:bg-sky-950/25 dark:text-sky-100",
+  info:
+    "border-border/70 bg-muted/20 text-foreground dark:border-border/70 dark:bg-muted/20 dark:text-foreground",
   error:
-    "border-rose-300/70 bg-rose-50 text-rose-900 dark:border-rose-900/45 dark:bg-rose-950/25 dark:text-rose-100",
+    "border-destructive/30 bg-destructive/10 text-foreground dark:border-destructive/35 dark:bg-destructive/12 dark:text-foreground",
   success:
-    "border-emerald-300/70 bg-emerald-50 text-emerald-900 dark:border-emerald-900/45 dark:bg-emerald-950/25 dark:text-emerald-100",
+    "border-emerald-300/45 bg-emerald-50/70 text-foreground dark:border-emerald-900/45 dark:bg-emerald-950/20 dark:text-foreground",
 };
 
 type NoticeContent = {
@@ -65,11 +66,11 @@ function getNoticeContent(state: UsernameFetchNoticeState): NoticeContent {
   if (state === "info") {
     return {
       icon: <InfoIcon />,
-      title: "Fetch username",
+      title: "Fetch your profile",
       description:
         "Enter your OSRS username to fetch your user data and filter methods by your stats.",
       action: (
-        <Button onClick={focusUsernameInput} size="sm" variant="default">
+        <Button onClick={focusUsernameInput} size="sm" variant="outline">
           Fetch user data
         </Button>
       ),
@@ -81,13 +82,13 @@ function getNoticeContent(state: UsernameFetchNoticeState): NoticeContent {
       icon: <CheckCircle2Icon />,
       title: "All requirements met",
       description:
-        "Congratulations! Your character meets all the requirements to do this method.",
+        "Your character meets the recorded requirements for this variant.",
     };
   }
 
   return {
     icon: <AlertCircleIcon />,
-    title: "Requirements not met",
+    title: "Requirements missing",
     description: "",
   };
 }
