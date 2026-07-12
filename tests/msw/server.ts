@@ -65,6 +65,7 @@ export const server = setupServer(
                 id: "trend-variant-1",
                 slug: "steel-bars",
                 label: "Steel bars",
+                icon_id: 1001,
                 highProfit: 1200000,
                 lowProfit: 980000,
                 profitGrowth: {
@@ -94,6 +95,7 @@ export const server = setupServer(
                 id: "trend-variant-2",
                 slug: "main",
                 label: "Main",
+                icon_id: 1002,
                 highProfit: 900000,
                 lowProfit: 820000,
                 profitGrowth: {
