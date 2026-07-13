@@ -130,6 +130,10 @@ export interface Variant {
   gpPerXpLow?: number;
   marketImpactInstant?: number;
   marketImpactSlow?: number;
+  inputMarketImpactInstant?: number;
+  inputMarketImpactSlow?: number;
+  outputMarketImpactInstant?: number;
+  outputMarketImpactSlow?: number;
   trendLastHour?: number;
   trendLast24h?: number;
   trendLastWeek?: number;

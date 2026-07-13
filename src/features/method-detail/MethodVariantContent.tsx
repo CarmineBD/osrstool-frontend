@@ -44,6 +44,11 @@ import { Switch } from "@/components/ui/switch";
 import Markdown from "@/components/Markdown";
 import OsrsQuantitySprite from "@/components/OsrsQuantitySprite";
 import {
+  formatImpactPercent,
+  getStrategyRecommendation,
+  type StrategyRecommendation,
+} from "@/features/method-detail/marketImpactStrategy";
+import {
   cn,
   formatElapsedTimeFromUnix,
   formatNumber,
@@ -333,6 +338,55 @@ function MarketImpactIndicator({
         )}
       />
     </div>
+  );
+}
+
+function StrategyTooltipContent({
+  recommendation,
+}: {
+  recommendation: StrategyRecommendation;
+}) {
+  return (
+    <div className="space-y-2">
+      <p className="m-0">
+        {recommendation.preferredMode === "instant" ? "Instant" : "Slow"}{" "}
+        impact: {formatImpactPercent(recommendation.preferredPercent)}
+      </p>
+      <p className="m-0">
+        {recommendation.alternativeMode === "instant" ? "Instant" : "Slow"}{" "}
+        impact: {formatImpactPercent(recommendation.alternativePercent)}
+      </p>
+      <p className="m-0">{recommendation.summary}</p>
+    </div>
+  );
+}
+
+function StrategyRecommendationLine({
+  recommendation,
+}: {
+  recommendation: StrategyRecommendation | null;
+}) {
+  if (!recommendation) {
+    return <span className={EDITOR_META_TEXT_CLASS}>N/A</span>;
+  }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          className="w-full text-left text-sm font-medium text-foreground underline decoration-dotted underline-offset-4 transition-colors hover:text-foreground/80"
+        >
+          {recommendation.label}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent
+        sideOffset={6}
+        className="w-max max-w-[320px] whitespace-normal text-left"
+      >
+        <StrategyTooltipContent recommendation={recommendation} />
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -738,6 +792,16 @@ function MetricsCards({ variant }: { variant: Variant }) {
     (total, { experience }) => total + experience,
     0,
   );
+  const inputStrategyRecommendation = getStrategyRecommendation(
+    "inputs",
+    variant.inputMarketImpactInstant,
+    variant.inputMarketImpactSlow,
+  );
+  const outputStrategyRecommendation = getStrategyRecommendation(
+    "outputs",
+    variant.outputMarketImpactInstant,
+    variant.outputMarketImpactSlow,
+  );
   const trendToneClassName =
     typeof variant.trendLastMonth !== "number"
       ? "text-muted-foreground"
@@ -913,6 +977,30 @@ function MetricsCards({ variant }: { variant: Variant }) {
                 label="Instant"
                 score={variant.marketImpactInstant}
               />
+            </div>
+          </div>
+
+          <div className={rowClassName}>
+            <MetricLabelWithInfo
+              label="Strategy"
+              tooltip={
+                <p className="m-0">
+                  Strategy compares instant and slow market impact for inputs
+                  and outputs. Lower impact is better because it puts less
+                  pressure on the weighted daily volume behind this variant.
+                </p>
+              }
+            />
+            <div className="w-full max-w-[15rem] rounded-lg border border-border/60 bg-muted/30 p-3">
+              <p className={EDITOR_META_TEXT_CLASS}>It&apos;s better to</p>
+              <div className="mt-2 space-y-3">
+                <StrategyRecommendationLine
+                  recommendation={inputStrategyRecommendation}
+                />
+                <StrategyRecommendationLine
+                  recommendation={outputStrategyRecommendation}
+                />
+              </div>
             </div>
           </div>
         </div>
