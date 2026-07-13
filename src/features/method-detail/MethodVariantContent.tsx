@@ -33,11 +33,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
@@ -181,8 +177,8 @@ function MarketImpactTooltipContent({
     const hours = formatMarketImpactHours(percent);
     return (
       <p className="m-0">
-        Quite hard to buy/sell the items involved in this method. It would
-        take approximately {formatMarketImpactDurationLabel(hours, "hour", "hours")}.
+        Quite hard to buy/sell the items involved in this method. It would take
+        approximately {formatMarketImpactDurationLabel(hours, "hour", "hours")}.
         <br />
         <br />
         See how this metric is calculated in the{" "}
@@ -499,10 +495,7 @@ function ItemTooltipBody({
             <span>Last buy: {formatItemElapsedTime(item.highTime)}</span>
             <span>Last sell: {formatItemElapsedTime(item.lowTime)}</span>
           </div>
-          <ItemTooltipToggleButton
-            expanded
-            onClick={onToggleAdvancedDetails}
-          />
+          <ItemTooltipToggleButton expanded onClick={onToggleAdvancedDetails} />
         </>
       )}
     </div>
@@ -635,25 +628,24 @@ function LevelsAndQuestBadges({
       {(requirement?.quests || []).map(({ name, stage, reason }) => (
         <RequirementReasonBadge key={name} reason={reason}>
           <Badge size="md" variant="secondary">
-            <img
-              src={getUrlByType("quests") ?? ""}
-              alt="quests_icon"
-            />
+            <img src={getUrlByType("quests") ?? ""} alt="quests_icon" />
             {stage === 1 ? `${name} (started)` : name}
           </Badge>
         </RequirementReasonBadge>
       ))}
-      {(requirement?.achievement_diaries || []).map(({ name, tier, reason }) => (
-        <RequirementReasonBadge key={`${name}_${tier}`} reason={reason}>
-          <Badge size="md" variant="secondary">
-            <img
-              src={getUrlByType("achievement_diaries") ?? ""}
-              alt="achievement_diaries_icon"
-            />
-            {`${name} ${tier}`}
-          </Badge>
-        </RequirementReasonBadge>
-      ))}
+      {(requirement?.achievement_diaries || []).map(
+        ({ name, tier, reason }) => (
+          <RequirementReasonBadge key={`${name}_${tier}`} reason={reason}>
+            <Badge size="md" variant="secondary">
+              <img
+                src={getUrlByType("achievement_diaries") ?? ""}
+                alt="achievement_diaries_icon"
+              />
+              {`${name} ${tier}`}
+            </Badge>
+          </RequirementReasonBadge>
+        ),
+      )}
     </>
   );
 }
@@ -1098,7 +1090,9 @@ function IoItemsGrid({
         </div>
 
         {canShowWeights ? (
-          <label className={cn("flex items-center gap-2", EDITOR_META_TEXT_CLASS)}>
+          <label
+            className={cn("flex items-center gap-2", EDITOR_META_TEXT_CLASS)}
+          >
             <Switch checked={showWeights} onCheckedChange={setShowWeights} />
             View weights
           </label>
@@ -1270,7 +1264,9 @@ function GuidanceColumn({
   const hasContent = hasProgression || hasItems;
 
   return (
-    <section className={cn(EDITOR_NESTED_SURFACE_CLASS, "space-y-4 bg-card p-4")}>
+    <section
+      className={cn(EDITOR_NESTED_SURFACE_CLASS, "space-y-4 bg-card p-4")}
+    >
       <SectionHeader title={title} level="h3" />
 
       {!hasContent ? (
