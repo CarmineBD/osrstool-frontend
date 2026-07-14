@@ -1,12 +1,10 @@
 import {
   Fragment,
-  forwardRef,
   lazy,
   Suspense,
   useEffect,
   useMemo,
   useState,
-  type ComponentPropsWithoutRef,
   type ReactNode,
 } from "react";
 import { Link } from "react-router-dom";
@@ -17,6 +15,14 @@ import {
   IconTrendingUp,
 } from "@tabler/icons-react";
 import { UsernameFetchNotice } from "@/components/UsernameFetchNotice";
+import {
+  formatOsrsItemQuantity,
+  OsrsItemSprite,
+  OSRS_ITEM_TRAY_BAR_ACTIVE_CLASS,
+  OSRS_ITEM_TRAY_BAR_MUTED_CLASS,
+  OSRS_ITEM_TRAY_CLASS,
+  OSRS_ITEM_TRAY_TEXT_CLASS,
+} from "@/components/OsrsItemTray";
 import {
   EDITOR_BODY_TEXT_CLASS,
   EDITOR_META_TEXT_CLASS,
@@ -38,7 +44,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import Markdown from "@/components/Markdown";
-import OsrsQuantitySprite from "@/components/OsrsQuantitySprite";
 import {
   formatImpactPercent,
   getStrategyRecommendation,
@@ -57,12 +62,6 @@ const LazyVariantHistoryChart = lazy(
   () => import("@/components/VariantHistoryChart"),
 );
 
-const ITEM_TRAY_CLASS =
-  "min-h-14 w-full rounded-lg border border-black/15 bg-[var(--method-detail-item-tray)] p-4 shadow-[inset_0_1px_3px_rgba(0,0,0,0.45)]";
-const ITEM_TRAY_TEXT_CLASS = "text-[var(--method-detail-item-tray-foreground)]";
-const ITEM_TRAY_BAR_ACTIVE_CLASS = "bg-[var(--method-detail-item-tray-bar)]";
-const ITEM_TRAY_BAR_MUTED_CLASS =
-  "bg-[var(--method-detail-item-tray-bar-muted)]";
 const POSITIVE_TEXT_CLASS = "text-[var(--method-detail-positive)]";
 const NEGATIVE_TEXT_CLASS = "text-[var(--method-detail-negative)]";
 
@@ -502,79 +501,6 @@ function ItemTooltipBody({
   );
 }
 
-function formatItemQuantity(quantity: number): {
-  label: string;
-  color: "yellow" | "white" | "green";
-  showExactQuantity: boolean;
-} {
-  if (quantity > 999_999_999) {
-    return {
-      label: `${(quantity / 1_000_000_000).toFixed(1).replace(/\.0$/, "")}B`,
-      color: "green",
-      showExactQuantity: true,
-    };
-  }
-
-  if (quantity > 9_999_999) {
-    return {
-      label: `${Math.floor(quantity / 1_000_000)}M`,
-      color: "green",
-      showExactQuantity: true,
-    };
-  }
-
-  if (quantity > 99_999) {
-    return {
-      label: `${Math.floor(quantity / 1_000)}k`,
-      color: "white",
-      showExactQuantity: true,
-    };
-  }
-
-  return {
-    label: String(quantity),
-    color: "yellow",
-    showExactQuantity: false,
-  };
-}
-
-const ItemSprite = forwardRef<
-  HTMLDivElement,
-  {
-    iconUrl: string;
-    itemName: string;
-    quantity: number;
-    quantityDisplay: ReturnType<typeof formatItemQuantity>;
-  } & ComponentPropsWithoutRef<"div">
->(function ItemSprite(
-  { iconUrl, itemName, quantity, quantityDisplay, className, ...props },
-  ref,
-) {
-  return (
-    <div
-      ref={ref}
-      className={cn("relative grid h-8 w-8 place-items-center", className)}
-      {...props}
-    >
-      <PixelArtIcon
-        src={iconUrl}
-        alt={itemName}
-        className="h-8 w-8"
-        imgClassName="drop-shadow-[1px_1px_0_#333333]"
-      />
-
-      {quantity > 0 ? (
-        <OsrsQuantitySprite
-          text={quantityDisplay.label}
-          color={quantityDisplay.color}
-          scale={1}
-          className="pointer-events-none absolute top-0 left-[2px]"
-        />
-      ) : null}
-    </div>
-  );
-});
-
 type WeightPriceMode = "input" | "output";
 
 function getWeightPrice(item: Item, mode: WeightPriceMode): number {
@@ -669,11 +595,11 @@ function OsrsItemsIcons({
         const item = itemsMap[entry.id];
         if (!item) return null;
         const reasonLabel = entry.reason?.trim();
-        const quantityDisplay = formatItemQuantity(entry.quantity);
+        const quantityDisplay = formatOsrsItemQuantity(entry.quantity);
         return (
           <Tooltip key={`${tooltipKeyPrefix}-${entry.id}`}>
             <TooltipTrigger asChild>
-              <ItemSprite
+              <OsrsItemSprite
                 iconUrl={item.iconUrl}
                 itemName={item.name}
                 quantity={entry.quantity}
@@ -713,7 +639,7 @@ function OsrsItemsContainer({
   onToggleAdvancedDetails: () => void;
 }) {
   return (
-    <div className={ITEM_TRAY_CLASS}>
+    <div className={OSRS_ITEM_TRAY_CLASS}>
       <div className="flex flex-wrap gap-2">
         {isLoading ? (
           Array.from({
@@ -1098,7 +1024,7 @@ function IoItemsGrid({
           </label>
         ) : null}
       </div>
-      <div className={ITEM_TRAY_CLASS}>
+      <div className={OSRS_ITEM_TRAY_CLASS}>
         <div
           className={
             showWeights && !isLoading
@@ -1117,7 +1043,9 @@ function IoItemsGrid({
             ))
           ) : showWeights ? (
             weightedItems.map((entry) => {
-              const quantityDisplay = formatItemQuantity(entry.entry.quantity);
+              const quantityDisplay = formatOsrsItemQuantity(
+                entry.entry.quantity,
+              );
               const reasonLabel = entry.entry.reason?.trim();
               const roundedTotalCoins = Math.round(entry.totalCoins);
               const showExactCoinsTitle = roundedTotalCoins > 999;
