@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/accordion";
 import { useUsername } from "@/contexts/UsernameContext";
 import { useAuth } from "@/auth/AuthProvider";
+import { useQuery } from "@tanstack/react-query";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -23,6 +24,8 @@ import {
 import { formatSkillName } from "@/lib/skills";
 import { cn, getUrlByType } from "@/lib/utils";
 import { OPEN_NAV_USERNAME_EVENT } from "@/lib/events";
+import { fetchMe } from "@/lib/me";
+import { QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
 
 export type Props = { hideInput?: boolean };
 const LOGIN_REQUIRED_MESSAGE = "sign-in/login to fetch data by osrs usernames";
@@ -59,9 +62,17 @@ export function Nav({ hideInput }: Props) {
   const location = useLocation();
   const { username, setUsername, userError, setUserError } = useUsername();
   const { session } = useAuth();
+  const { data: meData } = useQuery({
+    queryKey: ["me"],
+    queryFn: fetchMe,
+    enabled: !!session,
+    staleTime: QUERY_STALE_TIME_MS,
+    retry: false,
+  });
   const [input, setInput] = useState<string>(username);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [mobileAccordionValue, setMobileAccordionValue] = useState<string[]>([]);
+  const isSuperAdmin = meData?.data?.role === "super_admin";
   const avatarUrl =
     typeof session?.user?.user_metadata?.avatar_url === "string"
       ? session.user.user_metadata.avatar_url
@@ -231,6 +242,18 @@ export function Nav({ hideInput }: Props) {
                 </Link>
               </NavigationMenuLink>
             </NavigationMenuItem>
+            {isSuperAdmin ? (
+              <NavigationMenuItem>
+                <NavigationMenuLink asChild>
+                  <Link
+                    to="/admin"
+                    className="group inline-flex h-9 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                  >
+                    Admin
+                  </Link>
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+            ) : null}
           </NavigationMenuList>
         </NavigationMenu>
 
@@ -434,6 +457,16 @@ export function Nav({ hideInput }: Props) {
           >
             Wiki
           </Link>
+
+          {isSuperAdmin ? (
+            <Link
+              to="/admin"
+              className="hover:bg-accent/70 focus:bg-accent/70 mt-2 flex w-full items-center rounded-xl bg-white/90 px-3 py-3 text-sm font-semibold no-underline outline-hidden transition-colors duration-200"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Admin
+            </Link>
+          ) : null}
         </div>
       </div>
     </nav>

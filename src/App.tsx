@@ -24,6 +24,7 @@ const LazyMethodDetail = lazy(() =>
 );
 const LazyMethodCreate = lazy(() => import("./pages/MethodCreate"));
 const LazyMethodEdit = lazy(() => import("./pages/MethodEdit"));
+const LazyAdminPage = lazy(() => import("./pages/AdminPage"));
 
 function App() {
   return (
@@ -45,6 +46,14 @@ function App() {
                 <Route path="/account" element={<AccountPage />} />
               </Route>
               <Route element={<ProtectedRoute requiredRole="super_admin" />}>
+                <Route
+                  path="/admin"
+                  element={
+                    <Suspense fallback={<MethodUpsertSkeleton />}>
+                      <LazyAdminPage />
+                    </Suspense>
+                  }
+                />
                 <Route
                   path="/moneyMakingMethod/new"
                   element={
