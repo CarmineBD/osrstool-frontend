@@ -32,6 +32,24 @@ describe("admin api", () => {
               ],
             },
             latestExecutions: [],
+            latestCatalog: {
+              items: [
+                {
+                  id: 4151,
+                  name: "Abyssal whip",
+                  iconUrl:
+                    "https://oldschool.runescape.wiki/images/Abyssal_whip.png",
+                  addedAt: "2026-07-14T18:09:09.834Z",
+                },
+              ],
+              quests: [
+                {
+                  name: "Cook's Assistant",
+                  slug: "cooks-assistant",
+                  addedAt: "2026-02-11T21:32:13.214Z",
+                },
+              ],
+            },
           },
         }),
         {
@@ -57,6 +75,22 @@ describe("admin api", () => {
     expect(overview.counts.enabledMethodVariantsBySkill).toEqual([
       { skill: "Magic", variants: 9 },
       { skill: "Mining", variants: 4 },
+    ]);
+    expect(overview.latestCatalog.items).toEqual([
+      {
+        id: 4151,
+        name: "Abyssal whip",
+        iconUrl:
+          "https://oldschool.runescape.wiki/images/Abyssal_whip.png",
+        addedAt: "2026-07-14T18:09:09.834Z",
+      },
+    ]);
+    expect(overview.latestCatalog.quests).toEqual([
+      {
+        name: "Cook's Assistant",
+        slug: "cooks-assistant",
+        addedAt: "2026-02-11T21:32:13.214Z",
+      },
     ]);
 
     fetchSpy.mockRestore();
@@ -91,6 +125,35 @@ describe("admin api", () => {
               ],
             },
             latestExecutions: [],
+            latestCatalog: {
+              items: [
+                {
+                  id: "11840",
+                  name: " Dragon boots ",
+                  iconUrl: "https://example.com/dragon-boots.png",
+                  addedAt: "2026-07-14T20:00:00.000Z",
+                },
+                {
+                  id: 1,
+                  name: "",
+                  iconUrl: "https://example.com/invalid.png",
+                  addedAt: "2026-07-14T20:00:00.000Z",
+                },
+                null,
+              ],
+              quests: [
+                {
+                  name: " Recipe for Disaster ",
+                  slug: "recipe-for-disaster",
+                  addedAt: "2026-02-11T21:32:13.214Z",
+                },
+                {
+                  name: "Invalid quest",
+                  slug: "",
+                  addedAt: "2026-02-11T21:32:13.214Z",
+                },
+              ],
+            },
           },
         }),
         {
@@ -105,6 +168,21 @@ describe("admin api", () => {
     expect(overview.counts.enabledMethodVariantsBySkill).toEqual([
       { skill: "Attack", variants: 7 },
       { skill: "Agility", variants: 3 },
+    ]);
+    expect(overview.latestCatalog.items).toEqual([
+      {
+        id: 11840,
+        name: "Dragon boots",
+        iconUrl: "https://example.com/dragon-boots.png",
+        addedAt: "2026-07-14T20:00:00.000Z",
+      },
+    ]);
+    expect(overview.latestCatalog.quests).toEqual([
+      {
+        name: "Recipe for Disaster",
+        slug: "recipe-for-disaster",
+        addedAt: "2026-02-11T21:32:13.214Z",
+      },
     ]);
 
     fetchSpy.mockRestore();
