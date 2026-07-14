@@ -1054,16 +1054,16 @@ function IoItemsGrid({
                 : "";
               const numberClassName = entry.isDisabled
                 ? "text-muted-foreground"
-                : ITEM_TRAY_TEXT_CLASS;
+                : OSRS_ITEM_TRAY_TEXT_CLASS;
               const barClassName = entry.isDisabled
-                ? ITEM_TRAY_BAR_MUTED_CLASS
-                : ITEM_TRAY_BAR_ACTIVE_CLASS;
+                ? OSRS_ITEM_TRAY_BAR_MUTED_CLASS
+                : OSRS_ITEM_TRAY_BAR_ACTIVE_CLASS;
 
               return (
                 <Fragment key={`${title}-weight-${entry.rowKey}`}>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <ItemSprite
+                      <OsrsItemSprite
                         iconUrl={entry.item.iconUrl}
                         itemName={entry.item.name}
                         quantity={entry.entry.quantity}
