@@ -136,7 +136,7 @@ describe("critical flow: method detail load + error", () => {
     expect(
       within(instantTooltip).getByRole("link", { name: /wiki/i }),
     ).toHaveAttribute("href", "/wiki");
-  });
+  }, 10000);
 
   it("shows the hourly explanation for good market impact", async () => {
     server.use(

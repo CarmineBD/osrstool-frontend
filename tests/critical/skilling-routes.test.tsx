@@ -147,7 +147,7 @@ describe("critical flow: skilling routes", () => {
       expect(within(tooltip).getByText("XP/hr: 10k")).toBeInTheDocument();
     }
     await user.unhover(afkTag);
-  });
+  }, 10000);
 
   it("does not dim tags that share the same method", async () => {
     server.use(

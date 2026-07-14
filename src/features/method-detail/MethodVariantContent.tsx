@@ -33,16 +33,17 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import Markdown from "@/components/Markdown";
 import OsrsQuantitySprite from "@/components/OsrsQuantitySprite";
+import {
+  formatImpactPercent,
+  getStrategyRecommendation,
+  type StrategyRecommendation,
+} from "@/features/method-detail/marketImpactStrategy";
 import {
   cn,
   formatElapsedTimeFromUnix,
@@ -176,8 +177,8 @@ function MarketImpactTooltipContent({
     const hours = formatMarketImpactHours(percent);
     return (
       <p className="m-0">
-        Quite hard to buy/sell the items involved in this method. It would
-        take approximately {formatMarketImpactDurationLabel(hours, "hour", "hours")}.
+        Quite hard to buy/sell the items involved in this method. It would take
+        approximately {formatMarketImpactDurationLabel(hours, "hour", "hours")}.
         <br />
         <br />
         See how this metric is calculated in the{" "}
@@ -336,6 +337,55 @@ function MarketImpactIndicator({
   );
 }
 
+function StrategyTooltipContent({
+  recommendation,
+}: {
+  recommendation: StrategyRecommendation;
+}) {
+  return (
+    <div className="space-y-2">
+      <p className="m-0">
+        {recommendation.preferredMode === "instant" ? "Instant" : "Slow"}{" "}
+        impact: {formatImpactPercent(recommendation.preferredPercent)}
+      </p>
+      <p className="m-0">
+        {recommendation.alternativeMode === "instant" ? "Instant" : "Slow"}{" "}
+        impact: {formatImpactPercent(recommendation.alternativePercent)}
+      </p>
+      <p className="m-0">{recommendation.summary}</p>
+    </div>
+  );
+}
+
+function StrategyRecommendationLine({
+  recommendation,
+}: {
+  recommendation: StrategyRecommendation | null;
+}) {
+  if (!recommendation) {
+    return <span className={EDITOR_META_TEXT_CLASS}>N/A</span>;
+  }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          className="w-full text-left text-sm font-medium text-foreground underline decoration-dotted underline-offset-4 transition-colors hover:text-foreground/80"
+        >
+          {recommendation.label}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent
+        sideOffset={6}
+        className="w-max max-w-[320px] whitespace-normal text-left"
+      >
+        <StrategyTooltipContent recommendation={recommendation} />
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 function toFiniteNumber(value: number | undefined): number | null {
   const parsedValue = Number(value);
   return Number.isFinite(parsedValue) ? parsedValue : null;
@@ -445,10 +495,7 @@ function ItemTooltipBody({
             <span>Last buy: {formatItemElapsedTime(item.highTime)}</span>
             <span>Last sell: {formatItemElapsedTime(item.lowTime)}</span>
           </div>
-          <ItemTooltipToggleButton
-            expanded
-            onClick={onToggleAdvancedDetails}
-          />
+          <ItemTooltipToggleButton expanded onClick={onToggleAdvancedDetails} />
         </>
       )}
     </div>
@@ -581,25 +628,24 @@ function LevelsAndQuestBadges({
       {(requirement?.quests || []).map(({ name, stage, reason }) => (
         <RequirementReasonBadge key={name} reason={reason}>
           <Badge size="md" variant="secondary">
-            <img
-              src={getUrlByType("quests") ?? ""}
-              alt="quests_icon"
-            />
+            <img src={getUrlByType("quests") ?? ""} alt="quests_icon" />
             {stage === 1 ? `${name} (started)` : name}
           </Badge>
         </RequirementReasonBadge>
       ))}
-      {(requirement?.achievement_diaries || []).map(({ name, tier, reason }) => (
-        <RequirementReasonBadge key={`${name}_${tier}`} reason={reason}>
-          <Badge size="md" variant="secondary">
-            <img
-              src={getUrlByType("achievement_diaries") ?? ""}
-              alt="achievement_diaries_icon"
-            />
-            {`${name} ${tier}`}
-          </Badge>
-        </RequirementReasonBadge>
-      ))}
+      {(requirement?.achievement_diaries || []).map(
+        ({ name, tier, reason }) => (
+          <RequirementReasonBadge key={`${name}_${tier}`} reason={reason}>
+            <Badge size="md" variant="secondary">
+              <img
+                src={getUrlByType("achievement_diaries") ?? ""}
+                alt="achievement_diaries_icon"
+              />
+              {`${name} ${tier}`}
+            </Badge>
+          </RequirementReasonBadge>
+        ),
+      )}
     </>
   );
 }
@@ -737,6 +783,16 @@ function MetricsCards({ variant }: { variant: Variant }) {
   const xpHourTotal = xpHourEntries.reduce(
     (total, { experience }) => total + experience,
     0,
+  );
+  const inputStrategyRecommendation = getStrategyRecommendation(
+    "inputs",
+    variant.inputMarketImpactInstant,
+    variant.inputMarketImpactSlow,
+  );
+  const outputStrategyRecommendation = getStrategyRecommendation(
+    "outputs",
+    variant.outputMarketImpactInstant,
+    variant.outputMarketImpactSlow,
   );
   const trendToneClassName =
     typeof variant.trendLastMonth !== "number"
@@ -915,6 +971,30 @@ function MetricsCards({ variant }: { variant: Variant }) {
               />
             </div>
           </div>
+
+          <div className={rowClassName}>
+            <MetricLabelWithInfo
+              label="Strategy"
+              tooltip={
+                <p className="m-0">
+                  Strategy compares instant and slow market impact for inputs
+                  and outputs. Lower impact is better because it puts less
+                  pressure on the weighted daily volume behind this variant.
+                </p>
+              }
+            />
+            <div className="w-full max-w-[15rem] rounded-lg border border-border/60 bg-muted/30 p-3">
+              <p className={EDITOR_META_TEXT_CLASS}>It&apos;s better to</p>
+              <div className="mt-2 space-y-3">
+                <StrategyRecommendationLine
+                  recommendation={inputStrategyRecommendation}
+                />
+                <StrategyRecommendationLine
+                  recommendation={outputStrategyRecommendation}
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -1010,7 +1090,9 @@ function IoItemsGrid({
         </div>
 
         {canShowWeights ? (
-          <label className={cn("flex items-center gap-2", EDITOR_META_TEXT_CLASS)}>
+          <label
+            className={cn("flex items-center gap-2", EDITOR_META_TEXT_CLASS)}
+          >
             <Switch checked={showWeights} onCheckedChange={setShowWeights} />
             View weights
           </label>
@@ -1182,7 +1264,9 @@ function GuidanceColumn({
   const hasContent = hasProgression || hasItems;
 
   return (
-    <section className={cn(EDITOR_NESTED_SURFACE_CLASS, "space-y-4 bg-card p-4")}>
+    <section
+      className={cn(EDITOR_NESTED_SURFACE_CLASS, "space-y-4 bg-card p-4")}
+    >
       <SectionHeader title={title} level="h3" />
 
       {!hasContent ? (
