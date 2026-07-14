@@ -86,9 +86,28 @@ export type AdminOverviewCounts = {
   }>;
 };
 
+export type AdminLatestCatalogItem = {
+  id: number;
+  name: string;
+  iconUrl: string;
+  addedAt: string;
+};
+
+export type AdminLatestCatalogQuest = {
+  name: string;
+  slug: string;
+  addedAt: string;
+};
+
+export type AdminLatestCatalog = {
+  items: AdminLatestCatalogItem[];
+  quests: AdminLatestCatalogQuest[];
+};
+
 export type AdminOverviewData = {
   counts: AdminOverviewCounts;
   latestExecutions: AdminScriptExecution[];
+  latestCatalog: AdminLatestCatalog;
 };
 
 export type AdminJobsResponse = {
@@ -157,6 +176,100 @@ function normalizeEnabledMethodVariantsBySkill(
   );
 }
 
+function normalizeLatestCatalogItems(
+  value: unknown,
+): AdminLatestCatalog["items"] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.reduce<AdminLatestCatalog["items"]>((accumulator, entry) => {
+    if (!entry || typeof entry !== "object") {
+      return accumulator;
+    }
+
+    const id = toFiniteNumber((entry as { id?: unknown }).id);
+    const name = (entry as { name?: unknown }).name;
+    const iconUrl = (entry as { iconUrl?: unknown }).iconUrl;
+    const addedAt = (entry as { addedAt?: unknown }).addedAt;
+
+    if (
+      id === undefined ||
+      typeof name !== "string" ||
+      !name.trim() ||
+      typeof iconUrl !== "string" ||
+      !iconUrl.trim() ||
+      typeof addedAt !== "string" ||
+      !addedAt.trim()
+    ) {
+      return accumulator;
+    }
+
+    accumulator.push({
+      id,
+      name: name.trim(),
+      iconUrl: iconUrl.trim(),
+      addedAt,
+    });
+    return accumulator;
+  }, []);
+}
+
+function normalizeLatestCatalogQuests(
+  value: unknown,
+): AdminLatestCatalog["quests"] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.reduce<AdminLatestCatalog["quests"]>((accumulator, entry) => {
+    if (!entry || typeof entry !== "object") {
+      return accumulator;
+    }
+
+    const name = (entry as { name?: unknown }).name;
+    const slug = (entry as { slug?: unknown }).slug;
+    const addedAt = (entry as { addedAt?: unknown }).addedAt;
+
+    if (
+      typeof name !== "string" ||
+      !name.trim() ||
+      typeof slug !== "string" ||
+      !slug.trim() ||
+      typeof addedAt !== "string" ||
+      !addedAt.trim()
+    ) {
+      return accumulator;
+    }
+
+    accumulator.push({
+      name: name.trim(),
+      slug: slug.trim(),
+      addedAt,
+    });
+    return accumulator;
+  }, []);
+}
+
+function normalizeLatestCatalog(value: unknown): AdminLatestCatalog {
+  if (!value || typeof value !== "object") {
+    return {
+      items: [],
+      quests: [],
+    };
+  }
+
+  const catalog = value as {
+    items?: unknown;
+    quests?: unknown;
+  };
+
+  return {
+    items: normalizeLatestCatalogItems(catalog.items),
+    quests: normalizeLatestCatalogQuests(catalog.quests),
+  };
+}
+
 function normalizeAdminOverviewData(value: AdminOverviewData): AdminOverviewData {
   const rawOverview = value as AdminOverviewData & Record<string, unknown>;
 
@@ -168,6 +281,7 @@ function normalizeAdminOverviewData(value: AdminOverviewData): AdminOverviewData
         rawOverview.counts?.enabledMethodVariantsBySkill,
       ),
     },
+    latestCatalog: normalizeLatestCatalog(rawOverview.latestCatalog),
   };
 }
 

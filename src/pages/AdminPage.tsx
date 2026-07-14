@@ -1,12 +1,18 @@
 import { useDeferredValue, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DatabaseZap, RefreshCw, ShieldCheck } from "lucide-react";
+import {
+  formatOsrsItemQuantity,
+  OsrsItemSprite,
+  OSRS_ITEM_TRAY_CLASS,
+} from "@/components/OsrsItemTray";
 import { useAuth } from "@/auth/AuthProvider";
 import {
   EDITOR_BODY_TEXT_CLASS,
   EDITOR_CARD_CONTENT_CLASS,
   EDITOR_CARD_HEADER_CLASS,
   EDITOR_META_TEXT_CLASS,
+  EDITOR_NESTED_SURFACE_CLASS,
   EDITOR_PRIMARY_CARD_CLASS,
   EDITOR_SECONDARY_CARD_CLASS,
   EDITOR_SECTION_CARD_CLASS,
@@ -36,6 +42,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Table,
   TableBody,
   TableCell,
@@ -44,6 +55,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type {
+  AdminLatestCatalogItem,
+  AdminLatestCatalogQuest,
   AdminExecutionStatus,
   AdminItemsSyncInput,
   AdminScriptExecution,
@@ -67,6 +80,9 @@ const dateFormatter = new Intl.DateTimeFormat("es-ES", {
   dateStyle: "medium",
   timeStyle: "short",
 });
+const dateOnlyFormatter = new Intl.DateTimeFormat("es-ES", {
+  dateStyle: "medium",
+});
 
 const JOB_LIMIT_OPTIONS = [10, 20, 50] as const;
 const ITEM_SYNC_SCRIPT_PREFIX = "items:";
@@ -82,6 +98,14 @@ function formatDateTime(value: string | null) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return dateFormatter.format(date);
+}
+
+function formatDate(value: string | null) {
+  if (!value) return "Unknown date";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return dateOnlyFormatter.format(date);
 }
 
 function formatDuration(durationMs: number | null) {
@@ -326,6 +350,124 @@ function VariantSkillsTable({ rows }: VariantSkillsTableProps) {
   );
 }
 
+type LatestCatalogItemsTrayProps = {
+  items: AdminLatestCatalogItem[];
+  isLoading?: boolean;
+};
+
+function LatestCatalogItemsTray({
+  items,
+  isLoading = false,
+}: LatestCatalogItemsTrayProps) {
+  return (
+    <section className={`${EDITOR_NESTED_SURFACE_CLASS} space-y-4 p-4`}>
+      <SectionHeader
+        title="Last 100 items added"
+        description="Same OSRS item tray as method detail inputs and outputs, using the latest overview snapshot."
+        level="h3"
+      />
+
+      {!items.length && !isLoading ? (
+        <EmptySelectionState description="No recent items were returned by GET /admin/overview." />
+      ) : (
+        <div className={OSRS_ITEM_TRAY_CLASS}>
+          <div className="flex flex-wrap gap-2">
+            {isLoading
+              ? Array.from({ length: 16 }, (_, index) => (
+                  <Skeleton
+                    key={`latest-item-skeleton-${index}`}
+                    className="h-8 w-8 rounded-sm bg-muted/70"
+                  />
+                ))
+              : items.map((item) => (
+                  <Tooltip key={`${item.id}-${item.addedAt}`}>
+                    <TooltipTrigger asChild>
+                      <OsrsItemSprite
+                        iconUrl={item.iconUrl}
+                        itemName={item.name}
+                        quantity={0}
+                        quantityDisplay={formatOsrsItemQuantity(0)}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent sideOffset={6}>
+                      <div className="flex flex-col gap-1">
+                        <span>{item.name}</span>
+                        <span className={EDITOR_META_TEXT_CLASS}>
+                          Added {formatDate(item.addedAt)}
+                        </span>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+type LatestCatalogQuestsListProps = {
+  quests: AdminLatestCatalogQuest[];
+  isLoading?: boolean;
+};
+
+function LatestCatalogQuestsList({
+  quests,
+  isLoading = false,
+}: LatestCatalogQuestsListProps) {
+  const questIconUrl = getUrlByType("quests");
+
+  return (
+    <section className={`${EDITOR_NESTED_SURFACE_CLASS} space-y-4 p-4`}>
+      <SectionHeader
+        title="Last 5 quests added"
+        description="Latest quest entries returned by the admin overview endpoint."
+        level="h3"
+      />
+
+      {!quests.length && !isLoading ? (
+        <EmptySelectionState description="No recent quests were returned by GET /admin/overview." />
+      ) : (
+        <div className="space-y-1">
+          {isLoading
+            ? Array.from({ length: 5 }, (_, index) => (
+                <div
+                  key={`latest-quest-skeleton-${index}`}
+                  className="flex items-center gap-3 rounded-lg px-3 py-3"
+                >
+                  <Skeleton className="h-[30px] w-[30px] rounded-sm" />
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <Skeleton className="h-4 w-40" />
+                    <Skeleton className="h-3 w-28" />
+                  </div>
+                </div>
+              ))
+            : quests.map((quest) => (
+                <div
+                  key={`${quest.slug}-${quest.addedAt}`}
+                  className="flex items-center gap-3 rounded-lg border border-transparent px-3 py-3 transition-colors hover:border-border/60 hover:bg-background/60"
+                >
+                  <PixelArtIcon
+                    src={questIconUrl}
+                    alt="quests_icon"
+                    title={quest.name}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium leading-5 text-foreground">
+                      {quest.name}
+                    </p>
+                    <p className={EDITOR_META_TEXT_CLASS}>
+                      Added {formatDate(quest.addedAt)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function AdminPage() {
   const { session } = useAuth();
   const queryClient = useQueryClient();
@@ -398,10 +540,13 @@ export function AdminPage() {
   });
 
   const counts = overviewQuery.data?.counts;
+  const latestCatalog = overviewQuery.data?.latestCatalog;
   const latestExecutions = useMemo(
     () => overviewQuery.data?.latestExecutions ?? [],
     [overviewQuery.data?.latestExecutions],
   );
+  const latestCatalogItems = latestCatalog?.items ?? [];
+  const latestCatalogQuests = latestCatalog?.quests ?? [];
   const jobs = jobsQuery.data?.data ?? [];
   const jobMeta = jobsQuery.data?.meta;
   const hasOverviewData = overviewQuery.data !== undefined;
@@ -609,6 +754,24 @@ export function AdminPage() {
                   <Skeleton className="h-80 rounded-xl" />
                 ) : (
                   <VariantSkillsTable rows={variantSkillRows} />
+                )}
+              </section>
+
+              <section className="space-y-4">
+                <SectionHeader
+                  title="Latest catalog"
+                  description="Recently added catalog entries returned by GET /admin/overview."
+                />
+                {overviewQuery.isLoading && !hasOverviewData ? (
+                  <div className="space-y-4">
+                    <Skeleton className="h-40 rounded-xl" />
+                    <Skeleton className="h-72 rounded-xl" />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <LatestCatalogItemsTray items={latestCatalogItems} />
+                    <LatestCatalogQuestsList quests={latestCatalogQuests} />
+                  </div>
                 )}
               </section>
             </CardContent>
