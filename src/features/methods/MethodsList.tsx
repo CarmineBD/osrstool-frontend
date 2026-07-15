@@ -904,6 +904,7 @@ export function MethodsList({
                   <>
                     {renderMethodCell(row)}
                     {renderProfitCell(row)}
+                    {renderTagsCell(row)}
                     {renderLiquidityCell(row, SHOW_FROM_THIRD_SCALE)}
                     {renderXpCell(row)}
                     {renderClickIntensityCell(row, SHOW_FROM_THIRD_SCALE)}
