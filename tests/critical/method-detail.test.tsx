@@ -42,6 +42,18 @@ describe("critical flow: method detail load + error", () => {
                   clickIntensity: 850,
                   marketImpactSlow: 0.05,
                   marketImpactInstant: 48,
+                  tags: [
+                    {
+                      label: "Safe",
+                      description:
+                        "This method has stayed above break-even over the last 24 hours.",
+                    },
+                    {
+                      label: "High investment required",
+                      description:
+                        "This method requires a high upfront investment.",
+                    },
+                  ],
                   requirements: {},
                   inputs: [],
                   outputs: [],
@@ -68,8 +80,21 @@ describe("critical flow: method detail load + error", () => {
     expect(screen.getByText("not viable")).toBeInTheDocument();
     expect(screen.getByText("3.2m")).toBeInTheDocument();
     expect(screen.getByText(/850 clicks\/hr/i)).toBeInTheDocument();
+    expect(screen.getByText("Safe")).toBeInTheDocument();
+    expect(screen.getByText("High investment required")).toBeInTheDocument();
 
     const user = userEvent.setup();
+    await user.hover(screen.getByText("Safe"));
+    const tagTooltips = await screen.findAllByRole("tooltip");
+    const tagTooltip = tagTooltips[tagTooltips.length - 1];
+    expect(
+      within(tagTooltip).getByText(
+        /stayed above break-even over the last 24 hours/i,
+      ),
+    ).toBeInTheDocument();
+
+    await user.unhover(screen.getByText("Safe"));
+
     const lowProfitExplanationButton = screen.getByRole("button", {
       name: /low profit explanation/i,
     });

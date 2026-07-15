@@ -32,6 +32,7 @@ import {
   PixelArtIcon,
   SectionHeader,
 } from "@/components/method-editor/MethodEditorPrimitives";
+import { VariantTags } from "@/components/VariantTags";
 import { Badge } from "@/components/ui/badge";
 import { VariantMembershipBadge } from "@/components/VariantMembershipBadge";
 import {
