@@ -922,6 +922,13 @@ function MetricsCards({ variant }: { variant: Variant }) {
               </div>
             </div>
           </div>
+
+          <div className={rowClassName}>
+            <span className={labelClassName}>Tags</span>
+            <div className="flex max-w-full justify-end">
+              <VariantTags tags={variant.tags} emptyLabel="None" />
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>
