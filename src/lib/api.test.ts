@@ -190,6 +190,34 @@ describe("api update payload helpers", () => {
     const url = new URL(requestUrl, window.location.origin);
 
     expect(url.searchParams.get("members")).toBe("false");
+    expect(url.searchParams.get("show_only_free_to_play")).toBe("false");
+
+    fetchSpy.mockRestore();
+  });
+
+  it("passes the free-to-play-only filter when enabled", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ data: { methods: [] } }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+
+    await fetchMethods(undefined, undefined, undefined, {
+      showOnlyFreeToPlay: true,
+    });
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const requestInput = fetchSpy.mock.calls[0]?.[0];
+    const requestUrl =
+      typeof requestInput === "string"
+        ? requestInput
+        : requestInput instanceof URL
+          ? requestInput.toString()
+          : requestInput.url;
+    const url = new URL(requestUrl, window.location.origin);
+
+    expect(url.searchParams.get("show_only_free_to_play")).toBe("true");
 
     fetchSpy.mockRestore();
   });

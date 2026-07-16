@@ -249,6 +249,7 @@ export interface MethodsFilters {
   afkiness?: number;
   riskLevel?: number;
   members?: boolean;
+  showOnlyFreeToPlay?: boolean;
   givesExperience?: boolean;
   enabled?: boolean;
   skill?: string;
@@ -291,6 +292,10 @@ export async function fetchMethods(
   if (filters?.members !== undefined) {
     url.searchParams.set("members", String(filters.members));
   }
+  url.searchParams.set(
+    "show_only_free_to_play",
+    String(filters?.showOnlyFreeToPlay ?? false),
+  );
   if (filters?.givesExperience !== undefined) {
     url.searchParams.set("givesExperience", String(filters.givesExperience));
   }

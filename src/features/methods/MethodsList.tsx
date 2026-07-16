@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { useMethods } from "./hooks";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -42,12 +50,65 @@ import {
   normalizeUsername,
 } from "@/lib/queryKeys";
 import { getVariantTags } from "@/lib/variantTags";
+import {
+  getDefaultMethodsTableFieldsState,
+  getDefaultMethodsTableColumnIds,
+  type MethodsTableColumnId,
+} from "./tableColumns";
 
 type SortBy = NonNullable<MethodsFilters["sortBy"]>;
 type SortOrder = NonNullable<MethodsFilters["order"]>;
 const DETAIL_PREFETCH_HOVER_DELAY_MS = 200;
-const SHOW_FROM_SECOND_SCALE = "hidden md:table-cell";
-const SHOW_FROM_THIRD_SCALE = "hidden lg:table-cell";
+type ColumnWidthToken = "method" | "tags" | "small";
+type ColumnVisibilityTier = "always" | "md" | "lg" | "xl" | "2xl";
+type ColumnPresentation = {
+  width: ColumnWidthToken;
+  visibility: ColumnVisibilityTier;
+};
+
+const COLUMN_WIDTH_CLASSNAMES: Record<ColumnWidthToken, string> = {
+  method: "w-[46%] sm:w-[44%] md:w-[18rem] xl:w-[20rem]",
+  tags: "w-[30%] sm:w-[28%] md:w-[13rem] xl:w-[15rem]",
+  small: "w-[24%] sm:w-[20%] md:w-[7.5rem]",
+};
+
+const COLUMN_VISIBILITY_CLASSNAMES: Record<ColumnVisibilityTier, string> = {
+  always: "",
+  md: "hidden md:table-cell",
+  lg: "hidden lg:table-cell",
+  xl: "hidden xl:table-cell",
+  "2xl": "hidden 2xl:table-cell",
+};
+
+const DEFAULT_COLUMN_PRESENTATION: Record<MethodsTableColumnId, ColumnPresentation> = {
+  requirements: { width: "small", visibility: "2xl" },
+  methodName: { width: "method", visibility: "always" },
+  members: { width: "small", visibility: "md" },
+  variant: { width: "small", visibility: "md" },
+  gpPerHr: { width: "small", visibility: "always" },
+  tags: { width: "tags", visibility: "md" },
+  gpPerXp: { width: "small", visibility: "xl" },
+  liquidityScore: { width: "small", visibility: "xl" },
+  xpPerHr: { width: "small", visibility: "lg" },
+  clickIntensity: { width: "small", visibility: "xl" },
+  afkiness: { width: "small", visibility: "xl" },
+  likes: { width: "small", visibility: "2xl" },
+};
+
+const SKILL_COLUMN_PRESENTATION: Record<MethodsTableColumnId, ColumnPresentation> = {
+  requirements: { width: "small", visibility: "lg" },
+  methodName: { width: "method", visibility: "always" },
+  members: { width: "small", visibility: "lg" },
+  variant: { width: "small", visibility: "md" },
+  gpPerHr: { width: "small", visibility: "always" },
+  tags: { width: "tags", visibility: "md" },
+  gpPerXp: { width: "small", visibility: "xl" },
+  liquidityScore: { width: "small", visibility: "xl" },
+  xpPerHr: { width: "small", visibility: "xl" },
+  clickIntensity: { width: "small", visibility: "2xl" },
+  afkiness: { width: "small", visibility: "2xl" },
+  likes: { width: "small", visibility: "2xl" },
+};
 
 export type Props = {
   username: string;
@@ -55,6 +116,8 @@ export type Props = {
   filters?: MethodsFilters;
   isSkillTable?: boolean;
   highlightSkill?: string;
+  orderedColumnIds?: MethodsTableColumnId[];
+  visibleColumnIds?: MethodsTableColumnId[];
   sortBy?: SortBy;
   order?: SortOrder;
   onSortChange?: (sortBy?: SortBy, order?: SortOrder) => void;
@@ -103,19 +166,41 @@ function formatGpPerXp(value?: number): string {
   })}`;
 }
 
+function getSecondaryVariantLabel(
+  methodName: string,
+  variantLabel: string,
+  isSkillTable: boolean,
+): string | null {
+  if (isSkillTable) return null;
+
+  const normalizedMethodName = methodName.trim().toLowerCase();
+  const trimmedVariantLabel = variantLabel.trim();
+  const normalizedVariantLabel = trimmedVariantLabel.toLowerCase();
+
+  if (!trimmedVariantLabel || normalizedVariantLabel === normalizedMethodName) {
+    return null;
+  }
+
+  return trimmedVariantLabel;
+}
+
 export function MethodsList({
   username,
   name,
   filters,
   isSkillTable = false,
   highlightSkill,
+  orderedColumnIds,
+  visibleColumnIds,
   sortBy,
   order,
   onSortChange,
 }: Props) {
   const queryClient = useQueryClient();
   const SKELETON_ROW_COUNT = 8;
-  const tableColumnCount = isSkillTable ? 11 : 9;
+  const columnPresentation = isSkillTable
+    ? SKILL_COLUMN_PRESENTATION
+    : DEFAULT_COLUMN_PRESENTATION;
   const [page, setPage] = useState(1);
   const [cursorByPage, setCursorByPage] = useState<
     Record<number, string | undefined>
@@ -529,40 +614,50 @@ export function MethodsList({
     </TableCell>
   );
 
-  const renderMethodCell = (row: Row, className?: string) => (
-    <TableCell className={cn("min-w-0 font-medium", className)}>
-      <div className="flex items-start gap-2">
-        {row.iconId && variantIcons[row.iconId]?.iconUrl ? (
-          <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
-            <img
-              src={variantIcons[row.iconId]?.iconUrl}
-              alt={`${row.name} icon`}
-              className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
-            />
-          </div>
-        ) : null}
-        <div className="min-w-0 space-y-1">
-          <Link
-            to={`/moneyMakingMethod/${row.methodSlug}${
-              row.variantCount > 1 ? `/${row.variantSlug}` : ""
-            }`}
-            className="block min-w-0 truncate text-blue-600 hover:underline"
-            onMouseEnter={() => scheduleMethodPrefetch(row.methodSlug)}
-            onMouseLeave={clearPrefetchTimer}
-            onFocus={() => scheduleMethodPrefetch(row.methodSlug)}
-            onBlur={clearPrefetchTimer}
-            onMouseDown={() => prefetchMethodDetail(row.methodSlug)}
-            onTouchStart={() => prefetchMethodDetail(row.methodSlug)}
-          >
-            {row.name}
-          </Link>
-          {!isSkillTable ? (
-            <VariantMembershipBadge members={row.members} compact />
+  const renderMethodCell = (row: Row, className?: string) => {
+    const secondaryVariantLabel = getSecondaryVariantLabel(
+      row.name,
+      row.variantLabel,
+      isSkillTable,
+    );
+
+    return (
+      <TableCell className={cn("min-w-0 font-medium", className)}>
+        <div className="flex items-start gap-2">
+          {row.iconId && variantIcons[row.iconId]?.iconUrl ? (
+            <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
+              <img
+                src={variantIcons[row.iconId]?.iconUrl}
+                alt={`${row.name} icon`}
+                className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
+              />
+            </div>
           ) : null}
+          <div className="min-w-0 space-y-1">
+            <Link
+              to={`/moneyMakingMethod/${row.methodSlug}${
+                row.variantCount > 1 ? `/${row.variantSlug}` : ""
+              }`}
+              className="block min-w-0 truncate text-blue-600 hover:underline"
+              onMouseEnter={() => scheduleMethodPrefetch(row.methodSlug)}
+              onMouseLeave={clearPrefetchTimer}
+              onFocus={() => scheduleMethodPrefetch(row.methodSlug)}
+              onBlur={clearPrefetchTimer}
+              onMouseDown={() => prefetchMethodDetail(row.methodSlug)}
+              onTouchStart={() => prefetchMethodDetail(row.methodSlug)}
+            >
+              {row.name}
+            </Link>
+            {secondaryVariantLabel ? (
+              <p className="truncate text-xs font-medium leading-4 text-muted-foreground">
+                {secondaryVariantLabel}
+              </p>
+            ) : null}
+          </div>
         </div>
-      </div>
-    </TableCell>
-  );
+      </TableCell>
+    );
+  };
 
   const renderVariantCell = (row: Row, className?: string) => (
     <TableCell className={cn("min-w-0", className)}>
@@ -579,8 +674,13 @@ export function MethodsList({
         >
           {row.variantLabel}
         </Link>
-        <VariantMembershipBadge members={row.members} compact />
       </div>
+    </TableCell>
+  );
+
+  const renderMembersCell = (row: Row, className?: string) => (
+    <TableCell className={className}>
+      <VariantMembershipBadge members={row.members} compact />
     </TableCell>
   );
 
@@ -701,171 +801,261 @@ export function MethodsList({
     </div>
   );
 
-  const renderSkeletonCellContent = (cellIndex: number) => {
-    if (isSkillTable) {
-      switch (cellIndex) {
-        case 0:
-          return renderSkeletonBadges(2);
-        case 1:
-          return <Skeleton className="h-4" style={{ width: "78%" }} />;
-        case 2:
-          return <Skeleton className="h-4" style={{ width: "66%" }} />;
-        case 3:
-          return renderSkeletonMetric();
-        case 4:
-        case 7:
-          return renderSkeletonBadges(2);
-        case 5:
-        case 6:
-          return renderSkeletonMetric();
-        case 8:
-        case 9:
-          return <Skeleton className="h-4" style={{ width: "58%" }} />;
-        default:
-          return <Skeleton className="h-8 w-8 rounded-full" />;
-      }
-    }
-
-    switch (cellIndex) {
-      case 0:
-        return <Skeleton className="h-4" style={{ width: "72%" }} />;
-      case 1:
-      case 3:
-        return renderSkeletonMetric();
-      case 2:
-      case 4:
-      case 7:
-        return renderSkeletonBadges(2);
-      case 5:
-      case 6:
-        return <Skeleton className="h-4" style={{ width: "60%" }} />;
-      default:
-        return <Skeleton className="h-8 w-8 rounded-full" />;
-    }
+  const getColumnClassName = (columnId: MethodsTableColumnId) => {
+    const presentation = columnPresentation[columnId];
+    return cn(
+      COLUMN_WIDTH_CLASSNAMES[presentation.width],
+      COLUMN_VISIBILITY_CLASSNAMES[presentation.visibility],
+    );
   };
 
-  const getCellVisibilityClassName = (cellIndex: number) => {
-    if (isSkillTable) {
-      switch (cellIndex) {
-        case 0:
-        case 10:
-          return SHOW_FROM_SECOND_SCALE;
-        case 2:
-        case 5:
-        case 6:
-        case 8:
-          return SHOW_FROM_THIRD_SCALE;
-        default:
-          return undefined;
-      }
-    }
-
-    switch (cellIndex) {
-      case 3:
-      case 5:
-        return SHOW_FROM_THIRD_SCALE;
-      case 7:
-      case 8:
-        return SHOW_FROM_SECOND_SCALE;
-      default:
-        return undefined;
-    }
+  type ColumnConfig = {
+    id: MethodsTableColumnId;
+    headerClassName?: string;
+    cellClassName?: string;
+    renderHeader: () => ReactNode;
+    renderCell: (row: Row) => ReactNode;
+    renderSkeleton: () => ReactNode;
   };
+
+  const allColumns: ColumnConfig[] = isSkillTable
+    ? [
+        {
+          id: "requirements",
+          headerClassName: getColumnClassName("requirements"),
+          cellClassName: getColumnClassName("requirements"),
+          renderHeader: () => "Requirements",
+          renderCell: (row) =>
+            renderRequirementsCell(row, getColumnClassName("requirements")),
+          renderSkeleton: () => renderSkeletonBadges(2),
+        },
+        {
+          id: "methodName",
+          headerClassName: getColumnClassName("methodName"),
+          cellClassName: getColumnClassName("methodName"),
+          renderHeader: () => "Method Name",
+          renderCell: (row) =>
+            renderMethodCell(row, getColumnClassName("methodName")),
+          renderSkeleton: () => <Skeleton className="h-4" style={{ width: "78%" }} />,
+        },
+        {
+          id: "variant",
+          headerClassName: getColumnClassName("variant"),
+          cellClassName: getColumnClassName("variant"),
+          renderHeader: () => "Variant",
+          renderCell: (row) =>
+            renderVariantCell(row, getColumnClassName("variant")),
+          renderSkeleton: () => <Skeleton className="h-4" style={{ width: "66%" }} />,
+        },
+        {
+          id: "members",
+          headerClassName: getColumnClassName("members"),
+          cellClassName: getColumnClassName("members"),
+          renderHeader: () => "Members",
+          renderCell: (row) =>
+            renderMembersCell(row, getColumnClassName("members")),
+          renderSkeleton: () => <Skeleton className="h-6 w-16 rounded-full" />,
+        },
+        {
+          id: "gpPerHr",
+          headerClassName: getColumnClassName("gpPerHr"),
+          cellClassName: getColumnClassName("gpPerHr"),
+          renderHeader: () => renderSortHeader("Gp/Hr", "highProfit"),
+          renderCell: (row) =>
+            renderProfitCell(row, getColumnClassName("gpPerHr")),
+          renderSkeleton: () => renderSkeletonMetric(),
+        },
+        {
+          id: "tags",
+          headerClassName: getColumnClassName("tags"),
+          cellClassName: getColumnClassName("tags"),
+          renderHeader: () => "Tags",
+          renderCell: (row) => renderTagsCell(row, getColumnClassName("tags")),
+          renderSkeleton: () => renderSkeletonBadges(2),
+        },
+        {
+          id: "gpPerXp",
+          headerClassName: getColumnClassName("gpPerXp"),
+          cellClassName: getColumnClassName("gpPerXp"),
+          renderHeader: () => renderSortHeader("Gp/XP", "gpPerXpHigh"),
+          renderCell: (row) =>
+            renderGpPerXpCell(row, getColumnClassName("gpPerXp")),
+          renderSkeleton: () => renderSkeletonMetric(),
+        },
+        {
+          id: "liquidityScore",
+          headerClassName: getColumnClassName("liquidityScore"),
+          cellClassName: getColumnClassName("liquidityScore"),
+          renderHeader: () => "Market impact",
+          renderCell: (row) =>
+            renderLiquidityCell(row, getColumnClassName("liquidityScore")),
+          renderSkeleton: () => renderSkeletonMetric(),
+        },
+        {
+          id: "xpPerHr",
+          headerClassName: getColumnClassName("xpPerHr"),
+          cellClassName: getColumnClassName("xpPerHr"),
+          renderHeader: () => renderSortHeader("XP/Hr", "xpHour"),
+          renderCell: (row) => renderXpCell(row, getColumnClassName("xpPerHr")),
+          renderSkeleton: () => renderSkeletonBadges(2),
+        },
+        {
+          id: "clickIntensity",
+          headerClassName: getColumnClassName("clickIntensity"),
+          cellClassName: getColumnClassName("clickIntensity"),
+          renderHeader: () => renderSortHeader("Click Intensity", "clickIntensity"),
+          renderCell: (row) =>
+            renderClickIntensityCell(row, getColumnClassName("clickIntensity")),
+          renderSkeleton: () => <Skeleton className="h-4" style={{ width: "58%" }} />,
+        },
+        {
+          id: "afkiness",
+          headerClassName: getColumnClassName("afkiness"),
+          cellClassName: getColumnClassName("afkiness"),
+          renderHeader: () => renderSortHeader("% AFK", "afkiness"),
+          renderCell: (row) =>
+            renderAfkinessCell(row, getColumnClassName("afkiness")),
+          renderSkeleton: () => <Skeleton className="h-4" style={{ width: "58%" }} />,
+        },
+        {
+          id: "likes",
+          headerClassName: getColumnClassName("likes"),
+          cellClassName: getColumnClassName("likes"),
+          renderHeader: () => renderSortHeader("Likes", "likes"),
+          renderCell: (row) => renderLikesCell(row, getColumnClassName("likes")),
+          renderSkeleton: () => <Skeleton className="h-8 w-8 rounded-full" />,
+        },
+      ]
+    : [
+        {
+          id: "methodName",
+          headerClassName: getColumnClassName("methodName"),
+          cellClassName: getColumnClassName("methodName"),
+          renderHeader: () => "Method Name",
+          renderCell: (row) =>
+            renderMethodCell(row, getColumnClassName("methodName")),
+          renderSkeleton: () => <Skeleton className="h-4" style={{ width: "72%" }} />,
+        },
+        {
+          id: "members",
+          headerClassName: getColumnClassName("members"),
+          cellClassName: getColumnClassName("members"),
+          renderHeader: () => "Members",
+          renderCell: (row) =>
+            renderMembersCell(row, getColumnClassName("members")),
+          renderSkeleton: () => <Skeleton className="h-6 w-16 rounded-full" />,
+        },
+        {
+          id: "gpPerHr",
+          headerClassName: getColumnClassName("gpPerHr"),
+          cellClassName: getColumnClassName("gpPerHr"),
+          renderHeader: () => renderSortHeader("Gp/Hr", "highProfit"),
+          renderCell: (row) =>
+            renderProfitCell(row, getColumnClassName("gpPerHr")),
+          renderSkeleton: () => renderSkeletonMetric(),
+        },
+        {
+          id: "tags",
+          headerClassName: getColumnClassName("tags"),
+          cellClassName: getColumnClassName("tags"),
+          renderHeader: () => "Tags",
+          renderCell: (row) => renderTagsCell(row, getColumnClassName("tags")),
+          renderSkeleton: () => renderSkeletonBadges(2),
+        },
+        {
+          id: "liquidityScore",
+          headerClassName: getColumnClassName("liquidityScore"),
+          cellClassName: getColumnClassName("liquidityScore"),
+          renderHeader: () => "Market impact",
+          renderCell: (row) =>
+            renderLiquidityCell(row, getColumnClassName("liquidityScore")),
+          renderSkeleton: () => renderSkeletonMetric(),
+        },
+        {
+          id: "xpPerHr",
+          headerClassName: getColumnClassName("xpPerHr"),
+          cellClassName: getColumnClassName("xpPerHr"),
+          renderHeader: () => renderSortHeader("XP/Hr", "xpHour"),
+          renderCell: (row) => renderXpCell(row, getColumnClassName("xpPerHr")),
+          renderSkeleton: () => renderSkeletonBadges(2),
+        },
+        {
+          id: "clickIntensity",
+          headerClassName: getColumnClassName("clickIntensity"),
+          cellClassName: getColumnClassName("clickIntensity"),
+          renderHeader: () => renderSortHeader("Click Intensity", "clickIntensity"),
+          renderCell: (row) =>
+            renderClickIntensityCell(row, getColumnClassName("clickIntensity")),
+          renderSkeleton: () => <Skeleton className="h-4" style={{ width: "60%" }} />,
+        },
+        {
+          id: "afkiness",
+          headerClassName: getColumnClassName("afkiness"),
+          cellClassName: getColumnClassName("afkiness"),
+          renderHeader: () => renderSortHeader("% AFK", "afkiness"),
+          renderCell: (row) =>
+            renderAfkinessCell(row, getColumnClassName("afkiness")),
+          renderSkeleton: () => <Skeleton className="h-4" style={{ width: "60%" }} />,
+        },
+        {
+          id: "requirements",
+          headerClassName: getColumnClassName("requirements"),
+          cellClassName: getColumnClassName("requirements"),
+          renderHeader: () => "Requirements",
+          renderCell: (row) =>
+            renderRequirementsCell(row, getColumnClassName("requirements")),
+          renderSkeleton: () => renderSkeletonBadges(2),
+        },
+        {
+          id: "likes",
+          headerClassName: getColumnClassName("likes"),
+          cellClassName: getColumnClassName("likes"),
+          renderHeader: () => renderSortHeader("Likes", "likes"),
+          renderCell: (row) => renderLikesCell(row, getColumnClassName("likes")),
+          renderSkeleton: () => <Skeleton className="h-8 w-8 rounded-full" />,
+        },
+      ];
+
+  const defaultOrderedColumnIds = getDefaultMethodsTableColumnIds(isSkillTable);
+  const effectiveOrderedColumnIds =
+    orderedColumnIds && orderedColumnIds.length > 0
+      ? orderedColumnIds
+      : defaultOrderedColumnIds;
+  const defaultVisibleColumnIds = getDefaultMethodsTableFieldsState(
+    isSkillTable,
+  ).visibleColumnIds;
+  const visibleColumnSet = new Set(visibleColumnIds ?? defaultVisibleColumnIds);
+  const columnsById = new Map(allColumns.map((column) => [column.id, column]));
+  const activeColumns = effectiveOrderedColumnIds
+    .filter((columnId) => visibleColumnSet.has(columnId))
+    .map((columnId) => columnsById.get(columnId))
+    .filter((column): column is ColumnConfig => !!column);
+  const tableColumnCount = activeColumns.length;
 
   return (
     <div className="space-y-4">
       <Table className="table-fixed">
         <TableHeader>
-          {isSkillTable ? (
-            <TableRow>
-              <TableHead
-                className={cn(SHOW_FROM_SECOND_SCALE, "md:w-[16%] lg:w-[10%]")}
-              >
-                Requirements
+          <TableRow>
+            {activeColumns.map((column) => (
+              <TableHead key={column.id} className={column.headerClassName}>
+                {column.renderHeader()}
               </TableHead>
-              <TableHead className="w-[34%] md:w-[28%] lg:w-[17%]">
-                Method Name
-              </TableHead>
-              <TableHead className={cn(SHOW_FROM_THIRD_SCALE, "lg:w-[13%]")}>
-                Variant
-              </TableHead>
-              <TableHead className="w-[22%] md:w-[16%] lg:w-[10%]">
-                {renderSortHeader("Gp/Hr", "highProfit")}
-              </TableHead>
-              <TableHead className="w-[20%] md:w-[16%] lg:w-[12%]">
-                Tags
-              </TableHead>
-              <TableHead className={cn(SHOW_FROM_THIRD_SCALE, "lg:w-[8%]")}>
-                {renderSortHeader("Gp/XP", "gpPerXpHigh")}
-              </TableHead>
-              <TableHead className={cn(SHOW_FROM_THIRD_SCALE, "lg:w-[9%]")}>
-                Liquidity score
-              </TableHead>
-              <TableHead className="w-[18%] md:w-[14%] lg:w-[10%]">
-                {renderSortHeader("XP/Hr", "xpHour")}
-              </TableHead>
-              <TableHead className={cn(SHOW_FROM_THIRD_SCALE, "lg:w-[8%]")}>
-                {renderSortHeader("Click Intensity", "clickIntensity")}
-              </TableHead>
-              <TableHead className="w-[22%] md:w-[12%] lg:w-[6%]">
-                {renderSortHeader("AFKiness", "afkiness")}
-              </TableHead>
-              <TableHead
-                className={cn(SHOW_FROM_SECOND_SCALE, "md:w-[12%] lg:w-[6%]")}
-              >
-                {renderSortHeader("Likes", "likes")}
-              </TableHead>
-            </TableRow>
-          ) : (
-            <TableRow>
-              <TableHead className="w-[34%] md:w-[28%] lg:w-[21%]">
-                Method Name
-              </TableHead>
-              <TableHead className="w-[22%] md:w-[16%] lg:w-[12%]">
-                {renderSortHeader("Gp/Hr", "highProfit")}
-              </TableHead>
-              <TableHead className="w-[22%] md:w-[16%] lg:w-[14%]">
-                Tags
-              </TableHead>
-              <TableHead className={cn(SHOW_FROM_THIRD_SCALE, "lg:w-[10%]")}>
-                Liquidity score
-              </TableHead>
-              <TableHead className="w-[18%] md:w-[14%] lg:w-[13%]">
-                {renderSortHeader("XP/Hr", "xpHour")}
-              </TableHead>
-              <TableHead className={cn(SHOW_FROM_THIRD_SCALE, "lg:w-[12%]")}>
-                {renderSortHeader("Click Intensity", "clickIntensity")}
-              </TableHead>
-              <TableHead className="w-[22%] md:w-[12%] lg:w-[8%]">
-                {renderSortHeader("AFKiness", "afkiness")}
-              </TableHead>
-              <TableHead
-                className={cn(SHOW_FROM_SECOND_SCALE, "md:w-[16%] lg:w-[12%]")}
-              >
-                Requirements
-              </TableHead>
-              <TableHead
-                className={cn(SHOW_FROM_SECOND_SCALE, "md:w-[12%] lg:w-[8%]")}
-              >
-                {renderSortHeader("Likes", "likes")}
-              </TableHead>
-            </TableRow>
-          )}
+            ))}
+          </TableRow>
         </TableHeader>
         <TableBody>
           {isTableLoading ? (
             Array.from({ length: SKELETON_ROW_COUNT }).map((_, index) => (
               <TableRow key={`fetching-skeleton-row-${index}`}>
-                {Array.from({ length: tableColumnCount }).map(
-                  (_, cellIndex) => (
-                    <TableCell
-                      key={`fetching-skeleton-cell-${index}-${cellIndex}`}
-                      className={getCellVisibilityClassName(cellIndex)}
-                    >
-                      {renderSkeletonCellContent(cellIndex)}
-                    </TableCell>
-                  ),
-                )}
+                {activeColumns.map((column) => (
+                  <TableCell
+                    key={`fetching-skeleton-cell-${index}-${column.id}`}
+                    className={column.cellClassName}
+                  >
+                    {column.renderSkeleton()}
+                  </TableCell>
+                ))}
               </TableRow>
             ))
           ) : error && !data ? (
@@ -886,33 +1076,11 @@ export function MethodsList({
           ) : (
             rows.map((row) => (
               <TableRow key={row.id}>
-                {isSkillTable ? (
-                  <>
-                    {renderRequirementsCell(row, SHOW_FROM_SECOND_SCALE)}
-                    {renderMethodCell(row)}
-                    {renderVariantCell(row, SHOW_FROM_THIRD_SCALE)}
-                    {renderProfitCell(row)}
-                    {renderTagsCell(row)}
-                    {renderGpPerXpCell(row, SHOW_FROM_THIRD_SCALE)}
-                    {renderLiquidityCell(row, SHOW_FROM_THIRD_SCALE)}
-                    {renderXpCell(row)}
-                    {renderClickIntensityCell(row, SHOW_FROM_THIRD_SCALE)}
-                    {renderAfkinessCell(row)}
-                    {renderLikesCell(row, SHOW_FROM_SECOND_SCALE)}
-                  </>
-                ) : (
-                  <>
-                    {renderMethodCell(row)}
-                    {renderProfitCell(row)}
-                    {renderTagsCell(row)}
-                    {renderLiquidityCell(row, SHOW_FROM_THIRD_SCALE)}
-                    {renderXpCell(row)}
-                    {renderClickIntensityCell(row, SHOW_FROM_THIRD_SCALE)}
-                    {renderAfkinessCell(row)}
-                    {renderRequirementsCell(row, SHOW_FROM_SECOND_SCALE)}
-                    {renderLikesCell(row, SHOW_FROM_SECOND_SCALE)}
-                  </>
-                )}
+                {activeColumns.map((column) => (
+                  <Fragment key={`${row.id}-${column.id}`}>
+                    {column.renderCell(row)}
+                  </Fragment>
+                ))}
               </TableRow>
             ))
           )}
