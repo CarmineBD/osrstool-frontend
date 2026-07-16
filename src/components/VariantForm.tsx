@@ -244,7 +244,7 @@ export function VariantForm({
         />
 
         <div>
-          <label className={EDITOR_FIELD_LABEL_CLASS}>AFK %</label>
+          <label className={EDITOR_FIELD_LABEL_CLASS}>% AFK</label>
           <Input
             type="text"
             inputMode="numeric"

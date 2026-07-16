@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type DragEvent,
+  type PointerEvent,
+} from "react";
 import { MethodsList } from "../features/methods/MethodsList";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -6,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useUsername } from "@/contexts/UsernameContext";
 import { useAuth } from "@/auth/AuthProvider";
-import { Filter, Search } from "lucide-react";
+import { CircleHelp, Filter, GripVertical, Search, Table2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -18,6 +25,12 @@ import { Field, FieldLabel, FieldDescription } from "@/components/ui/field";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { UsernameFetchNotice } from "@/components/UsernameFetchNotice";
 import type { MethodsFilters } from "@/lib/api";
 import { getUrlByType } from "@/lib/utils";
@@ -25,6 +38,15 @@ import { fetchMe } from "@/lib/me";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
 import { useSeo } from "@/hooks/useSeo";
 import { OSRS_SKILLS, formatSkillName } from "@/lib/skills";
+import {
+  getDefaultMethodsTableFieldsState,
+  getMethodsTableColumns,
+  getMethodsTableColumnStorageKey,
+  getMethodsTableColumnStorageKeys,
+  REQUIRED_METHODS_TABLE_COLUMN_ID,
+  sanitizeMethodsTableFieldsState,
+  type MethodsTableColumnId,
+} from "@/features/methods/tableColumns";
 
 type SeoConfig = {
   title: string;
@@ -42,14 +64,18 @@ type SortConfig = {
   sortBy?: MethodsFilters["sortBy"];
   order?: MethodsFilters["order"];
 };
-type MembershipFilterValue = "all" | "free-to-play" | "members";
+
+const DEFAULT_SORT_CONFIG: SortConfig = {
+  sortBy: "highProfit",
+  order: "desc",
+};
 
 const SKILL_OPTIONS = ["combat", ...OSRS_SKILLS] as const;
 const METHOD_SEARCH_DEBOUNCE_MS = 400;
 const DEFAULT_SEO: SeoConfig = {
   title: "All Methods | OSRSTool",
   description:
-    "Listado completo de metodos de money making para OSRS con filtros por categoria, riesgo, AFK y skills.",
+    "Browse every OSRS method with real data and filter by category, risk, AFK level, and skills.",
   path: "/allMethods",
   keywords: "all methods osrs, osrs moneymaking list, osrstool methods",
 };
@@ -57,6 +83,7 @@ const DEFAULT_SEO: SeoConfig = {
 export function Home({ lockedSkill, pageTitle, seo }: Props) {
   const normalizedLockedSkill = lockedSkill?.trim().toLowerCase();
   const hasLockedSkill = !!normalizedLockedSkill;
+  const showAllMethodsIntro = !hasLockedSkill && !pageTitle;
   const lockedSkillLabel = normalizedLockedSkill
     ? formatSkillName(normalizedLockedSkill)
     : "";
@@ -66,7 +93,7 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
 
   const { username } = useUsername();
   const normalizedUsername = username.trim();
-  const { session } = useAuth();
+  const { session, user } = useAuth();
   const [methodInput, setMethodInput] = useState<string>("");
   const [debouncedMethodInput, setDebouncedMethodInput] = useState<string>("");
   const [isFiltersOpen, setIsFiltersOpen] = useState<boolean>(false);
@@ -85,10 +112,10 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
   const [showProfitables, setShowProfitables] = useState<boolean | undefined>(
     undefined,
   );
-  const [membershipFilter, setMembershipFilter] =
-    useState<MembershipFilterValue>("all");
+  const [showOnlyFreeToPlay, setShowOnlyFreeToPlay] = useState(false);
   const [enabled, setEnabled] = useState<boolean>(true);
-  const [sortConfig, setSortConfig] = useState<SortConfig>({});
+  const [sortConfig, setSortConfig] = useState<SortConfig>(DEFAULT_SORT_CONFIG);
+  const previousUserIdRef = useRef<string | null>(null);
   const { data: meData } = useQuery({
     queryKey: ["me"],
     queryFn: fetchMe,
@@ -97,6 +124,41 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
     retry: false,
   });
   const isSuperAdmin = meData?.data?.role === "super_admin";
+  const tableColumns = useMemo(
+    () => getMethodsTableColumns(hasLockedSkill),
+    [hasLockedSkill],
+  );
+  const defaultTableFieldsState = useMemo(
+    () => getDefaultMethodsTableFieldsState(hasLockedSkill),
+    [hasLockedSkill],
+  );
+  const defaultOrderedColumnIds = defaultTableFieldsState.orderedColumnIds;
+  const defaultVisibleColumnIds = defaultTableFieldsState.visibleColumnIds;
+  const [orderedColumnIds, setOrderedColumnIds] = useState<MethodsTableColumnId[]>(
+    defaultOrderedColumnIds,
+  );
+  const [visibleColumnIds, setVisibleColumnIds] = useState<MethodsTableColumnId[]>(
+    defaultVisibleColumnIds,
+  );
+  const [hasLoadedTableFields, setHasLoadedTableFields] = useState(false);
+  const [draggedColumnId, setDraggedColumnId] =
+    useState<MethodsTableColumnId | null>(null);
+  const [dragOverColumnId, setDragOverColumnId] =
+    useState<MethodsTableColumnId | null>(null);
+  const [isTableFieldsOpen, setIsTableFieldsOpen] = useState(false);
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
+  const dragPreviewRef = useRef<HTMLDivElement | null>(null);
+  const dragPointerOffsetRef = useRef({ x: 18, y: 18 });
+  const currentUserId = user?.id ?? null;
+  const tableFieldsStorageKey = currentUserId
+    ? getMethodsTableColumnStorageKey(currentUserId, hasLockedSkill)
+    : null;
+  const orderedTableColumns = useMemo(() => {
+    const columnsById = new Map(tableColumns.map((column) => [column.id, column]));
+    return orderedColumnIds
+      .map((columnId) => columnsById.get(columnId))
+      .filter((column): column is (typeof tableColumns)[number] => !!column);
+  }, [orderedColumnIds, tableColumns]);
 
   useEffect(() => {
     if (!normalizedLockedSkill) return;
@@ -111,6 +173,78 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
 
     return () => window.clearTimeout(timeoutId);
   }, [methodInput]);
+
+  useEffect(() => {
+    const previousUserId = previousUserIdRef.current;
+    if (previousUserId && previousUserId !== currentUserId) {
+      for (const storageKey of getMethodsTableColumnStorageKeys(previousUserId)) {
+        window.sessionStorage.removeItem(storageKey);
+      }
+    }
+    previousUserIdRef.current = currentUserId;
+  }, [currentUserId]);
+
+  useEffect(() => {
+    setHasLoadedTableFields(false);
+    setDraggedColumnId(null);
+    setDragOverColumnId(null);
+    setIsResetConfirmOpen(false);
+
+    if (!tableFieldsStorageKey) {
+      setOrderedColumnIds(defaultTableFieldsState.orderedColumnIds);
+      setVisibleColumnIds(defaultTableFieldsState.visibleColumnIds);
+      setHasLoadedTableFields(true);
+      return;
+    }
+
+    const storedValue = window.sessionStorage.getItem(tableFieldsStorageKey);
+    if (!storedValue) {
+      setOrderedColumnIds(defaultTableFieldsState.orderedColumnIds);
+      setVisibleColumnIds(defaultTableFieldsState.visibleColumnIds);
+      setHasLoadedTableFields(true);
+      return;
+    }
+
+    try {
+      const parsedValue = JSON.parse(storedValue);
+      const sanitizedValue = sanitizeMethodsTableFieldsState(
+        parsedValue,
+        hasLockedSkill,
+      );
+      setOrderedColumnIds(sanitizedValue.orderedColumnIds);
+      setVisibleColumnIds(sanitizedValue.visibleColumnIds);
+    } catch {
+      setOrderedColumnIds(defaultTableFieldsState.orderedColumnIds);
+      setVisibleColumnIds(defaultTableFieldsState.visibleColumnIds);
+    }
+
+    setHasLoadedTableFields(true);
+  }, [defaultTableFieldsState, hasLockedSkill, tableFieldsStorageKey]);
+
+  useEffect(() => {
+    if (!tableFieldsStorageKey || !hasLoadedTableFields) return;
+
+    window.sessionStorage.setItem(
+      tableFieldsStorageKey,
+      JSON.stringify({
+        orderedColumnIds,
+        visibleColumnIds,
+      }),
+    );
+  }, [
+    hasLoadedTableFields,
+    orderedColumnIds,
+    tableFieldsStorageKey,
+    visibleColumnIds,
+  ]);
+
+  const clearDragPreview = () => {
+    if (!dragPreviewRef.current) return;
+    dragPreviewRef.current.remove();
+    dragPreviewRef.current = null;
+  };
+
+  useEffect(() => clearDragPreview, []);
 
   const parseInteger = (value: string): number | undefined => {
     const trimmed = value.trim();
@@ -147,7 +281,7 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
     if (!hasLockedSkill && skill) count += 1;
     if (givesExperience !== undefined) count += 1;
     if (showProfitables !== undefined) count += 1;
-    if (membershipFilter !== "all") count += 1;
+    if (showOnlyFreeToPlay) count += 1;
     if (isSuperAdmin && enabled !== true) count += 1;
     return count;
   }, [
@@ -159,7 +293,7 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
     skill,
     givesExperience,
     showProfitables,
-    membershipFilter,
+    showOnlyFreeToPlay,
     isSuperAdmin,
     enabled,
   ]);
@@ -171,10 +305,7 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
         appliedClickIntensity >= 10000 ? undefined : appliedClickIntensity,
       afkiness: appliedAfkiness <= 0 ? undefined : appliedAfkiness,
       riskLevel: parsedRiskLevel,
-      members:
-        membershipFilter === "all"
-          ? undefined
-          : membershipFilter === "members",
+      showOnlyFreeToPlay,
       givesExperience,
       enabled: isSuperAdmin ? enabled : undefined,
       skill: normalizedLockedSkill ?? (skill || undefined),
@@ -188,7 +319,7 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
       appliedClickIntensity,
       appliedAfkiness,
       parsedRiskLevel,
-      membershipFilter,
+      showOnlyFreeToPlay,
       givesExperience,
       isSuperAdmin,
       enabled,
@@ -200,14 +331,207 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
     ],
   );
 
+  const handleVisibleColumnChange = (
+    columnId: MethodsTableColumnId,
+    checked: boolean,
+  ) => {
+    if (columnId === REQUIRED_METHODS_TABLE_COLUMN_ID && !checked) {
+      return;
+    }
+
+    setVisibleColumnIds((current) => {
+      if (checked) {
+        if (current.includes(columnId)) return current;
+        return tableColumns
+          .map((column) => column.id)
+          .filter((id) => id === columnId || current.includes(id));
+      }
+
+      return current.filter((id) => id !== columnId);
+    });
+  };
+
+  const handleColumnReorder = (
+    draggedId: MethodsTableColumnId,
+    targetId: MethodsTableColumnId,
+  ) => {
+    if (draggedId === targetId) return;
+
+    setOrderedColumnIds((current) => {
+      const draggedIndex = current.indexOf(draggedId);
+      const targetIndex = current.indexOf(targetId);
+
+      if (draggedIndex < 0 || targetIndex < 0) return current;
+
+      const next = [...current];
+      next.splice(draggedIndex, 1);
+      next.splice(targetIndex, 0, draggedId);
+      return next;
+    });
+  };
+
+  const handleResetTableFields = () => {
+    setOrderedColumnIds(defaultTableFieldsState.orderedColumnIds);
+    setVisibleColumnIds(defaultTableFieldsState.visibleColumnIds);
+    setDraggedColumnId(null);
+    setDragOverColumnId(null);
+    setIsResetConfirmOpen(false);
+    clearDragPreview();
+  };
+
+  const handleTableFieldsOpenChange = (open: boolean) => {
+    setIsTableFieldsOpen(open);
+
+    if (!open) {
+      setIsResetConfirmOpen(false);
+      setDraggedColumnId(null);
+      setDragOverColumnId(null);
+      clearDragPreview();
+    }
+  };
+
+  const handleDragPointerDown = (
+    event: PointerEvent<HTMLButtonElement>,
+  ) => {
+    const draggableItem = event.currentTarget.closest("[data-table-field-item='true']");
+    if (!(draggableItem instanceof HTMLElement)) return;
+
+    const bounds = draggableItem.getBoundingClientRect();
+    dragPointerOffsetRef.current = {
+      x: event.clientX - bounds.left,
+      y: event.clientY - bounds.top,
+    };
+  };
+
+  const handleDragStart = (
+    event: DragEvent<HTMLButtonElement>,
+    columnId: MethodsTableColumnId,
+  ) => {
+    const draggableItem = event.currentTarget.closest("[data-table-field-item='true']");
+    if (!(draggableItem instanceof HTMLElement)) return;
+
+    clearDragPreview();
+
+    const bounds = draggableItem.getBoundingClientRect();
+    const preview = draggableItem.cloneNode(true);
+    if (!(preview instanceof HTMLDivElement)) return;
+
+    preview.style.position = "fixed";
+    preview.style.top = "0";
+    preview.style.left = "0";
+    preview.style.width = `${Math.round(bounds.width)}px`;
+    preview.style.pointerEvents = "none";
+    preview.style.zIndex = "9999";
+    preview.style.transform = "translate(-9999px, -9999px)";
+    preview.style.boxShadow =
+      "0 18px 40px rgba(15, 23, 42, 0.18), 0 6px 16px rgba(15, 23, 42, 0.12)";
+    preview.style.borderColor = "color-mix(in oklab, var(--border) 82%, white 18%)";
+    preview.style.background = "var(--background)";
+    preview.style.opacity = "0.98";
+    preview.setAttribute("aria-hidden", "true");
+
+    document.body.appendChild(preview);
+    dragPreviewRef.current = preview;
+
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", columnId);
+      event.dataTransfer.setDragImage(
+        preview,
+        dragPointerOffsetRef.current.x,
+        dragPointerOffsetRef.current.y,
+      );
+    }
+
+    setDraggedColumnId(columnId);
+    setDragOverColumnId(columnId);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedColumnId(null);
+    setDragOverColumnId(null);
+    clearDragPreview();
+  };
+
+  const getTableFieldItemColumnId = (target: EventTarget | null) => {
+    if (!(target instanceof HTMLElement)) return null;
+
+    const item = target.closest("[data-table-field-item='true']");
+    if (!(item instanceof HTMLElement)) return null;
+
+    const columnId = item.dataset.columnId;
+    return (columnId as MethodsTableColumnId | undefined) ?? null;
+  };
+
+  const handleTableFieldsListDragOver = (event: DragEvent<HTMLDivElement>) => {
+    if (!draggedColumnId) return;
+
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = "move";
+    }
+
+    const targetColumnId = getTableFieldItemColumnId(event.target);
+    if (targetColumnId && dragOverColumnId !== targetColumnId) {
+      setDragOverColumnId(targetColumnId);
+    }
+  };
+
+  const handleTableFieldsListDrop = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    if (!draggedColumnId) return;
+
+    const targetColumnId =
+      getTableFieldItemColumnId(event.target) ?? dragOverColumnId;
+
+    if (targetColumnId) {
+      handleColumnReorder(draggedColumnId, targetColumnId);
+    }
+
+    setDragOverColumnId(null);
+    setDraggedColumnId(null);
+    clearDragPreview();
+  };
+
+  const isDefaultTableFieldsState = useMemo(() => {
+    if (orderedColumnIds.length !== defaultOrderedColumnIds.length) return false;
+    if (visibleColumnIds.length !== defaultVisibleColumnIds.length) return false;
+
+    const hasDefaultOrder = defaultOrderedColumnIds.every(
+      (columnId, index) => orderedColumnIds[index] === columnId,
+    );
+
+    if (!hasDefaultOrder) return false;
+
+    return defaultVisibleColumnIds.every(
+      (columnId, index) => visibleColumnIds[index] === columnId,
+    );
+  }, [
+    defaultOrderedColumnIds,
+    defaultVisibleColumnIds,
+    orderedColumnIds,
+    visibleColumnIds,
+  ]);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto p-8 space-y-6">
         {!normalizedUsername ? (
           <UsernameFetchNotice state="info" className="sticky top-20 z-20" />
         ) : null}
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <h1 className="text-3xl font-bold">{pageTitle ?? "All Methods"}</h1>
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-semibold leading-9 tracking-tight">
+              {pageTitle ?? "All Methods"}
+            </h1>
+            {showAllMethodsIntro ? (
+              <p className="max-w-3xl text-sm leading-5 text-muted-foreground">
+                View every currently available in-game method with real data. If
+                a method has variants, this list always shows the one with the
+                best gp/hr result.
+              </p>
+            ) : null}
+          </div>
           {isSuperAdmin && (
             <Button asChild>
               <Link to="/moneyMakingMethod/new">Add new method</Link>
@@ -220,7 +544,7 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
               <div className="relative sm:basis-0 flex-1">
                 <Input
                   type="text"
-                  placeholder="Buscar por nombre de metodo"
+                  placeholder="Search by method name"
                   value={methodInput}
                   onChange={(e) => setMethodInput(e.target.value)}
                   className="pr-9"
@@ -230,22 +554,228 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
                   aria-hidden="true"
                 />
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="relative shrink-0"
-                aria-expanded={isFiltersOpen}
-                aria-label={isFiltersOpen ? "Hide filters" : "Show filters"}
-                onClick={() => setIsFiltersOpen((previous) => !previous)}
-              >
-                <Filter />
-                {appliedFilterCount > 0 ? (
-                  <span className="absolute -right-2 -top-2 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-semibold text-primary-foreground">
-                    {appliedFilterCount}
-                  </span>
-                ) : null}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Popover
+                  open={isTableFieldsOpen}
+                  onOpenChange={handleTableFieldsOpenChange}
+                >
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="shrink-0"
+                          aria-label="Table Fields"
+                        >
+                          <Table2 />
+                        </Button>
+                      </PopoverTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent sideOffset={6}>Table Fields</TooltipContent>
+                  </Tooltip>
+                  <PopoverContent
+                    align="end"
+                    className="w-64 rounded-lg p-4"
+                    sideOffset={8}
+                  >
+                    <div className="space-y-4">
+                      <div className="space-y-1">
+                        <div className="space-y-1">
+                          <p className="text-sm font-semibold leading-5">
+                            Table Fields
+                          </p>
+                          <p className="text-sm leading-5 text-muted-foreground">
+                            Select visible columns and drag to reorder them.
+                          </p>
+                        </div>
+                      </div>
+                      <div
+                        className="space-y-3"
+                        role="list"
+                        aria-label="Table fields"
+                        onDragOver={handleTableFieldsListDragOver}
+                        onDrop={handleTableFieldsListDrop}
+                      >
+                        {orderedTableColumns.map((column) => {
+                          const isChecked = visibleColumnIds.includes(column.id);
+                          const isRequiredColumn =
+                            column.id === REQUIRED_METHODS_TABLE_COLUMN_ID;
+                          const fieldCheckboxId = `table-field-${column.id}`;
+
+                          return (
+                            <div
+                              key={column.id}
+                              role="listitem"
+                              aria-label={column.label}
+                              data-table-field-item="true"
+                              data-column-id={column.id}
+                              className={`flex items-start gap-3 rounded-md border border-border/60 px-3 py-2 transition-colors ${
+                                dragOverColumnId === column.id
+                                  ? "bg-accent/40"
+                                  : "bg-background"
+                              } ${
+                                draggedColumnId === column.id
+                                  ? "opacity-60"
+                                  : ""
+                              }`}
+                              onDragOver={(event) => {
+                                if (!draggedColumnId) return;
+                                event.preventDefault();
+                                if (event.dataTransfer) {
+                                  event.dataTransfer.dropEffect = "move";
+                                }
+                                if (dragOverColumnId !== column.id) {
+                                  setDragOverColumnId(column.id);
+                                }
+                              }}
+                              onDrop={(event) => {
+                                event.preventDefault();
+                                if (!draggedColumnId) return;
+                                handleColumnReorder(draggedColumnId, column.id);
+                                setDragOverColumnId(null);
+                                setDraggedColumnId(null);
+                                clearDragPreview();
+                              }}
+                            >
+                              <button
+                                type="button"
+                                draggable
+                                aria-label={`Reorder ${column.label}`}
+                                className="mt-0.5 shrink-0 cursor-grab rounded-sm p-1 text-muted-foreground transition-colors hover:text-foreground active:cursor-grabbing"
+                                onPointerDown={handleDragPointerDown}
+                                onDragStart={(event) =>
+                                  handleDragStart(event, column.id)
+                                }
+                                onDragEnd={handleDragEnd}
+                              >
+                                <GripVertical className="h-4 w-4" />
+                              </button>
+                              <label
+                                htmlFor={fieldCheckboxId}
+                                className="flex items-start gap-3"
+                              >
+                                <input
+                                  id={fieldCheckboxId}
+                                  type="checkbox"
+                                  className="mt-0.5 size-4 cursor-pointer accent-primary"
+                                  checked={isChecked}
+                                  disabled={isRequiredColumn}
+                                  onChange={(event) =>
+                                    handleVisibleColumnChange(
+                                      column.id,
+                                      event.currentTarget.checked,
+                                    )
+                                  }
+                                />
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="block text-sm font-medium leading-5">
+                                      {column.label}
+                                    </span>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span
+                                          className="inline-flex text-muted-foreground"
+                                          aria-label={`${column.label} info`}
+                                        >
+                                          <CircleHelp className="h-3.5 w-3.5" />
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent
+                                        side="right"
+                                        sideOffset={6}
+                                        className="max-w-56 text-left"
+                                      >
+                                        {column.description}
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </div>
+                                  {isRequiredColumn ? (
+                                    <p className="text-xs font-medium leading-4 text-muted-foreground">
+                                      This column is always visible.
+                                    </p>
+                                  ) : null}
+                                </div>
+                              </label>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="flex justify-center pt-1">
+                        <Popover
+                          open={isResetConfirmOpen}
+                          onOpenChange={setIsResetConfirmOpen}
+                        >
+                          <PopoverTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-auto text-xs"
+                              disabled={isDefaultTableFieldsState}
+                            >
+                              Reset to default
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent
+                            align="center"
+                            className="w-64 rounded-lg p-4"
+                            side="top"
+                            sideOffset={8}
+                          >
+                            <div className="space-y-3">
+                              <div className="space-y-1">
+                                <p className="text-sm font-semibold leading-5">
+                                  Reset table fields?
+                                </p>
+                                <p className="text-sm leading-5 text-muted-foreground">
+                                  This will restore the default column order and visibility.
+                                </p>
+                              </div>
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setIsResetConfirmOpen(false)}
+                                >
+                                  Cancel
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  onClick={handleResetTableFields}
+                                >
+                                  Confirm
+                                </Button>
+                              </div>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="relative shrink-0"
+                  aria-expanded={isFiltersOpen}
+                  aria-label={isFiltersOpen ? "Hide filters" : "Show filters"}
+                  onClick={() => setIsFiltersOpen((previous) => !previous)}
+                >
+                  <Filter />
+                  {appliedFilterCount > 0 ? (
+                    <span className="absolute -right-2 -top-2 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-semibold text-primary-foreground">
+                      {appliedFilterCount}
+                    </span>
+                  ) : null}
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -347,26 +877,6 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
                       ) : null}
                     </Field>
 
-                    <Field className="mx-auto grid gap-2 w-full">
-                      <FieldLabel>Membership</FieldLabel>
-                      <Select
-                        value={membershipFilter}
-                        onValueChange={(value) =>
-                          setMembershipFilter(value as MembershipFilterValue)
-                        }
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Membership" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Todos</SelectItem>
-                          <SelectItem value="free-to-play">
-                            Free-to-play
-                          </SelectItem>
-                          <SelectItem value="members">Members</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </Field>
                   </div>
 
                   <div className="space-y-5">
@@ -396,7 +906,7 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
                     </Field>
                     <Field className="mx-auto grid gap-2 w-full">
                       <div className="flex items-center justify-between gap-2">
-                        <FieldLabel>AFK %</FieldLabel>
+                        <FieldLabel>% AFK</FieldLabel>
                       </div>
                       <Slider
                         min={0}
@@ -447,8 +957,23 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
                         />
                         <FieldDescription>
                           {givesExperience
-                            ? "Show only methods that gives experience"
+                            ? "Show only methods that give experience"
                             : "Show all"}
+                        </FieldDescription>
+                      </div>
+                    </Field>
+                    <Field className="flex items-center gap-2">
+                      <FieldLabel>F2P only</FieldLabel>
+                        <div>
+                          <Switch
+                            aria-label="F2P only"
+                            checked={showOnlyFreeToPlay}
+                            onCheckedChange={setShowOnlyFreeToPlay}
+                          />
+                        <FieldDescription>
+                          {showOnlyFreeToPlay
+                            ? "Show only free-to-play methods"
+                            : "Include members methods"}
                         </FieldDescription>
                       </div>
                     </Field>
@@ -460,7 +985,7 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
                         checked={enabled}
                         onCheckedChange={(checked) => setEnabled(checked)}
                       />
-                      <span className="text-sm">enabled</span>
+                      <span className="text-sm">Enabled</span>
                     </div>
                   )}
                 </div>
@@ -475,6 +1000,8 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
           filters={appliedFilters}
           isSkillTable={hasLockedSkill}
           highlightSkill={normalizedLockedSkill}
+          orderedColumnIds={orderedColumnIds}
+          visibleColumnIds={visibleColumnIds}
           sortBy={sortConfig.sortBy}
           order={sortConfig.order}
           onSortChange={handleSortChange}

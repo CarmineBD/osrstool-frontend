@@ -49,7 +49,7 @@ type MethodMetricDetails = {
 
 type SummaryMetric = {
   id: "profit" | "xp" | "afk";
-  label: "GP/hr" | "XP/hr" | "AFKiness";
+  label: "GP/hr" | "XP/hr" | "% AFK";
   value: string;
   details: MethodMetricDetails | null;
 };
@@ -151,7 +151,7 @@ function SkillSummaryTags({
               >
                 <button
                   type="button"
-                  aria-label={`${metric.label}: ${metric.value}. Metodo: ${details.methodName}`}
+                  aria-label={`${metric.label}: ${metric.value}. Method: ${details.methodName}`}
                   onClick={() => {
                     if (!details.methodLink) return;
                     navigate(details.methodLink);
@@ -171,7 +171,7 @@ function SkillSummaryTags({
                 <p className="font-semibold">{details.methodName}</p>
                 <p>GP/hr: {details.gpHr}</p>
                 <p>XP/hr: {details.xpHr}</p>
-                <p>AFKiness: {details.afkiness}</p>
+                <p>% AFK: {details.afkiness}</p>
               </div>
             </TooltipContent>
           </Tooltip>
@@ -185,7 +185,7 @@ export function SkillingPage() {
   useSeo({
     title: "Skilling | OSRSTool",
     description:
-      "Explora todas las skills de OSRS y revisa por skill el mejor metodo por profit/hr, xp/hr y afk.",
+      "Browse every OSRS skill and review the best method for each one by profit/hr, xp/hr, and AFK.",
     path: "/skilling",
     keywords: "osrs skilling methods, osrs skill guides, osrs best xp methods",
   });
@@ -229,8 +229,8 @@ export function SkillingPage() {
         <div className="space-y-2">
           <h1 className="text-3xl font-bold">Skilling</h1>
           <p className="text-sm text-muted-foreground">
-            Selecciona una skill para ver su listado filtrado de metodos y
-            revisar los mejores metodos por gp/hr, xp/hr y afkiness.
+            Select a skill to view its filtered method list and review the best
+            methods by gp/hr, xp/hr, and % AFK.
           </p>
           {isSuperAdmin ? (
             <div className="flex items-center gap-2 pt-2">
@@ -243,7 +243,7 @@ export function SkillingPage() {
           ) : null}
           {computedAt ? (
             <p className="text-xs text-muted-foreground">
-              Summary actualizado: {computedAt}
+              Summary updated: {computedAt}
             </p>
           ) : null}
         </div>
@@ -286,7 +286,7 @@ export function SkillingPage() {
               },
               {
                 id: "afk",
-                label: "AFKiness",
+                label: "% AFK",
                 value: bestAfkDetails?.afkiness ?? "N/A",
                 details: bestAfkDetails,
               },

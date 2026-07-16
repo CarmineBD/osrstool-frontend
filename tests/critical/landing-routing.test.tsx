@@ -70,6 +70,11 @@ describe("critical flow: landing + all methods routing", () => {
     expect(
       await screen.findByRole("heading", { name: "All Methods" })
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /View every currently available in-game method with real data\./i
+      )
+    ).toBeInTheDocument();
   });
 
   it("renders a changelog detail page", async () => {
