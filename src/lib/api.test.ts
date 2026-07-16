@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   buildMethodUpdatePayload,
+  createMethodWithVariants,
   fetchMethods,
   fetchTrendingProfitMethods,
   fetchItems,
@@ -271,6 +272,75 @@ describe("api update payload helpers", () => {
     const url = new URL(requestUrl, window.location.origin);
 
     expect(url.searchParams.get("showUntradeables")).toBe("true");
+
+    fetchSpy.mockRestore();
+  });
+
+  it("surfaces structured free-to-play conflicts from method save errors", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          status: "error",
+          error: {
+            code: "F2P_VARIANT_CONTAINS_MEMBERS_ITEMS",
+            message: "Free-to-play variants cannot include members-only items. Conflicts: Main: Abyssal whip, Membership bond",
+            details: {
+              variants: [
+                {
+                  variantTitle: "Main",
+                  membersOnlyItems: [
+                    { id: 100, name: "Abyssal whip" },
+                    { id: 101, name: "Membership bond" },
+                  ],
+                },
+              ],
+            },
+          },
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      )
+    );
+
+    await expect(
+      createMethodWithVariants(
+        {
+          name: "Test method",
+          category: "combat",
+          description: "desc",
+          enabled: true,
+          icon_id: 3145,
+        },
+        [
+          {
+            label: "Main",
+            icon_id: 3145,
+            members: false,
+            xpHour: [],
+            requirements: {},
+            inputs: [],
+            outputs: [],
+          },
+        ],
+      ),
+    ).rejects.toMatchObject({
+      code: "F2P_VARIANT_CONTAINS_MEMBERS_ITEMS",
+      message:
+        "Free-to-play variants cannot include members-only items. Conflicts: Main: Abyssal whip, Membership bond",
+      status: 400,
+      freeToPlayVariantConflicts: [
+        {
+          variantLabel: "Main",
+          items: [
+            { id: 100, name: "Abyssal whip" },
+            { id: 101, name: "Membership bond" },
+          ],
+          itemNames: ["Abyssal whip", "Membership bond"],
+        },
+      ],
+    });
 
     fetchSpy.mockRestore();
   });

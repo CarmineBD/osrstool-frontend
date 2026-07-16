@@ -157,6 +157,41 @@ export interface ApiWarning {
   message: string;
 }
 
+export const F2P_VARIANT_CONTAINS_MEMBERS_ITEMS_CODE =
+  "F2P_VARIANT_CONTAINS_MEMBERS_ITEMS";
+
+export interface FreeToPlayVariantConflict {
+  variantLabel: string;
+  variantId?: string;
+  variantSlug?: string;
+  items: Array<{
+    id?: number;
+    name: string;
+  }>;
+  itemNames: string[];
+}
+
+export class ApiRequestError extends Error {
+  status: number;
+  code?: string;
+  freeToPlayVariantConflicts?: FreeToPlayVariantConflict[];
+
+  constructor(
+    message: string,
+    options: {
+      status: number;
+      code?: string;
+      freeToPlayVariantConflicts?: FreeToPlayVariantConflict[];
+    },
+  ) {
+    super(message);
+    this.name = "ApiRequestError";
+    this.status = options.status;
+    this.code = options.code;
+    this.freeToPlayVariantConflicts = options.freeToPlayVariantConflicts;
+  }
+}
+
 function isApiWarning(value: unknown): value is ApiWarning {
   return (
     typeof value === "object" &&
@@ -1042,21 +1077,259 @@ function normalizeIconId(value: number | null | undefined): number | null {
     : null;
 }
 
-function parseApiErrorMessage(value: unknown): string | undefined {
-  if (!value || typeof value !== "object") return undefined;
-  const message = (value as { message?: unknown }).message;
-  return typeof message === "string" && message.trim() ? message : undefined;
+function parseNonEmptyString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
-async function getApiErrorMessage(
+function parseApiErrorMessage(value: unknown): string | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const root = value as Record<string, unknown>;
+  const nestedError =
+    root.error && typeof root.error === "object"
+      ? (root.error as Record<string, unknown>)
+      : undefined;
+
+  return (
+    parseNonEmptyString(root.message) ??
+    parseNonEmptyString(nestedError?.message)
+  );
+}
+
+function parseConflictItems(
+  values: unknown,
+): Array<{
+  id?: number;
+  name: string;
+}> {
+  if (!Array.isArray(values)) return [];
+
+  return Array.from(
+    new Map(
+      values
+        .map((value) => {
+          if (typeof value === "string") {
+            const name = value.trim();
+            if (!name) return null;
+            return [name.toLowerCase(), { name }] as const;
+          }
+          if (!value || typeof value !== "object") return null;
+          const record = value as Record<string, unknown>;
+          const name =
+            parseNonEmptyString(record.name) ??
+            parseNonEmptyString(record.itemName) ??
+            parseNonEmptyString(record.item_name) ??
+            parseNonEmptyString(record.label) ??
+            "";
+          if (!name) return null;
+          const numericId = Number(record.id);
+          const id = Number.isFinite(numericId) ? numericId : undefined;
+          return [name.toLowerCase(), { ...(id ? { id } : {}), name }] as const;
+        })
+        .filter((item): item is readonly [string, { id?: number; name: string }] =>
+          item !== null,
+        ),
+    ).values(),
+  );
+}
+
+function parseFirstConflictItems(...candidates: unknown[]) {
+  for (const candidate of candidates) {
+    const items = parseConflictItems(candidate);
+    if (items.length > 0) {
+      return items;
+    }
+  }
+
+  return [];
+}
+
+function parseFreeToPlayVariantConflictEntry(
+  value: unknown,
+): FreeToPlayVariantConflict | undefined {
+  if (!value || typeof value !== "object") return undefined;
+
+  const record = value as Record<string, unknown>;
+  const nestedVariant =
+    record.variant && typeof record.variant === "object"
+      ? (record.variant as Record<string, unknown>)
+      : undefined;
+  const variantId =
+    parseNonEmptyString(record.variantId) ??
+    parseNonEmptyString(record.variant_id) ??
+    parseNonEmptyString(nestedVariant?.id);
+  const variantSlug =
+    parseNonEmptyString(record.variantSlug) ??
+    parseNonEmptyString(record.variant_slug) ??
+    parseNonEmptyString(nestedVariant?.slug);
+  const variantLabel =
+    parseNonEmptyString(record.variantLabel) ??
+    parseNonEmptyString(record.variant_label) ??
+    parseNonEmptyString(record.variantTitle) ??
+    parseNonEmptyString(record.variant_title) ??
+    parseNonEmptyString(record.variantName) ??
+    parseNonEmptyString(record.variant_name) ??
+    parseNonEmptyString(
+      typeof record.variant === "string" ? record.variant : undefined,
+    ) ??
+    parseNonEmptyString(nestedVariant?.label) ??
+    parseNonEmptyString(nestedVariant?.name) ??
+    parseNonEmptyString(record.label) ??
+    variantSlug ??
+    variantId;
+  const items = parseFirstConflictItems(
+    record.items,
+    record.itemNames,
+    record.item_names,
+    record.membersOnlyItems,
+    record.members_only_items,
+    record.memberItems,
+    record.member_items,
+    record.conflictingItems,
+    record.conflicting_items,
+    record.invalidItems,
+    record.invalid_items,
+  );
+  const itemNames = items.map((item) => item.name);
+  const message =
+    parseNonEmptyString(record.message) ??
+    parseNonEmptyString(record.detail) ??
+    "";
+  const code =
+    parseNonEmptyString(record.code) ?? parseNonEmptyString(record.type) ?? "";
+  const looksLikeMembershipConflict =
+    code.toLowerCase().includes("free") ||
+    code.toLowerCase().includes("members") ||
+    message.toLowerCase().includes("free") ||
+    message.toLowerCase().includes("members") ||
+    itemNames.length > 0;
+
+  if (!variantLabel || itemNames.length === 0 || !looksLikeMembershipConflict) {
+    return undefined;
+  }
+
+  return {
+    variantLabel,
+    ...(variantId ? { variantId } : {}),
+    ...(variantSlug ? { variantSlug } : {}),
+    items,
+    itemNames,
+  };
+}
+
+function parseFreeToPlayVariantConflicts(
+  value: unknown,
+): FreeToPlayVariantConflict[] | undefined {
+  if (!value || typeof value !== "object") return undefined;
+
+  const root = value as Record<string, unknown>;
+  const nestedError =
+    root.error && typeof root.error === "object"
+      ? (root.error as Record<string, unknown>)
+      : undefined;
+  const data =
+    root.data && typeof root.data === "object"
+      ? (root.data as Record<string, unknown>)
+      : undefined;
+  const errorDetails =
+    nestedError?.details && typeof nestedError.details === "object"
+      ? (nestedError.details as Record<string, unknown>)
+      : undefined;
+  const candidates: unknown[] = [
+    root.freeToPlayVariantConflicts,
+    root.free_to_play_variant_conflicts,
+    root.f2pVariantConflicts,
+    root.f2p_variant_conflicts,
+    root.variantMembershipConflicts,
+    root.variant_membership_conflicts,
+    root.conflicts,
+    root.errors,
+    root.details,
+    nestedError?.details,
+    errorDetails?.variants,
+    nestedError?.variants,
+    data?.freeToPlayVariantConflicts,
+    data?.free_to_play_variant_conflicts,
+    data?.f2pVariantConflicts,
+    data?.f2p_variant_conflicts,
+    data?.variantMembershipConflicts,
+    data?.variant_membership_conflicts,
+    data?.conflicts,
+    data?.errors,
+    data?.details,
+  ];
+
+  const parsed = candidates
+    .filter(Array.isArray)
+    .flatMap((entries) => entries as unknown[])
+    .map(parseFreeToPlayVariantConflictEntry)
+    .filter(
+      (entry): entry is FreeToPlayVariantConflict => entry !== undefined,
+    );
+
+  if (parsed.length === 0) return undefined;
+
+  const merged = new Map<string, FreeToPlayVariantConflict>();
+  for (const conflict of parsed) {
+    const key = [
+      conflict.variantId ?? "",
+      conflict.variantSlug ?? "",
+      conflict.variantLabel.toLowerCase(),
+    ].join("::");
+    const existing = merged.get(key);
+
+    if (!existing) {
+      merged.set(key, conflict);
+      continue;
+    }
+
+    merged.set(key, {
+      ...existing,
+      items: Array.from(
+        new Map(
+          [...existing.items, ...conflict.items].map((item) => [
+            `${item.id ?? ""}::${item.name.toLowerCase()}`,
+            item,
+          ]),
+        ).values(),
+      ),
+      itemNames: Array.from(
+        new Set([...existing.itemNames, ...conflict.itemNames]),
+      ),
+    });
+  }
+
+  return Array.from(merged.values());
+}
+
+async function buildApiRequestError(
   res: Response,
   fallback: string,
-): Promise<string> {
+): Promise<ApiRequestError> {
   try {
     const json: unknown = await res.json();
-    return parseApiErrorMessage(json) ?? fallback;
+    const root =
+      json && typeof json === "object"
+        ? (json as Record<string, unknown>)
+        : undefined;
+    const nestedError =
+      root?.error && typeof root.error === "object"
+        ? (root.error as Record<string, unknown>)
+        : undefined;
+    const data =
+      root?.data && typeof root.data === "object"
+        ? (root.data as Record<string, unknown>)
+        : undefined;
+
+    return new ApiRequestError(parseApiErrorMessage(json) ?? fallback, {
+      status: res.status,
+      code:
+        parseNonEmptyString(root?.code) ??
+        parseNonEmptyString(nestedError?.code) ??
+        parseNonEmptyString(data?.code),
+      freeToPlayVariantConflicts: parseFreeToPlayVariantConflicts(json),
+    });
   } catch {
-    return fallback;
+    return new ApiRequestError(fallback, { status: res.status });
   }
 }
 
@@ -1121,11 +1394,9 @@ export async function updateMethodBasic(
     body: JSON.stringify(dto),
   });
   if (!res.ok) {
-    throw new Error(
-      await getApiErrorMessage(
-        res,
-        `HTTP ${res.status} - Error updating method`,
-      ),
+    throw await buildApiRequestError(
+      res,
+      `HTTP ${res.status} - Error updating method`,
     );
   }
   const json: unknown = await res.json();
@@ -1151,11 +1422,9 @@ export async function updateMethodWithVariants(
     body: JSON.stringify(dto),
   });
   if (!res.ok) {
-    throw new Error(
-      await getApiErrorMessage(
-        res,
-        `HTTP ${res.status} - Error updating method`,
-      ),
+    throw await buildApiRequestError(
+      res,
+      `HTTP ${res.status} - Error updating method`,
     );
   }
   const json: unknown = await res.json();
@@ -1180,11 +1449,9 @@ export async function createMethodWithVariants(
     body: JSON.stringify(dto),
   });
   if (!res.ok) {
-    throw new Error(
-      await getApiErrorMessage(
-        res,
-        `HTTP ${res.status} - Error creating method`,
-      ),
+    throw await buildApiRequestError(
+      res,
+      `HTTP ${res.status} - Error creating method`,
     );
   }
   const json: unknown = await res.json();
