@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Pagination } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
+import { VariantTags } from "@/components/VariantTags";
 import { cn, formatNumber, getUrlByType } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { VariantMembershipBadge } from "@/components/VariantMembershipBadge";
@@ -28,6 +29,7 @@ import {
   type MethodsFilters,
   type Item,
   type Variant,
+  type VariantTag,
 } from "@/lib/api";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { LikeButton } from "./LikeButton";
@@ -39,6 +41,7 @@ import {
   normalizeMethodSlug,
   normalizeUsername,
 } from "@/lib/queryKeys";
+import { getVariantTags } from "@/lib/variantTags";
 
 type SortBy = NonNullable<MethodsFilters["sortBy"]>;
 type SortOrder = NonNullable<MethodsFilters["order"]>;
@@ -81,6 +84,7 @@ interface Row {
   marketImpactSlow?: number;
   likes?: number;
   likedByMe?: boolean;
+  tags: VariantTag[];
 }
 
 function formatLiquidityScore(score?: number): string {
@@ -111,7 +115,7 @@ export function MethodsList({
 }: Props) {
   const queryClient = useQueryClient();
   const SKELETON_ROW_COUNT = 8;
-  const tableColumnCount = isSkillTable ? 10 : 8;
+  const tableColumnCount = isSkillTable ? 11 : 9;
   const [page, setPage] = useState(1);
   const [cursorByPage, setCursorByPage] = useState<
     Record<number, string | undefined>
@@ -190,6 +194,7 @@ export function MethodsList({
         marketImpactSlow: variant.marketImpactSlow,
         likes: method.likes,
         likedByMe: method.likedByMe,
+        tags: getVariantTags(variant),
       };
     }),
   );
@@ -603,6 +608,12 @@ export function MethodsList({
     </TableCell>
   );
 
+  const renderTagsCell = (row: Row, className?: string) => (
+    <TableCell className={cn("min-w-0", className)}>
+      <VariantTags tags={row.tags} mode="table" emptyLabel="-" />
+    </TableCell>
+  );
+
   const renderLiquidityCell = (row: Row, className?: string) => (
     <TableCell className={className}>
       <div className="flex flex-col leading-tight">
@@ -700,13 +711,15 @@ export function MethodsList({
         case 2:
           return <Skeleton className="h-4" style={{ width: "66%" }} />;
         case 3:
-        case 4:
-        case 5:
           return renderSkeletonMetric();
-        case 6:
-          return renderSkeletonBadges(2);
+        case 4:
         case 7:
+          return renderSkeletonBadges(2);
+        case 5:
+        case 6:
+          return renderSkeletonMetric();
         case 8:
+        case 9:
           return <Skeleton className="h-4" style={{ width: "58%" }} />;
         default:
           return <Skeleton className="h-8 w-8 rounded-full" />;
@@ -717,13 +730,14 @@ export function MethodsList({
       case 0:
         return <Skeleton className="h-4" style={{ width: "72%" }} />;
       case 1:
-      case 2:
-        return renderSkeletonMetric();
       case 3:
-      case 6:
-        return renderSkeletonBadges(2);
+        return renderSkeletonMetric();
+      case 2:
       case 4:
+      case 7:
+        return renderSkeletonBadges(2);
       case 5:
+      case 6:
         return <Skeleton className="h-4" style={{ width: "60%" }} />;
       default:
         return <Skeleton className="h-8 w-8 rounded-full" />;
@@ -734,12 +748,12 @@ export function MethodsList({
     if (isSkillTable) {
       switch (cellIndex) {
         case 0:
-        case 9:
+        case 10:
           return SHOW_FROM_SECOND_SCALE;
         case 2:
-        case 4:
         case 5:
-        case 7:
+        case 6:
+        case 8:
           return SHOW_FROM_THIRD_SCALE;
         default:
           return undefined;
@@ -747,11 +761,11 @@ export function MethodsList({
     }
 
     switch (cellIndex) {
-      case 2:
-      case 4:
+      case 3:
+      case 5:
         return SHOW_FROM_THIRD_SCALE;
-      case 6:
       case 7:
+      case 8:
         return SHOW_FROM_SECOND_SCALE;
       default:
         return undefined;
@@ -778,13 +792,16 @@ export function MethodsList({
               <TableHead className="w-[22%] md:w-[16%] lg:w-[10%]">
                 {renderSortHeader("Gp/Hr", "highProfit")}
               </TableHead>
-              <TableHead className={cn(SHOW_FROM_THIRD_SCALE, "lg:w-[9%]")}>
+              <TableHead className="w-[20%] md:w-[16%] lg:w-[12%]">
+                Tags
+              </TableHead>
+              <TableHead className={cn(SHOW_FROM_THIRD_SCALE, "lg:w-[8%]")}>
                 {renderSortHeader("Gp/XP", "gpPerXpHigh")}
               </TableHead>
-              <TableHead className={cn(SHOW_FROM_THIRD_SCALE, "lg:w-[10%]")}>
+              <TableHead className={cn(SHOW_FROM_THIRD_SCALE, "lg:w-[9%]")}>
                 Liquidity score
               </TableHead>
-              <TableHead className="w-[22%] md:w-[16%] lg:w-[11%]">
+              <TableHead className="w-[18%] md:w-[14%] lg:w-[10%]">
                 {renderSortHeader("XP/Hr", "xpHour")}
               </TableHead>
               <TableHead className={cn(SHOW_FROM_THIRD_SCALE, "lg:w-[8%]")}>
@@ -807,10 +824,13 @@ export function MethodsList({
               <TableHead className="w-[22%] md:w-[16%] lg:w-[12%]">
                 {renderSortHeader("Gp/Hr", "highProfit")}
               </TableHead>
-              <TableHead className={cn(SHOW_FROM_THIRD_SCALE, "lg:w-[12%]")}>
+              <TableHead className="w-[22%] md:w-[16%] lg:w-[14%]">
+                Tags
+              </TableHead>
+              <TableHead className={cn(SHOW_FROM_THIRD_SCALE, "lg:w-[10%]")}>
                 Liquidity score
               </TableHead>
-              <TableHead className="w-[22%] md:w-[16%] lg:w-[15%]">
+              <TableHead className="w-[18%] md:w-[14%] lg:w-[13%]">
                 {renderSortHeader("XP/Hr", "xpHour")}
               </TableHead>
               <TableHead className={cn(SHOW_FROM_THIRD_SCALE, "lg:w-[12%]")}>
@@ -872,6 +892,7 @@ export function MethodsList({
                     {renderMethodCell(row)}
                     {renderVariantCell(row, SHOW_FROM_THIRD_SCALE)}
                     {renderProfitCell(row)}
+                    {renderTagsCell(row)}
                     {renderGpPerXpCell(row, SHOW_FROM_THIRD_SCALE)}
                     {renderLiquidityCell(row, SHOW_FROM_THIRD_SCALE)}
                     {renderXpCell(row)}
@@ -883,6 +904,7 @@ export function MethodsList({
                   <>
                     {renderMethodCell(row)}
                     {renderProfitCell(row)}
+                    {renderTagsCell(row)}
                     {renderLiquidityCell(row, SHOW_FROM_THIRD_SCALE)}
                     {renderXpCell(row)}
                     {renderClickIntensityCell(row, SHOW_FROM_THIRD_SCALE)}

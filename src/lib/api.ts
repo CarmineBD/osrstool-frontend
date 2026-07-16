@@ -109,6 +109,12 @@ type Requirement = {
   achievement_diaries?: DiaryRequirement[];
 };
 
+export interface VariantTag {
+  label: string;
+  severity?: 1 | 2 | 3 | null;
+  description?: string | null;
+}
+
 export interface Variant {
   id?: string;
   slug?: string;
@@ -141,6 +147,7 @@ export interface Variant {
   trendLastYear?: number;
   profitGrowth?: ProfitGrowth;
   missingRequirements?: Requirement;
+  tags?: VariantTag[];
   inputs: IoItem[];
   outputs: IoItem[];
 }

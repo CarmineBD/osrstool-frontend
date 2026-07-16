@@ -32,6 +32,7 @@ import {
   PixelArtIcon,
   SectionHeader,
 } from "@/components/method-editor/MethodEditorPrimitives";
+import { VariantTags } from "@/components/VariantTags";
 import { Badge } from "@/components/ui/badge";
 import { VariantMembershipBadge } from "@/components/VariantMembershipBadge";
 import {
@@ -919,6 +920,13 @@ function MetricsCards({ variant }: { variant: Variant }) {
                   recommendation={outputStrategyRecommendation}
                 />
               </div>
+            </div>
+          </div>
+
+          <div className={rowClassName}>
+            <span className={labelClassName}>Tags</span>
+            <div className="flex max-w-full justify-end">
+              <VariantTags tags={variant.tags} emptyLabel="None" />
             </div>
           </div>
         </div>
