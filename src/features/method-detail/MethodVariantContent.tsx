@@ -851,7 +851,7 @@ function MetricsCards({ variant }: { variant: Variant }) {
           </div>
 
           <div className={rowClassName}>
-            <span className={labelClassName}>AFKiness</span>
+            <span className={labelClassName}>% AFK</span>
             <span className={valueClassName}>
               {variant.afkiness !== undefined ? `${variant.afkiness}%` : "N/A"}
             </span>

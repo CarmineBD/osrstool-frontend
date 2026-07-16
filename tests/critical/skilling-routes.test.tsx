@@ -108,7 +108,7 @@ describe("critical flow: skilling routes", () => {
 
     const profitTag = await screen.findByRole("button", { name: /GP\/hr: 1\.5m/i });
     const xpTag = screen.getByRole("button", { name: /XP\/hr: 120k/i });
-    const afkTag = screen.getByRole("button", { name: /AFKiness: 95%/i });
+    const afkTag = screen.getByRole("button", { name: /% AFK: 95%/i });
     expect(profitTag).not.toHaveAttribute("title");
     expect(xpTag).not.toHaveAttribute("title");
     expect(afkTag).not.toHaveAttribute("title");
@@ -119,7 +119,7 @@ describe("critical flow: skilling routes", () => {
       const tooltip = tooltips[tooltips.length - 1];
       expect(within(tooltip).getByText("Bursting monkeys")).toBeInTheDocument();
       expect(within(tooltip).getByText("XP/hr: 80k")).toBeInTheDocument();
-      expect(within(tooltip).getByText("AFKiness: 15%")).toBeInTheDocument();
+      expect(within(tooltip).getByText("% AFK: 15%")).toBeInTheDocument();
     }
     await user.unhover(profitTag);
 
@@ -134,7 +134,7 @@ describe("critical flow: skilling routes", () => {
       const tooltip = tooltips[tooltips.length - 1];
       expect(within(tooltip).getByText("Bursting temple")).toBeInTheDocument();
       expect(within(tooltip).getByText("GP/hr: 500k")).toBeInTheDocument();
-      expect(within(tooltip).getByText("AFKiness: 10%")).toBeInTheDocument();
+      expect(within(tooltip).getByText("% AFK: 10%")).toBeInTheDocument();
     }
     await user.unhover(xpTag);
 
@@ -233,7 +233,7 @@ describe("critical flow: skilling routes", () => {
 
     const profitTag = await screen.findByRole("button", { name: /GP\/hr: 1\.5m/i });
     const xpTag = screen.getByRole("button", { name: /XP\/hr: 80k/i });
-    const afkTag = screen.getByRole("button", { name: /AFKiness: 95%/i });
+    const afkTag = screen.getByRole("button", { name: /% AFK: 95%/i });
 
     await user.hover(profitTag);
     await waitFor(() => {
@@ -515,6 +515,6 @@ describe("critical flow: skilling routes", () => {
     ).toBeInTheDocument();
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: /show filters/i }));
-    expect(await screen.findByText("enabled")).toBeInTheDocument();
+    expect(await screen.findByText("Enabled")).toBeInTheDocument();
   });
 });

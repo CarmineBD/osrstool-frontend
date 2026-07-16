@@ -364,30 +364,29 @@ export function LandingPage() {
           id="para-quien"
           className="rounded-2xl border border-slate-200 bg-white/85 p-8 shadow-sm"
         >
-          <h2 className="text-2xl font-bold text-slate-900">Para quien</h2>
+          <h2 className="text-2xl font-bold text-slate-900">Who it is for</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <article className="rounded-xl border border-slate-200 bg-slate-50 p-5">
-              <h3 className="font-semibold text-slate-900">Jugadores nuevos</h3>
+              <h3 className="font-semibold text-slate-900">New players</h3>
               <p className="mt-2 text-sm text-slate-700">
-                Encuentra los mejores métodos viables sin perder horas saltando
-                entre guías, vídeos y hojas de cálculo.
+                Find the best viable methods without losing hours jumping
+                between guides, videos, and spreadsheets.
               </p>
             </article>
             <article className="rounded-xl border border-slate-200 bg-slate-50 p-5">
               <h3 className="font-semibold text-slate-900">
-                Jugadores avanzados
+                Advanced players
               </h3>
               <p className="mt-2 text-sm text-slate-700">
-                Optimiza tu tiempo haciendo el mejor método que peudas hacer
-                actualmente según GP/h, XP/h, AFKiness y estabilidad del
-                mercado.
+                Optimize your time with the best method you can currently do
+                based on GP/h, XP/h, % AFK, and market stability.
               </p>
             </article>
             <article className="rounded-xl border border-slate-200 bg-slate-50 p-5">
               <h3 className="font-semibold text-slate-900">Lazy players</h3>
               <p className="mt-2 text-sm text-slate-700">
-                Encuentra métodos con bajo requerimiento de atención por hora
-                para hacer dinero o entrenar.
+                Find methods with low attention requirements to make money or
+                train.
               </p>
             </article>
             <article className="rounded-xl border border-slate-200 bg-slate-50 p-5">
