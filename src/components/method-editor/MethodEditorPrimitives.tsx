@@ -164,7 +164,7 @@ interface PixelArtIconProps {
   alt: string;
   className?: string;
   imgClassName?: string;
-  size?: "sm" | "md";
+  size?: "sm" | "md" | "native";
   title?: string;
 }
 
@@ -178,7 +178,12 @@ export function PixelArtIcon({
 }: PixelArtIconProps) {
   if (!src) return null;
 
-  const sizeClassName = size === "sm" ? "h-5 w-5" : "h-[30px] w-[30px]";
+  const sizeClassName =
+    size === "sm" ? "h-5 w-5" : size === "native" ? "" : "h-[30px] w-[30px]";
+  const baseImgClassName =
+    size === "native"
+      ? "block h-auto w-auto [image-rendering:pixelated]"
+      : "h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]";
 
   return (
     <span
@@ -193,7 +198,7 @@ export function PixelArtIcon({
         src={src}
         alt={alt}
         className={cn(
-          "h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]",
+          baseImgClassName,
           imgClassName,
         )}
       />

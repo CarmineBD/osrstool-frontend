@@ -65,14 +65,23 @@ export function MethodUpsert({ mode }: Props) {
       <MethodUpsertDialogs
         deleteConfirmOpen={state.deleteConfirmOpen}
         confirmOpen={state.confirmOpen}
+        membershipConflictOpen={state.membershipConflictOpen}
+        membershipConflicts={state.membershipConflicts}
+        membershipConflictMessage={state.membershipConflictMessage}
         isDeleting={state.isDeleting}
+        isSaving={state.isSaving}
         onDeleteOpenChange={(open) => {
           if (state.isDeleting) return;
           state.setDeleteConfirmOpen(open);
         }}
         onConfirmOpenChange={state.setConfirmOpen}
+        onMembershipConflictOpenChange={(open) => {
+          if (state.isSaving) return;
+          state.setMembershipConflictOpen(open);
+        }}
         onDeleteMethod={state.handleDeleteMethod}
         onDiscardConfirmed={state.handleDiscardConfirmed}
+        onRetryAsMembers={state.handleRetryAsMembers}
       />
     </div>
   );

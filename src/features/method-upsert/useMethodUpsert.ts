@@ -11,12 +11,15 @@ import {
   normalizeUsername,
 } from "@/lib/queryKeys";
 import {
+  ApiRequestError,
   createMethodWithVariants,
   deleteMethod,
   fetchAchievementDiaries,
   fetchMethodDetailBySlug,
   fetchQuests,
   fetchSkills,
+  F2P_VARIANT_CONTAINS_MEMBERS_ITEMS_CODE,
+  type FreeToPlayVariantConflict,
   getVariantsSignature,
   updateMethodBasic,
   updateMethodWithVariants,
@@ -91,6 +94,55 @@ function normalizeIconId(value: number | null | undefined): number | undefined {
   return Number.isInteger(value) && (value as number) > 0
     ? (value as number)
     : undefined;
+}
+
+function normalizeVariantKey(value: string | undefined): string {
+  return value?.trim().toLowerCase() ?? "";
+}
+
+function variantMatchesConflict(
+  variant: Variant,
+  conflict: FreeToPlayVariantConflict,
+): boolean {
+  if (conflict.variantId && variant.id === conflict.variantId) {
+    return true;
+  }
+
+  if (
+    conflict.variantSlug &&
+    normalizeVariantKey(variant.slug) === normalizeVariantKey(conflict.variantSlug)
+  ) {
+    return true;
+  }
+
+  return (
+    normalizeVariantKey(variant.label) === normalizeVariantKey(conflict.variantLabel)
+  );
+}
+
+function forceConflictingVariantsToMembers(
+  variants: Variant[],
+  conflicts: FreeToPlayVariantConflict[],
+) {
+  let changedCount = 0;
+
+  const nextVariants = variants.map((variant) => {
+    const shouldConvert = conflicts.some((conflict) =>
+      variantMatchesConflict(variant, conflict),
+    );
+
+    if (!shouldConvert || variant.members) {
+      return variant;
+    }
+
+    changedCount += 1;
+    return {
+      ...variant,
+      members: true,
+    };
+  });
+
+  return { nextVariants, changedCount };
 }
 
 export function useMethodUpsert(mode: MethodUpsertMode) {
@@ -175,6 +227,14 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
   const [enabled, setEnabled] = useState(true);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [membershipConflictOpen, setMembershipConflictOpen] = useState(false);
+  const [membershipConflicts, setMembershipConflicts] = useState<
+    FreeToPlayVariantConflict[]
+  >([]);
+  const [membershipConflictMessage, setMembershipConflictMessage] =
+    useState<string>("");
+  const [pendingSubmitValues, setPendingSubmitValues] =
+    useState<MethodUpsertFormValues | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showVariantValidationErrors, setShowVariantValidationErrors] =
@@ -283,7 +343,8 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
 
   const submitWithEnabled = async (
     values: MethodUpsertFormValues,
-    enabledValue: boolean
+    enabledValue: boolean,
+    variantsToSubmit: Variant[] = variants,
   ) => {
     const methodIconId = normalizeIconId(values.icon_id);
     if (!methodIconId) {
@@ -293,7 +354,7 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
     if (!isEditMode) {
       const createdMethod = await createMethodWithVariants(
         { ...values, icon_id: methodIconId, enabled: enabledValue },
-        variants
+        variantsToSubmit,
       );
       await invalidateMethodCaches(createdMethod.slug);
       navigateToMethodDetail(createdMethod);
@@ -305,7 +366,7 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
     const baselineSignature =
       initialVariantsSignature ?? getVariantsSignature(method.variants ?? []);
     const variantsChanged =
-      baselineSignature !== getVariantsSignature(variants);
+      baselineSignature !== getVariantsSignature(variantsToSubmit);
     const methodIconChanged =
       normalizeIconId(method.icon_id) !== normalizeIconId(values.icon_id);
 
@@ -314,7 +375,7 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
       updatedMethod = await updateMethodWithVariants(
         method.id,
         { ...values, icon_id: methodIconId, enabled: enabledValue },
-        variants
+        variantsToSubmit,
       );
     } else {
       updatedMethod = await updateMethodBasic(method.id, {
@@ -329,19 +390,54 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
     navigateToMethodDetail(updatedMethod);
   };
 
-  const onSubmit = async (values: MethodUpsertFormValues) => {
-    setShowVariantValidationErrors(true);
-    if (hasVariantIconErrors) return;
+  const handleSubmitError = (
+    submitError: unknown,
+    values: MethodUpsertFormValues,
+  ) => {
+    if (
+      submitError instanceof ApiRequestError &&
+      submitError.code === F2P_VARIANT_CONTAINS_MEMBERS_ITEMS_CODE &&
+      submitError.freeToPlayVariantConflicts &&
+      submitError.freeToPlayVariantConflicts.length > 0
+    ) {
+      setUserError(null);
+      setPendingSubmitValues({ ...values });
+      setMembershipConflicts(submitError.freeToPlayVariantConflicts);
+      setMembershipConflictMessage(submitError.message);
+      setMembershipConflictOpen(true);
+      return;
+    }
 
+    setUserError(
+      submitError instanceof Error ? submitError.message : "Failed to save method",
+    );
+  };
+
+  const runSubmit = async (
+    values: MethodUpsertFormValues,
+    variantsToSubmit: Variant[] = variants,
+  ) => {
     if (isSavingRef.current) return;
+
     isSavingRef.current = true;
     setIsSaving(true);
+    setUserError(null);
+
     try {
-      await submitWithEnabled(values, enabled);
+      await submitWithEnabled(values, enabled, variantsToSubmit);
+    } catch (submitError) {
+      handleSubmitError(submitError, values);
     } finally {
       isSavingRef.current = false;
       setIsSaving(false);
     }
+  };
+
+  const onSubmit = async (values: MethodUpsertFormValues) => {
+    setShowVariantValidationErrors(true);
+    if (hasVariantIconErrors) return;
+
+    await runSubmit(values);
   };
 
   const handleFormKeyDown = (event: KeyboardEvent<HTMLFormElement>) => {
@@ -449,6 +545,25 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
       ];
     });
 
+  const handleRetryAsMembers = async () => {
+    if (!pendingSubmitValues || membershipConflicts.length === 0) return;
+
+    const { nextVariants, changedCount } = forceConflictingVariantsToMembers(
+      variants,
+      membershipConflicts,
+    );
+
+    if (changedCount === 0) {
+      setUserError("Unable to match the affected variants in the editor.");
+      setMembershipConflictOpen(false);
+      return;
+    }
+
+    setVariants(nextVariants);
+    setMembershipConflictOpen(false);
+    await runSubmit(pendingSubmitValues, nextVariants);
+  };
+
   return {
     isEditMode,
     isLoading,
@@ -475,6 +590,10 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
     setConfirmOpen,
     deleteConfirmOpen,
     setDeleteConfirmOpen,
+    membershipConflictOpen,
+    setMembershipConflictOpen,
+    membershipConflicts,
+    membershipConflictMessage,
     showVariantValidationErrors,
     setShowVariantValidationErrors,
     onSubmit,
@@ -482,5 +601,6 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
     handleCancel,
     handleDeleteMethod,
     handleDiscardConfirmed,
+    handleRetryAsMembers,
   };
 }

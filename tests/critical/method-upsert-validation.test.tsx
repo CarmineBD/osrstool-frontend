@@ -115,4 +115,147 @@ describe("critical flow: create/edit form validations", () => {
     expect(await screen.findByText("Variant icon is required")).toBeInTheDocument();
     expect(createRequests).toBe(0);
   });
+
+  it(
+    "shows F2P conflicts from the backend and retries as P2P variants",
+    async () => {
+    const updateBodies: unknown[] = [];
+
+    server.use(
+      http.get("*/methods/slug/:slug", ({ params }) =>
+        HttpResponse.json({
+          data: {
+            method: {
+              id: "method-1",
+              slug: params.slug,
+              name: "Rune dragons",
+              category: "combat",
+              description: "Safe setup",
+              enabled: true,
+              icon_id: 4151,
+              variants: [
+                {
+                  id: "variant-1",
+                  slug: "main",
+                  label: "Main",
+                  icon_id: 11284,
+                  members: false,
+                  description: "",
+                  xpHour: [],
+                  requirements: {},
+                  inputs: [{ id: 1, quantity: 1 }],
+                  outputs: [{ id: 2, quantity: 1 }],
+                },
+              ],
+            },
+          },
+        }),
+      ),
+      http.put("*/methods/:methodId", async ({ request }) => {
+        const body = await request.json();
+        updateBodies.push(body);
+
+        if (updateBodies.length === 1) {
+          return HttpResponse.json(
+            {
+              status: "error",
+              error: {
+                code: "F2P_VARIANT_CONTAINS_MEMBERS_ITEMS",
+                message:
+                  "Free-to-play variants cannot include members-only items. Conflicts: Main: Abyssal whip, Membership bond",
+                details: {
+                  variants: [
+                    {
+                      variantTitle: "Main",
+                      membersOnlyItems: [
+                        { id: 100, name: "Abyssal whip" },
+                        { id: 101, name: "Membership bond" },
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
+            { status: 400 },
+          );
+        }
+
+        return HttpResponse.json({
+          data: {
+            method: {
+              id: "method-1",
+              slug: "rune-dragons",
+              name: "Rune dragons",
+              category: "combat",
+              description: "Safe setup",
+              enabled: true,
+              icon_id: 4151,
+              variants: [
+                {
+                  id: "variant-1",
+                  slug: "main",
+                  label: "Main",
+                  icon_id: 11284,
+                  members: true,
+                  description: "Updated variant note",
+                  xpHour: [],
+                  requirements: {},
+                  inputs: [{ id: 1, quantity: 1 }],
+                  outputs: [{ id: 2, quantity: 1 }],
+                },
+              ],
+            },
+          },
+        });
+      }),
+    );
+
+    renderWithProviders(
+      <Routes>
+        <Route
+          path="/moneyMakingMethod/:slug/edit"
+          element={<MethodUpsert mode="edit" />}
+        />
+        <Route
+          path="/moneyMakingMethod/:slug"
+          element={<p>Saved detail page</p>}
+        />
+      </Routes>,
+      { route: "/moneyMakingMethod/rune-dragons/edit" },
+    );
+
+    const user = userEvent.setup();
+    await user.type(
+      await screen.findByPlaceholderText("Describe this variant"),
+      "Updated variant note",
+    );
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Some free-to-play variants use members items",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Free-to-play variants cannot include members-only items\./,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Blocking items")).toBeInTheDocument();
+    expect(screen.getByText("Abyssal whip")).toBeInTheDocument();
+    expect(screen.getByText("Membership bond")).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: "Retry as P2P variants" }),
+    );
+
+    expect(await screen.findByText("Saved detail page")).toBeInTheDocument();
+    expect(updateBodies).toHaveLength(2);
+    expect(
+      (updateBodies[1] as { variants?: Array<{ members?: boolean }> })
+        .variants?.[0]?.members,
+    ).toBe(true);
+    },
+    10000,
+  );
 });
