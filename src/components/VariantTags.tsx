@@ -17,13 +17,13 @@ const MORE_TRIGGER_FONT = "500 12px sans-serif";
 function getVariantTagToneClassName(severity?: VariantTag["severity"] | null) {
   switch (severity) {
     case 1:
-      return "border-emerald-300/80 bg-emerald-50 text-emerald-900";
+      return "border-success/40 bg-success-soft text-success-foreground";
     case 2:
-      return "border-amber-300/80 bg-amber-50 text-amber-900";
+      return "border-warning/40 bg-warning-soft text-warning-foreground";
     case 3:
-      return "border-rose-300/80 bg-rose-50 text-rose-900";
+      return "border-danger/40 bg-danger-soft text-danger-foreground";
     default:
-      return "border-border/70 bg-muted/30 text-foreground";
+      return "border-surface-highlight-border bg-surface-highlight text-foreground";
   }
 }
 

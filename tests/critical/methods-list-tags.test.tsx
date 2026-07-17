@@ -89,9 +89,12 @@ describe("critical flow: methods list tags", () => {
       .closest("[data-slot='badge']");
 
     expect(geLimitsTag).toHaveAttribute("data-severity", "2");
-    expect(geLimitsTag).toHaveClass("bg-amber-50", "text-amber-900");
+    expect(geLimitsTag).toHaveClass("bg-warning-soft", "text-warning-foreground");
     expect(highInvestmentTag).toHaveAttribute("data-severity", "2");
-    expect(highInvestmentTag).toHaveClass("bg-amber-50", "text-amber-900");
+    expect(highInvestmentTag).toHaveClass(
+      "bg-warning-soft",
+      "text-warning-foreground",
+    );
 
     await user.hover(screen.getByText("GE limits"));
     const tagTooltips = await screen.findAllByRole("tooltip");

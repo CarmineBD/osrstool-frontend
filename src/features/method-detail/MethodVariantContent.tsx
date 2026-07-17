@@ -134,17 +134,17 @@ function formatMarketImpactDurationLabel(
 function getMarketImpactToneClassName(rating: MarketImpactRating): string {
   switch (rating) {
     case "great":
-      return "border-emerald-400/70 bg-emerald-50 text-emerald-900";
+      return "border-success/45 bg-success-soft text-success-foreground";
     case "very good":
-      return "border-lime-300/60 bg-lime-50 text-lime-800";
+      return "border-success/30 bg-success-soft/85 text-success-foreground";
     case "good":
-      return "border-amber-300/60 bg-amber-50 text-amber-800";
+      return "border-warning/35 bg-warning-soft text-warning-foreground";
     case "bad":
-      return "border-orange-300/60 bg-orange-50 text-orange-800";
+      return "border-warning/50 bg-warning-soft/90 text-warning-foreground";
     case "very bad":
-      return "border-rose-300/60 bg-rose-50 text-rose-700";
+      return "border-danger/30 bg-danger-soft text-danger-foreground";
     case "not viable":
-      return "border-rose-400/70 bg-rose-100 text-rose-900";
+      return "border-danger/45 bg-danger-soft/90 text-danger-foreground";
   }
 }
 
@@ -320,17 +320,17 @@ function MarketImpactIndicator({
           "h-2 bg-muted",
           "[&>[data-slot=progress-indicator]]:transition-all",
           rating === "great" &&
-            "[&>[data-slot=progress-indicator]]:bg-emerald-600",
+            "[&>[data-slot=progress-indicator]]:bg-success",
           rating === "very good" &&
-            "[&>[data-slot=progress-indicator]]:bg-lime-500",
+            "[&>[data-slot=progress-indicator]]:bg-success/80",
           rating === "good" &&
-            "[&>[data-slot=progress-indicator]]:bg-amber-500",
+            "[&>[data-slot=progress-indicator]]:bg-warning",
           rating === "bad" &&
-            "[&>[data-slot=progress-indicator]]:bg-orange-500",
+            "[&>[data-slot=progress-indicator]]:bg-warning/80",
           rating === "very bad" &&
-            "[&>[data-slot=progress-indicator]]:bg-rose-400",
+            "[&>[data-slot=progress-indicator]]:bg-danger/75",
           rating === "not viable" &&
-            "[&>[data-slot=progress-indicator]]:bg-rose-600",
+            "[&>[data-slot=progress-indicator]]:bg-danger",
         )}
       />
     </div>
@@ -1121,7 +1121,7 @@ function IoItemsGrid({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div className={cn("min-w-0 w-full", rowMutedClass)}>
-                        <div className="h-3 w-full overflow-hidden rounded-full bg-black/30">
+                        <div className="h-3 w-full overflow-hidden rounded-full bg-foreground/20">
                           <div
                             className={cn("h-full rounded-full", barClassName)}
                             style={{ width: `${entry.weightPercent}%` }}

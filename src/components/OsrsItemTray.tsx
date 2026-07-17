@@ -7,7 +7,7 @@ import OsrsQuantitySprite from "@/components/OsrsQuantitySprite";
 import { cn } from "@/lib/utils";
 
 export const OSRS_ITEM_TRAY_CLASS =
-  "min-h-14 w-full rounded-lg border border-black/15 bg-[var(--method-detail-item-tray)] p-4 shadow-[inset_0_1px_3px_rgba(0,0,0,0.45)]";
+  "min-h-14 w-full rounded-lg border border-[var(--method-detail-item-tray-border)] bg-[var(--method-detail-item-tray)] p-4 shadow-[var(--method-detail-item-tray-shadow)]";
 export const OSRS_ITEM_TRAY_TEXT_CLASS =
   "text-[var(--method-detail-item-tray-foreground)]";
 export const OSRS_ITEM_TRAY_BAR_ACTIVE_CLASS =
@@ -73,7 +73,7 @@ export const OsrsItemSprite = forwardRef<
         src={iconUrl}
         alt={itemName}
         className="h-8 w-8"
-        imgClassName="drop-shadow-[1px_1px_0_#333333]"
+        imgClassName="drop-shadow-[1px_1px_0_var(--method-detail-item-sprite-shadow)]"
       />
 
       {quantity > 0 ? (
