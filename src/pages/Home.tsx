@@ -47,6 +47,11 @@ import {
   sanitizeMethodsTableFieldsState,
   type MethodsTableColumnId,
 } from "@/features/methods/tableColumns";
+import {
+  MAX_CLICK_INTENSITY,
+  normalizeBoundedText,
+  SEARCH_QUERY_MAX_LENGTH,
+} from "@/lib/validation";
 
 type SeoConfig = {
   title: string;
@@ -99,9 +104,9 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
   const [isFiltersOpen, setIsFiltersOpen] = useState<boolean>(false);
 
   const [category, setCategory] = useState<string>("");
-  const [clickIntensity, setClickIntensity] = useState<number>(10000);
+  const [clickIntensity, setClickIntensity] = useState<number>(MAX_CLICK_INTENSITY);
   const [appliedClickIntensity, setAppliedClickIntensity] =
-    useState<number>(10000);
+    useState<number>(MAX_CLICK_INTENSITY);
   const [afkiness, setAfkiness] = useState<number>(0);
   const [appliedAfkiness, setAppliedAfkiness] = useState<number>(0);
   const [riskLevel] = useState<string>("");
@@ -275,7 +280,7 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
   const appliedFilterCount = useMemo(() => {
     let count = 0;
     if (category) count += 1;
-    if (appliedClickIntensity < 10000) count += 1;
+    if (appliedClickIntensity < MAX_CLICK_INTENSITY) count += 1;
     if (appliedAfkiness > 0) count += 1;
     if (parsedRiskLevel !== undefined) count += 1;
     if (!hasLockedSkill && skill) count += 1;
@@ -302,7 +307,9 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
     () => ({
       category: category ? (category as MethodsFilters["category"]) : undefined,
       clickIntensity:
-        appliedClickIntensity >= 10000 ? undefined : appliedClickIntensity,
+        appliedClickIntensity >= MAX_CLICK_INTENSITY
+          ? undefined
+          : appliedClickIntensity,
       afkiness: appliedAfkiness <= 0 ? undefined : appliedAfkiness,
       riskLevel: parsedRiskLevel,
       showOnlyFreeToPlay,
@@ -547,7 +554,15 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
                   type="text"
                   placeholder="Search by method name"
                   value={methodInput}
-                  onChange={(e) => setMethodInput(e.target.value)}
+                  maxLength={SEARCH_QUERY_MAX_LENGTH}
+                  onChange={(e) =>
+                    setMethodInput(
+                      normalizeBoundedText(
+                        e.target.value,
+                        SEARCH_QUERY_MAX_LENGTH,
+                      ),
+                    )
+                  }
                   className="pr-9"
                 />
                 <Search
@@ -887,20 +902,20 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
                       </div>
                       <Slider
                         min={0}
-                        max={10000}
+                        max={MAX_CLICK_INTENSITY}
                         step={200}
                         value={[clickIntensity]}
                         onValueChange={(value) =>
-                          setClickIntensity(value[0] ?? 10000)
+                          setClickIntensity(value[0] ?? MAX_CLICK_INTENSITY)
                         }
                         onValueCommit={(value) => {
-                          const nextValue = value[0] ?? 10000;
+                          const nextValue = value[0] ?? MAX_CLICK_INTENSITY;
                           setClickIntensity(nextValue);
                           setAppliedClickIntensity(nextValue);
                         }}
                       />
                       <FieldDescription>
-                        {clickIntensity >= 10000
+                        {clickIntensity >= MAX_CLICK_INTENSITY
                           ? "Unlimited"
                           : clickIntensity + " clicks per hour"}
                       </FieldDescription>

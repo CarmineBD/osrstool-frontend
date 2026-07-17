@@ -74,6 +74,10 @@ import {
   QUERY_REFETCH_INTERVAL_MS,
   QUERY_STALE_TIME_MS,
 } from "@/lib/queryRefresh";
+import {
+  ADMIN_SCRIPT_NAME_MAX_LENGTH,
+  normalizeBoundedText,
+} from "@/lib/validation";
 
 const numberFormatter = new Intl.NumberFormat("es-ES");
 const dateFormatter = new Intl.DateTimeFormat("es-ES", {
@@ -704,7 +708,7 @@ export function AdminPage() {
                         detail="Quest sync is not implemented yet."
                         action={
                           <Button type="button" variant="outline" disabled>
-                            Proximamente
+                            Coming soon
                           </Button>
                         }
                       />
@@ -813,7 +817,15 @@ export function AdminPage() {
                   </label>
                   <Input
                     value={scriptNameInput}
-                    onChange={(event) => setScriptNameInput(event.target.value)}
+                    maxLength={ADMIN_SCRIPT_NAME_MAX_LENGTH}
+                    onChange={(event) =>
+                      setScriptNameInput(
+                        normalizeBoundedText(
+                          event.target.value,
+                          ADMIN_SCRIPT_NAME_MAX_LENGTH,
+                        ),
+                      )
+                    }
                     placeholder="items:mapping:sync"
                   />
                 </div>

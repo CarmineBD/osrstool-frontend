@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "@/auth/AuthProvider";
+import { normalizeBoundedText, USERNAME_MAX_LENGTH } from "@/lib/validation";
 
 export interface UsernameContextValue {
   username: string;
@@ -33,7 +34,7 @@ export function UsernameProvider({ children }: Props) {
   }, [isLoading, session]);
 
   const setUsername = (value: string) => {
-    const normalizedValue = value.trim();
+    const normalizedValue = normalizeBoundedText(value.trim(), USERNAME_MAX_LENGTH);
     setUsernameState(normalizedValue);
     if (normalizedValue) {
       localStorage.setItem("username", normalizedValue);
