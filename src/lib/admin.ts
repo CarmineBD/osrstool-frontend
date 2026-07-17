@@ -1,4 +1,8 @@
 import { authFetch } from "@/lib/http";
+import {
+  ADMIN_SCRIPT_NAME_MAX_LENGTH,
+  normalizeBoundedText,
+} from "@/lib/validation";
 
 function resolveApiUrl(): string {
   const directUrl =
@@ -309,7 +313,9 @@ export async function fetchAdminJobs(
   if (filters.limit !== undefined) {
     url.searchParams.set("limit", String(filters.limit));
   }
-  const normalizedScriptName = filters.scriptName?.trim();
+  const normalizedScriptName = filters.scriptName?.trim()
+    ? normalizeBoundedText(filters.scriptName.trim(), ADMIN_SCRIPT_NAME_MAX_LENGTH)
+    : undefined;
   if (normalizedScriptName) {
     url.searchParams.set("scriptName", normalizedScriptName);
   }
