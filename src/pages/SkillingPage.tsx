@@ -20,6 +20,10 @@ import {
 } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchMe } from "@/lib/me";
+import {
+  PUBLIC_LINK_CLASS,
+  PUBLIC_PANEL_CLASS,
+} from "@/components/public-page/publicPageStyles";
 
 function getSummaryVariant(method?: SkillSummaryMethod | null) {
   return method?.variants?.[0] ?? null;
@@ -145,7 +149,7 @@ function SkillSummaryTags({
                 asChild
                 variant="secondary"
                 size="sm"
-                className={`cursor-pointer border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-opacity ${
+                className={`cursor-pointer border-brand/40 bg-brand-soft text-brand-soft-foreground hover:bg-brand-soft/90 transition-opacity ${
                   isDimmed ? "opacity-45 grayscale" : "opacity-100"
                 }`}
               >
@@ -224,7 +228,7 @@ export function SkillingPage() {
   }, [data?.meta?.computedAt]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-surface-page">
       <div className="container mx-auto space-y-6 p-8">
         <div className="space-y-2">
           <h1 className="text-3xl font-bold">Skilling</h1>
@@ -295,7 +299,7 @@ export function SkillingPage() {
             return (
               <article
                 key={skill}
-                className="rounded-lg border bg-white p-5 shadow-sm"
+                className={`${PUBLIC_PANEL_CLASS} p-5`}
               >
                 <div className="mb-4 flex items-center gap-3">
                   {iconUrl ? (
@@ -307,7 +311,7 @@ export function SkillingPage() {
                   ) : null}
                   <Link
                     to={`/skilling/${skill}`}
-                    className="text-lg font-semibold text-blue-600 hover:underline"
+                    className={`text-lg ${PUBLIC_LINK_CLASS}`}
                   >
                     {skillName}
                   </Link>

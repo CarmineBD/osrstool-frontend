@@ -14,6 +14,15 @@ import {
 } from "@/components/ui/carousel";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  PUBLIC_BODY_CLASS,
+  PUBLIC_ELEVATED_PANEL_CLASS,
+  PUBLIC_LINK_CLASS,
+  PUBLIC_PAGE_BACKGROUND_CLASS,
+  PUBLIC_PANEL_CLASS,
+  PUBLIC_SECTION_EYEBROW_CLASS,
+  PUBLIC_SUBPANEL_CLASS,
+} from "@/components/public-page/publicPageStyles";
+import {
   formatChangelogDate,
   latestChangelogEntries,
 } from "@/content/changelog";
@@ -140,14 +149,14 @@ function TrendingMethodCard({
   return (
     <Link
       to={getVariantHref(method, variant)}
-      className="block h-full rounded-lg border border-slate-200 bg-white/95 p-5 text-left shadow-sm transition-shadow hover:shadow-[0_0_0_1px_rgba(245,158,11,0.18),0_10px_28px_rgba(15,23,42,0.10)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+      className={`${PUBLIC_ELEVATED_PANEL_CLASS} block h-full p-5 text-left transition-[border-color,background-color,box-shadow] hover:border-brand/35 hover:bg-surface-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35`}
     >
       <article className="flex min-h-[120px] flex-col gap-4">
         <div className="flex items-start justify-between gap-3">
-          <span className="rounded-md bg-amber-100 px-2 py-1 text-xs font-bold text-amber-800">
+          <span className="rounded-md bg-brand-soft px-2 py-1 text-xs font-bold text-brand-soft-foreground">
             #{index + 1}
           </span>
-          <ArrowUpRight className="h-5 w-5 shrink-0 text-slate-500" />
+          <ArrowUpRight className="h-5 w-5 shrink-0 text-muted-foreground" />
         </div>
 
         <div className="flex min-w-0 items-start justify-between gap-4">
@@ -158,13 +167,13 @@ function TrendingMethodCard({
                 alt={variant?.label ? `${variant.label} icon` : ""}
                 className="mt-0.5 h-[30px] w-[30px]"
               />
-              <h2 className="line-clamp-2 text-xl font-black leading-tight text-slate-950">
+              <h2 className="line-clamp-2 text-xl font-black leading-tight text-foreground">
                 {method.name}
               </h2>
             </div>
             {variant?.label ? (
               <div className="mt-1 flex flex-wrap items-center gap-2">
-                <p className="line-clamp-1 text-sm font-semibold text-slate-600">
+                <p className="line-clamp-1 text-sm font-semibold text-muted-foreground">
                   {variant.label}
                 </p>
                 {variant ? (
@@ -174,7 +183,7 @@ function TrendingMethodCard({
             ) : null}
           </div>
           <div className="shrink-0 space-y-1 text-right ">
-            <p className="whitespace-nowrap text-lg font-black leading-none text-slate-950">
+            <p className="whitespace-nowrap text-lg font-black leading-none text-foreground">
               {typeof highProfit === "number"
                 ? `${formatNumber(highProfit)}/hr`
                 : "N/A"}
@@ -182,7 +191,7 @@ function TrendingMethodCard({
             <p
               className={cn(
                 "flex items-center justify-end gap-1 whitespace-nowrap text-base font-black leading-none",
-                growthIsNegative ? "text-red-700" : "text-emerald-700",
+                growthIsNegative ? "text-danger" : "text-success",
               )}
             >
               {typeof growthPct === "number" ? formatPercent(growthPct) : "N/A"}
@@ -242,17 +251,17 @@ function TrendingMethodsCarousel() {
       className="mx-auto w-full max-w-md"
     >
       <div className="mb-4 flex items-center justify-center gap-2 text-center">
-        <TrendingUp className="h-5 w-5 text-amber-700" />
+        <TrendingUp className="h-5 w-5 text-brand" />
         <h2
           id="trending-profit-heading"
-          className="text-sm font-bold uppercase tracking-[0.16em] text-slate-700"
+          className={PUBLIC_SECTION_EYEBROW_CLASS}
         >
           Trending profit
         </h2>
       </div>
 
       {isInitialLoading ? (
-        <div className="rounded-lg border border-slate-200 bg-white/90 p-5 shadow-sm">
+        <div className={`${PUBLIC_ELEVATED_PANEL_CLASS} p-5`}>
           <div className="flex items-center justify-between">
             <Skeleton className="h-7 w-9 rounded-md" />
             <Skeleton className="h-5 w-5" />
@@ -269,11 +278,11 @@ function TrendingMethodsCarousel() {
           </div>
         </div>
       ) : error ? (
-        <div className="rounded-lg border border-slate-200 bg-white/90 p-5 text-sm text-slate-700 shadow-sm">
+        <div className={`${PUBLIC_ELEVATED_PANEL_CLASS} p-5 text-sm text-muted-foreground`}>
           No se pudieron cargar las tendencias ahora mismo.
         </div>
       ) : methods.length === 0 ? (
-        <div className="rounded-lg border border-slate-200 bg-white/90 p-5 text-sm text-slate-700 shadow-sm">
+        <div className={`${PUBLIC_ELEVATED_PANEL_CLASS} p-5 text-sm text-muted-foreground`}>
           No hay metodos trending disponibles.
         </div>
       ) : (
@@ -317,16 +326,16 @@ export function LandingPage() {
   });
 
   return (
-    <div className="bg-[radial-gradient(circle_at_top_right,_#fef9c3,_#fff,_#e2e8f0_60%)]">
+    <div className={PUBLIC_PAGE_BACKGROUND_CLASS}>
       <header className="mx-auto grid w-full max-w-6xl items-center gap-10 px-6 py-18 sm:px-10 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-700">
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand">
             Welcome to OSRSTool
           </p>
-          <h1 className="mt-3 max-w-4xl text-4xl font-black leading-tight text-slate-900 sm:text-6xl">
+          <h1 className="mt-3 max-w-4xl text-4xl font-black leading-tight text-foreground sm:text-6xl">
             Make money and train efficiently with real-time data.
           </h1>
-          <p className="mt-6 max-w-3xl text-lg leading-relaxed text-slate-700 sm:text-2xl">
+          <p className="mt-6 max-w-3xl text-lg leading-relaxed text-muted-foreground sm:text-2xl">
             OSRSTool es una herramienta avanzada de tiempo real para explorar
             métodos de training / money making adaptadas al las stats de cada
             usuario.
@@ -335,12 +344,12 @@ export function LandingPage() {
             <Button
               asChild
               size="lg"
-              className="bg-slate-900 text-white hover:bg-slate-800"
+              className="bg-brand text-brand-foreground shadow-sm ring-1 ring-black/10 hover:bg-brand hover:shadow-md"
             >
-              <Link to="/allMethods">Explorar Money making methods</Link>
+              <Link to="/allMethods">Explore money making methods</Link>
             </Button>
             <Button asChild size="lg" variant="outline">
-              <a href="#">Explorar Training methods</a>
+              <a href="#">Explore training methods</a>
             </Button>
           </div>
         </div>
@@ -352,7 +361,7 @@ export function LandingPage() {
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 pb-16 sm:px-10">
         {/* <section
           id="que-es-osrstool"
-          className="rounded-2xl border border-slate-200 bg-white/90 p-8 shadow-sm"
+          className={`${PUBLIC_PANEL_CLASS} p-8`}
         >
           <h2 className="text-2xl font-bold text-slate-900">Que es OSRSTool</h2>
           <p className="mt-3 text-slate-700">
@@ -362,48 +371,48 @@ export function LandingPage() {
 
         <section
           id="para-quien"
-          className="rounded-2xl border border-slate-200 bg-white/85 p-8 shadow-sm"
+          className={`${PUBLIC_PANEL_CLASS} p-8`}
         >
-          <h2 className="text-2xl font-bold text-slate-900">Who it is for</h2>
+          <h2 className="text-2xl font-bold text-foreground">Who it is for</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <article className="rounded-xl border border-slate-200 bg-slate-50 p-5">
-              <h3 className="font-semibold text-slate-900">New players</h3>
-              <p className="mt-2 text-sm text-slate-700">
+            <article className={`${PUBLIC_SUBPANEL_CLASS} p-5`}>
+              <h3 className="font-semibold text-foreground">New players</h3>
+              <p className={`mt-2 ${PUBLIC_BODY_CLASS}`}>
                 Find the best viable methods without losing hours jumping
                 between guides, videos, and spreadsheets.
               </p>
             </article>
-            <article className="rounded-xl border border-slate-200 bg-slate-50 p-5">
-              <h3 className="font-semibold text-slate-900">
+            <article className={`${PUBLIC_SUBPANEL_CLASS} p-5`}>
+              <h3 className="font-semibold text-foreground">
                 Advanced players
               </h3>
-              <p className="mt-2 text-sm text-slate-700">
+              <p className={`mt-2 ${PUBLIC_BODY_CLASS}`}>
                 Optimize your time with the best method you can currently do
                 based on GP/h, XP/h, % AFK, and market stability.
               </p>
             </article>
-            <article className="rounded-xl border border-slate-200 bg-slate-50 p-5">
-              <h3 className="font-semibold text-slate-900">Lazy players</h3>
-              <p className="mt-2 text-sm text-slate-700">
+            <article className={`${PUBLIC_SUBPANEL_CLASS} p-5`}>
+              <h3 className="font-semibold text-foreground">Lazy players</h3>
+              <p className={`mt-2 ${PUBLIC_BODY_CLASS}`}>
                 Find methods with low attention requirements to make money or
                 train.
               </p>
             </article>
-            <article className="rounded-xl border border-slate-200 bg-slate-50 p-5">
-              <h3 className="font-semibold text-slate-900">
+            <article className={`${PUBLIC_SUBPANEL_CLASS} p-5`}>
+              <h3 className="font-semibold text-foreground">
                 Players focused on GP
               </h3>
-              <p className="mt-2 text-sm text-slate-700">
+              <p className={`mt-2 ${PUBLIC_BODY_CLASS}`}>
                 Haz solo aquellos métodos que actualmente sauqen mejor
                 rendimiento por hora con data fresca y confiable, sin perder
                 tiempo investigando cada precio.
               </p>
             </article>
-            <article className="rounded-xl border border-slate-200 bg-slate-50 p-5">
-              <h3 className="font-semibold text-slate-900">
+            <article className={`${PUBLIC_SUBPANEL_CLASS} p-5`}>
+              <h3 className="font-semibold text-foreground">
                 Players focused on XP
               </h3>
-              <p className="mt-2 text-sm text-slate-700">
+              <p className={`mt-2 ${PUBLIC_BODY_CLASS}`}>
                 Sube de nivel de manera eficiente y realista con métodos que se
                 ajusten a tu nivel actual.
               </p>
@@ -413,17 +422,17 @@ export function LandingPage() {
 
         <section
           id="features"
-          className="rounded-2xl border border-slate-200 bg-white/90 p-8 shadow-sm"
+          className={`${PUBLIC_PANEL_CLASS} p-8`}
         >
-          <h2 className="text-2xl font-bold text-slate-900">Features</h2>
+          <h2 className="text-2xl font-bold text-foreground">Features</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
             {FEATURE_ITEMS.map((item) => (
               <article
                 key={item.title}
-                className="rounded-xl border border-slate-200 p-5"
+                className={`${PUBLIC_SUBPANEL_CLASS} p-5`}
               >
-                <h3 className="font-semibold text-slate-900">{item.title}</h3>
-                <p className="mt-2 text-sm text-slate-700">
+                <h3 className="font-semibold text-foreground">{item.title}</h3>
+                <p className={`mt-2 ${PUBLIC_BODY_CLASS}`}>
                   {item.description}
                 </p>
               </article>
@@ -433,25 +442,25 @@ export function LandingPage() {
 
         <section
           id="como-funciona"
-          className="rounded-2xl border border-slate-200 bg-white/85 p-8 shadow-sm"
+          className={`${PUBLIC_PANEL_CLASS} p-8`}
         >
-          <h2 className="text-2xl font-bold text-slate-900">Como funciona</h2>
-          <ol className="mt-4 grid gap-3 text-slate-700 sm:grid-cols-2">
-            <li className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <h2 className="text-2xl font-bold text-foreground">Como funciona</h2>
+          <ol className={`mt-4 grid gap-3 ${PUBLIC_BODY_CLASS} sm:grid-cols-2`}>
+            <li className={`${PUBLIC_SUBPANEL_CLASS} p-4`}>
               1. Entra a{" "}
-              <Link to="/allMethods" className="font-semibold underline">
+              <Link to="/allMethods" className={PUBLIC_LINK_CLASS}>
                 /allMethods
               </Link>
               .
             </li>
-            <li className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <li className={`${PUBLIC_SUBPANEL_CLASS} p-4`}>
               2. Aplica filtros por categoria, skill y nivel de riesgo.
             </li>
-            <li className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <li className={`${PUBLIC_SUBPANEL_CLASS} p-4`}>
               3. Compara metodos y abre el detalle para revisar requisitos y
               variantes.
             </li>
-            <li className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <li className={`${PUBLIC_SUBPANEL_CLASS} p-4`}>
               4. Consulta el changelog para conocer mejoras recientes del
               producto.
             </li>
@@ -460,12 +469,12 @@ export function LandingPage() {
 
         <section
           id="changelog"
-          className="rounded-2xl border border-slate-200 bg-white/95 p-8 shadow-sm"
+          className={`${PUBLIC_PANEL_CLASS} p-8`}
         >
-          <h2 className="text-2xl font-bold text-slate-900">
+          <h2 className="text-2xl font-bold text-foreground">
             Changelog de novedades
           </h2>
-          <p className="mt-2 text-sm text-slate-700">
+          <p className={`mt-2 ${PUBLIC_BODY_CLASS}`}>
             Ultimas 3 novedades publicadas.
           </p>
 
@@ -473,18 +482,18 @@ export function LandingPage() {
             {latestChangelogEntries.map((entry) => (
               <article
                 key={entry.slug}
-                className="rounded-xl border border-slate-200 bg-slate-50 p-5"
+                className={`${PUBLIC_SUBPANEL_CLASS} p-5`}
               >
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand">
                   {formatChangelogDate(entry.date)} | {entry.version}
                 </p>
-                <h3 className="mt-2 text-lg font-bold text-slate-900">
+                <h3 className="mt-2 text-lg font-bold text-foreground">
                   {entry.title}
                 </h3>
-                <p className="mt-2 text-sm text-slate-700">{entry.summary}</p>
+                <p className={`mt-2 ${PUBLIC_BODY_CLASS}`}>{entry.summary}</p>
                 <Link
                   to={`/changelog/${entry.slug}`}
-                  className="mt-3 inline-block text-sm font-semibold text-slate-900 underline"
+                  className={`mt-3 inline-block text-sm ${PUBLIC_LINK_CLASS}`}
                 >
                   Leer articulo completo
                 </Link>
@@ -493,7 +502,7 @@ export function LandingPage() {
           </div>
           <Link
             to="/changelog"
-            className="mt-6 inline-block text-sm font-semibold text-slate-900 underline"
+            className={`mt-6 inline-block text-sm ${PUBLIC_LINK_CLASS}`}
           >
             Ver todas las novedades
           </Link>
