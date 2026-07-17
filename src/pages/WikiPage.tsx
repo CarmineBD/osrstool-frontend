@@ -15,6 +15,13 @@ import {
 } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import {
+  PUBLIC_ELEVATED_PANEL_CLASS,
+  PUBLIC_HIGHLIGHT_CLASS,
+  PUBLIC_LINK_CLASS,
+  PUBLIC_PAGE_BACKGROUND_CLASS,
+  PUBLIC_SECTION_EYEBROW_CLASS,
+} from "@/components/public-page/publicPageStyles";
 import { cn } from "@/lib/utils";
 import { useSeo } from "@/hooks/useSeo";
 
@@ -42,6 +49,10 @@ type WikiDelayedNavigationState = {
 };
 
 const CATEGORY_ORDER: WikiCategorySlug[] = ["general", "metricas", "uso"];
+const WIKI_BODY_TEXT_CLASS = "space-y-3 text-sm leading-relaxed text-muted-foreground";
+const WIKI_BODY_STACK_CLASS = "space-y-4 text-sm leading-relaxed text-muted-foreground";
+const WIKI_FORMULA_BLOCK_CLASS =
+  "rounded-md border border-border/70 bg-surface-panel-subtle px-3 py-3";
 
 const WIKI_CATEGORIES: Record<WikiCategorySlug, WikiCategory> = {
   general: {
@@ -58,7 +69,7 @@ const WIKI_CATEGORIES: Record<WikiCategorySlug, WikiCategory> = {
         title: "Que hace OSRSTool",
         description: "Objetivo del producto en lenguaje simple.",
         content: (
-          <div className="space-y-3 text-sm leading-relaxed text-slate-700">
+          <div className={WIKI_BODY_TEXT_CLASS}>
             <p>
               OSRSTool te ayuda a elegir metodos para ganar GP o entrenar skills
               con datos recientes y comparables.
@@ -83,7 +94,7 @@ const WIKI_CATEGORIES: Record<WikiCategorySlug, WikiCategory> = {
         title: "Origen real de la informacion",
         description: "Fuentes que usa backend para construir metricas.",
         content: (
-          <div className="space-y-3 text-sm leading-relaxed text-slate-700">
+          <div className={WIKI_BODY_TEXT_CLASS}>
             <p>
               El backend junta varias fuentes oficiales y luego unifica todo
               para que sea legible:
@@ -122,7 +133,7 @@ const WIKI_CATEGORIES: Record<WikiCategorySlug, WikiCategory> = {
         title: "Frecuencia real de actualizacion",
         description: "Porque los valores cambian incluso sin tocar filtros.",
         content: (
-          <div className="space-y-3 text-sm leading-relaxed text-slate-700">
+          <div className={WIKI_BODY_TEXT_CLASS}>
             <ul className="list-disc space-y-1 pl-5">
               <li>Precios de items: cada 1 minuto.</li>
               <li>Profits de metodos (high/low): cada 1 minuto.</li>
@@ -150,7 +161,7 @@ const WIKI_CATEGORIES: Record<WikiCategorySlug, WikiCategory> = {
         title: "Cuando un numero sube o baja, que significa",
         description: "Guia rapida para no sobre reaccionar.",
         content: (
-          <div className="space-y-3 text-sm leading-relaxed text-slate-700">
+          <div className={WIKI_BODY_TEXT_CLASS}>
             <p>
               Una subida puntual de `highProfit` no siempre significa "mejor
               metodo del dia". Puede ser un pico corto por poco volumen.
@@ -180,27 +191,27 @@ const WIKI_CATEGORIES: Record<WikiCategorySlug, WikiCategory> = {
         description:
           "Reglas que transforman items no tradeables en valor util.",
         content: (
-          <div className="space-y-4 text-sm leading-relaxed text-slate-700">
+          <div className={WIKI_BODY_STACK_CLASS}>
             <p>
               Si un item no tiene precio de mercado directo, backend aplica
               reglas para poder incluirlo en el calculo de profit.
             </p>
-            <div className="space-y-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
+            <div className={`space-y-3 ${WIKI_FORMULA_BLOCK_CLASS}`}>
               <div>
-                <p className="text-sm font-semibold text-slate-900">FIXED</p>
+                <p className="text-sm font-semibold text-foreground">FIXED</p>
                 <p className="text-sm">
                   Precio fijo manual: `low = L`, `high = H`.
                 </p>
               </div>
               <div>
-                <p className="text-sm font-semibold text-slate-900">RECIPE</p>
+                <p className="text-sm font-semibold text-foreground">RECIPE</p>
                 <p className="text-sm">
                   Se suma el coste de componentes: `low = SUM(cantidad_i *
                   low_i)` y `high = SUM(cantidad_i * high_i)`.
                 </p>
               </div>
               <div>
-                <p className="text-sm font-semibold text-slate-900">
+                <p className="text-sm font-semibold text-foreground">
                   BEST_RECIPE
                 </p>
                 <p className="text-sm">
@@ -223,9 +234,9 @@ const WIKI_CATEGORIES: Record<WikiCategorySlug, WikiCategory> = {
         title: "Formula exacta de High Profit y Low Profit",
         description: "No es un solo numero: son 2 escenarios.",
         content: (
-          <div className="space-y-3 text-sm leading-relaxed text-slate-700">
+          <div className={WIKI_BODY_TEXT_CLASS}>
             <p>Para cada variante, backend calcula dos bandas:</p>
-            <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
+            <div className={WIKI_FORMULA_BLOCK_CLASS}>
               <p>`outputsLow = SUM(output.qty * output.lowPrice)`</p>
               <p>`outputsHigh = SUM(output.qty * output.highPrice)`</p>
               <p>`inputsHigh = SUM(input.qty * input.highPrice)`</p>
@@ -256,12 +267,12 @@ const WIKI_CATEGORIES: Record<WikiCategorySlug, WikiCategory> = {
         title: "Como se calcula GP/XP",
         description: "Solo se calcula cuando eliges una skill concreta.",
         content: (
-          <div className="space-y-3 text-sm leading-relaxed text-slate-700">
+          <div className={WIKI_BODY_TEXT_CLASS}>
             <p>
               Si filtras por skill, backend toma la XP/h de esa skill dentro de
               `xpHour` y calcula:
             </p>
-            <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
+            <div className={WIKI_FORMULA_BLOCK_CLASS}>
               <p>`gpPerXpHigh = highProfit / xpHour(skillSeleccionada)`</p>
               <p>`gpPerXpLow = lowProfit / xpHour(skillSeleccionada)`</p>
             </div>
@@ -279,12 +290,12 @@ const WIKI_CATEGORIES: Record<WikiCategorySlug, WikiCategory> = {
         description:
           "Mide cuanto pesa tu metodo contra el volumen real del mercado.",
         content: (
-          <div className="space-y-3 text-sm leading-relaxed text-slate-700">
+          <div className={WIKI_BODY_TEXT_CLASS}>
             <p>
               Para cada item se estima su "share" de mercado por hora y luego se
               pondera por valor economico del item.
             </p>
-            <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3 text-xs sm:text-sm">
+            <div className={`${WIKI_FORMULA_BLOCK_CLASS} text-xs sm:text-sm`}>
               <p>`volumePerHour = max(epsilon, volume24h / 24)`</p>
               <p>`shareItem = quantity / volumePerHour`</p>
               <p>`valueItem = quantity * priceWeight`</p>
@@ -326,12 +337,12 @@ const WIKI_CATEGORIES: Record<WikiCategorySlug, WikiCategory> = {
         title: "Como se calcula trend 1h, 24h, semana y mes",
         description: "Cambio porcentual respecto a snapshots pasados.",
         content: (
-          <div className="space-y-3 text-sm leading-relaxed text-slate-700">
+          <div className={WIKI_BODY_TEXT_CLASS}>
             <p>
               El backend compara el `highProfit` actual con el ultimo valor
               historico disponible antes de cada ventana de tiempo.
             </p>
-            <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
+            <div className={WIKI_FORMULA_BLOCK_CLASS}>
               <p>`trend% = ((highActual - highPasado) / highPasado) * 100`</p>
             </div>
             <p>
@@ -347,7 +358,7 @@ const WIKI_CATEGORIES: Record<WikiCategorySlug, WikiCategory> = {
         title: "AFKiness, Click Intensity y Risk Level",
         description: "Como interpretar estos campos sin confundirse.",
         content: (
-          <div className="space-y-3 text-sm leading-relaxed text-slate-700">
+          <div className={WIKI_BODY_TEXT_CLASS}>
             <ul className="list-disc space-y-1 pl-5">
               <li>
                 <strong>AFKiness:</strong> cuanto margen de atencion tienes en
@@ -386,7 +397,7 @@ const WIKI_CATEGORIES: Record<WikiCategorySlug, WikiCategory> = {
         title: "Como filtrar y ordenar sin sesgo",
         description: "Atajos para llegar a metodos ejecutables de verdad.",
         content: (
-          <div className="space-y-3 text-sm leading-relaxed text-slate-700">
+          <div className={WIKI_BODY_TEXT_CLASS}>
             <p>
               Puedes filtrar por skill, categoria, AFK minimo, click intensity
               maxima, nivel de riesgo, si da XP y si es rentable.
@@ -409,7 +420,7 @@ const WIKI_CATEGORIES: Record<WikiCategorySlug, WikiCategory> = {
         title: "Diferencia entre variantes best y all",
         description: "Por que a veces ves una sola variante por metodo.",
         content: (
-          <div className="space-y-3 text-sm leading-relaxed text-slate-700">
+          <div className={WIKI_BODY_TEXT_CLASS}>
             <ul className="list-disc space-y-1 pl-5">
               <li>
                 <strong>best:</strong> muestra solo la variante con mayor
@@ -433,7 +444,7 @@ const WIKI_CATEGORIES: Record<WikiCategorySlug, WikiCategory> = {
         title: "No decidir solo por el valor actual",
         description: "Usa agregacion temporal para separar ruido de tendencia.",
         content: (
-          <div className="space-y-3 text-sm leading-relaxed text-slate-700">
+          <div className={WIKI_BODY_TEXT_CLASS}>
             <p>
               El historico soporta distintos rangos (`24h`, `1m`, `1y`, `all`) y
               agregaciones:
@@ -463,7 +474,7 @@ const WIKI_CATEGORIES: Record<WikiCategorySlug, WikiCategory> = {
         title: "Personalizacion real con tu cuenta",
         description: "Filtra metodos segun niveles, quests y diaries.",
         content: (
-          <div className="space-y-3 text-sm leading-relaxed text-slate-700">
+          <div className={WIKI_BODY_TEXT_CLASS}>
             <p>
               Al poner username, backend cruza tus stats con los requisitos de
               cada variante: levels, quests y achievement diaries.
@@ -495,7 +506,7 @@ const WIKI_CATEGORIES: Record<WikiCategorySlug, WikiCategory> = {
         title: "Como usar likes para priorizar",
         description: "Senal social util, pero no absoluta.",
         content: (
-          <div className="space-y-3 text-sm leading-relaxed text-slate-700">
+          <div className={WIKI_BODY_TEXT_CLASS}>
             <p>
               Puedes marcar metodos con like y luego filtrar por `likedByMe`
               para tu lista personal.
@@ -513,7 +524,7 @@ const WIKI_CATEGORIES: Record<WikiCategorySlug, WikiCategory> = {
         title: "Flujo recomendado para decidir mejor",
         description: "Secuencia simple para elegir con menos errores.",
         content: (
-          <div className="space-y-3 text-sm leading-relaxed text-slate-700">
+          <div className={WIKI_BODY_TEXT_CLASS}>
             <p>
               <strong>1) Tabla principal:</strong> filtra por tu objetivo
               (profit, xp o comodidad).
@@ -563,13 +574,13 @@ function SectionCard({
       id={section.id}
       className={cn(
         "scroll-mt-24 space-y-3 rounded-md px-2 py-5 -mx-2 transition-all duration-700",
-        isHighlighted && "bg-sky-50 ring-1 ring-sky-200",
+        isHighlighted && PUBLIC_HIGHLIGHT_CLASS,
       )}
     >
-      <h2 className="text-3xl font-bold tracking-tight text-slate-900">
+      <h2 className="text-3xl font-bold tracking-tight text-foreground">
         {section.title}
       </h2>
-      <p className="text-sm text-slate-600">{section.description}</p>
+      <p className="text-sm text-muted-foreground">{section.description}</p>
       <div>{section.content}</div>
     </section>
   );
@@ -776,7 +787,7 @@ function WikiContent({
   if (!category) {
     return (
       <div className="mx-auto max-w-4xl p-8">
-        <Card className="border-slate-200 bg-white/95">
+        <Card className={PUBLIC_ELEVATED_PANEL_CLASS}>
           <CardHeader>
             <CardTitle>Categoria no encontrada</CardTitle>
             <CardDescription>
@@ -784,7 +795,7 @@ function WikiContent({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Link to="/wiki" className="font-semibold underline">
+            <Link to="/wiki" className={PUBLIC_LINK_CLASS}>
               Volver a Vision general
             </Link>
           </CardContent>
@@ -794,11 +805,11 @@ function WikiContent({
   }
 
   return (
-    <div className="bg-[radial-gradient(circle_at_top_right,_#f1f5f9,_#ffffff,_#f8fafc_60%)]">
+    <div className={PUBLIC_PAGE_BACKGROUND_CLASS}>
       <div className="mx-auto w-full max-w-7xl px-4 pb-10 sm:px-6">
         <div className="grid gap-6 pt-2 lg:grid-cols-[320px_minmax(0,1fr)]">
           <aside className="lg:sticky lg:top-6 lg:h-[calc(100vh-8rem)]">
-            <Card className="h-full border-slate-200 bg-white/95">
+            <Card className={`h-full ${PUBLIC_ELEVATED_PANEL_CLASS}`}>
               <CardContent className="px-0 pb-0 pt-0">
                 <ScrollArea className="h-[50vh] px-4 pb-3 pt-1 lg:h-[calc(100vh-15rem)]">
                   <nav
@@ -814,7 +825,7 @@ function WikiContent({
                           <Link
                             to={categoryPath(slug)}
                             onClick={(event) => onCategoryClick(event, slug)}
-                            className="block rounded-md px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100"
+                            className="block rounded-md px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted/70"
                           >
                             {menuCategory.title}
                           </Link>
@@ -856,16 +867,16 @@ function WikiContent({
             <section
               className={cn(
                 "space-y-3 rounded-md px-2 pb-5 -mx-2 mt-5 transition-all duration-700",
-                isHeaderHighlighted && "bg-sky-50 ring-1 ring-sky-200",
+                isHeaderHighlighted && PUBLIC_HIGHLIGHT_CLASS,
               )}
             >
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+              <p className={PUBLIC_SECTION_EYEBROW_CLASS}>
                 OSRSTool Wiki
               </p>
-              <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
+              <h1 className="text-3xl font-black tracking-tight text-foreground sm:text-4xl">
                 {category.title}
               </h1>
-              <p className="max-w-4xl text-sm leading-relaxed text-slate-700 sm:text-base">
+              <p className="max-w-4xl text-sm leading-relaxed text-muted-foreground sm:text-base">
                 {category.intro}
               </p>
             </section>

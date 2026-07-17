@@ -424,8 +424,9 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
     preview.style.zIndex = "9999";
     preview.style.transform = "translate(-9999px, -9999px)";
     preview.style.boxShadow =
-      "0 18px 40px rgba(15, 23, 42, 0.18), 0 6px 16px rgba(15, 23, 42, 0.12)";
-    preview.style.borderColor = "color-mix(in oklab, var(--border) 82%, white 18%)";
+      "0 18px 40px color-mix(in oklab, var(--foreground) 14%, transparent), 0 6px 16px color-mix(in oklab, var(--foreground) 10%, transparent)";
+    preview.style.borderColor =
+      "color-mix(in oklab, var(--border) 82%, var(--background) 18%)";
     preview.style.background = "var(--background)";
     preview.style.opacity = "0.98";
     preview.setAttribute("aria-hidden", "true");
@@ -514,7 +515,7 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
   ]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-surface-page">
       <div className="container mx-auto p-8 space-y-6">
         {!normalizedUsername ? (
           <UsernameFetchNotice state="info" className="sticky top-20 z-20" />

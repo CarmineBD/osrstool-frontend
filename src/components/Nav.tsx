@@ -148,7 +148,7 @@ export function Nav({ hideInput }: Props) {
   };
 
   return (
-    <nav className="sticky top-0 z-50 bg-white p-4 shadow">
+    <nav className="sticky top-0 z-50 border-b border-border/60 bg-surface-panel-elevated p-4 shadow-sm backdrop-blur">
       <div className="flex items-center justify-between gap-4">
         <Link to="/" className="flex items-center space-x-2">
           <img
@@ -276,7 +276,7 @@ export function Nav({ hideInput }: Props) {
                 />
                 <Button type="submit">Buscar</Button>
               </form>
-              {userError && <p className="text-sm text-red-500">{userError}</p>}
+              {userError && <p className="text-sm text-destructive">{userError}</p>}
             </div>
           )}
 
@@ -337,7 +337,7 @@ export function Nav({ hideInput }: Props) {
             : "pointer-events-none mt-0 max-h-0 opacity-0"
         )}
       >
-        <div className="rounded-2xl bg-slate-50/90 p-2 shadow-sm ring-1 ring-slate-200/80 backdrop-blur">
+        <div className="rounded-2xl bg-surface-panel-subtle/90 p-2 shadow-sm ring-1 ring-border/80 backdrop-blur">
           <Accordion
             type="multiple"
             className="w-full space-y-2"
@@ -346,7 +346,7 @@ export function Nav({ hideInput }: Props) {
           >
             <AccordionItem
               value="mobile-money-methods"
-              className="overflow-hidden rounded-xl border-none bg-white/90"
+              className="overflow-hidden rounded-xl border-none bg-surface-panel-elevated"
             >
               <AccordionTrigger className="rounded-xl px-3 py-3 text-sm font-semibold hover:no-underline">
                 Money making methods
@@ -371,7 +371,7 @@ export function Nav({ hideInput }: Props) {
 
             <AccordionItem
               value="mobile-training-methods"
-              className="overflow-hidden rounded-xl border-none bg-white/90"
+              className="overflow-hidden rounded-xl border-none bg-surface-panel-elevated"
             >
               <AccordionTrigger className="rounded-xl px-3 py-3 text-sm font-semibold hover:no-underline">
                 Training methods
@@ -417,7 +417,7 @@ export function Nav({ hideInput }: Props) {
             {!hideInput && (
               <AccordionItem
                 value={MOBILE_FETCH_USER_SECTION}
-                className="overflow-hidden rounded-xl border-none bg-white/90"
+                className="overflow-hidden rounded-xl border-none bg-surface-panel-elevated"
               >
                 <AccordionTrigger className="rounded-xl px-3 py-3 text-sm font-semibold hover:no-underline">
                   Fetch by username
@@ -443,7 +443,7 @@ export function Nav({ hideInput }: Props) {
                       />
                       <Button type="submit">Buscar</Button>
                     </form>
-                    {userError && <p className="text-sm text-red-500">{userError}</p>}
+                    {userError && <p className="text-sm text-destructive">{userError}</p>}
                   </div>
                 </AccordionContent>
               </AccordionItem>
@@ -452,7 +452,7 @@ export function Nav({ hideInput }: Props) {
 
           <Link
             to="/wiki"
-            className="hover:bg-accent/70 focus:bg-accent/70 mt-2 flex w-full items-center rounded-xl bg-white/90 px-3 py-3 text-sm font-semibold no-underline outline-hidden transition-colors duration-200"
+            className="hover:bg-accent/70 focus:bg-accent/70 mt-2 flex w-full items-center rounded-xl bg-surface-panel-elevated px-3 py-3 text-sm font-semibold no-underline outline-hidden transition-colors duration-200"
             onClick={() => setIsMobileMenuOpen(false)}
           >
             Wiki
@@ -461,7 +461,7 @@ export function Nav({ hideInput }: Props) {
           {isSuperAdmin ? (
             <Link
               to="/admin"
-              className="hover:bg-accent/70 focus:bg-accent/70 mt-2 flex w-full items-center rounded-xl bg-white/90 px-3 py-3 text-sm font-semibold no-underline outline-hidden transition-colors duration-200"
+              className="hover:bg-accent/70 focus:bg-accent/70 mt-2 flex w-full items-center rounded-xl bg-surface-panel-elevated px-3 py-3 text-sm font-semibold no-underline outline-hidden transition-colors duration-200"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Admin

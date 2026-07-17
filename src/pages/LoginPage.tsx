@@ -117,7 +117,7 @@ export function LoginPage() {
             </div>
 
             {error && <p className="text-sm text-destructive">{error}</p>}
-            {info && <p className="text-sm text-emerald-600">{info}</p>}
+            {info && <p className="text-sm text-success">{info}</p>}
 
             <div className="flex flex-col gap-2 sm:flex-row">
               <Button type="submit" disabled={isSubmitting} className="sm:flex-1">

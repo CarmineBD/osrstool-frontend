@@ -27,91 +27,93 @@ function MetricsCardSkeleton() {
 
 export function MethodDetailSkeleton() {
   return (
-    <div className="container mx-auto space-y-6">
-      <section className="rounded-xl border border-border/70 bg-card p-6 shadow-sm">
-        <div className="space-y-4">
-          <Skeleton className="h-4 w-36" />
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div className="flex-1 space-y-3">
-              <Skeleton className="h-9 w-3/5" />
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-10/12" />
-              <Skeleton className="h-4 w-28" />
+    <div className="min-h-screen bg-surface-page">
+      <div className="container mx-auto space-y-6">
+        <section className="rounded-xl border border-border/70 bg-card p-6 shadow-sm">
+          <div className="space-y-4">
+            <Skeleton className="h-4 w-36" />
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div className="flex-1 space-y-3">
+                <Skeleton className="h-9 w-3/5" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-10/12" />
+                <Skeleton className="h-4 w-28" />
+              </div>
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-8 w-20 rounded-md" />
+                <Skeleton className="h-9 w-9 rounded-md" />
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Skeleton className="h-8 w-20 rounded-md" />
-              <Skeleton className="h-9 w-9 rounded-md" />
+          </div>
+        </section>
+
+        <section className="rounded-xl border border-border/70 bg-card p-6 shadow-sm">
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="h-4 w-96 max-w-full" />
             </div>
-          </div>
-        </div>
-      </section>
 
-      <section className="rounded-xl border border-border/70 bg-card p-6 shadow-sm">
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-20" />
-            <Skeleton className="h-6 w-32" />
-            <Skeleton className="h-4 w-96 max-w-full" />
-          </div>
+            <div className="flex flex-wrap gap-2">
+              <Skeleton className="h-10 w-32 rounded-md" />
+              <Skeleton className="h-10 w-32 rounded-md" />
+              <Skeleton className="h-10 w-32 rounded-md" />
+            </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Skeleton className="h-10 w-32 rounded-md" />
-            <Skeleton className="h-10 w-32 rounded-md" />
-            <Skeleton className="h-10 w-32 rounded-md" />
-          </div>
-
-          <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
-            <div className="order-2 space-y-6 lg:order-1">
-              <div className="rounded-lg border border-border/70 bg-muted/20 p-6">
-                <div className="space-y-4">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-5 w-40" />
-                  <div className="rounded-lg border border-border/70 bg-card p-4">
-                    <div className="space-y-3">
-                      <Skeleton className="h-4 w-full" />
-                      <Skeleton className="h-4 w-10/12" />
+            <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
+              <div className="order-2 space-y-6 lg:order-1">
+                <div className="rounded-lg border border-border/70 bg-muted/20 p-6">
+                  <div className="space-y-4">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-5 w-40" />
+                    <div className="rounded-lg border border-border/70 bg-card p-4">
+                      <div className="space-y-3">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-10/12" />
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="rounded-lg border border-border/70 bg-muted/20 p-6">
-                <div className="space-y-4">
-                  <Skeleton className="h-5 w-40" />
-                  <Skeleton className="h-4 w-72 max-w-full" />
-                  <div className="grid gap-6 md:grid-cols-2">
-                    <Skeleton className="h-24 w-full rounded-lg" />
-                    <Skeleton className="h-24 w-full rounded-lg" />
+                <div className="rounded-lg border border-border/70 bg-muted/20 p-6">
+                  <div className="space-y-4">
+                    <Skeleton className="h-5 w-40" />
+                    <Skeleton className="h-4 w-72 max-w-full" />
+                    <div className="grid gap-6 md:grid-cols-2">
+                      <Skeleton className="h-24 w-full rounded-lg" />
+                      <Skeleton className="h-24 w-full rounded-lg" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-border/70 bg-muted/20 p-6">
+                  <div className="space-y-4">
+                    <Skeleton className="h-5 w-56" />
+                    <Skeleton className="h-4 w-80 max-w-full" />
+                    <div className="grid gap-6 xl:grid-cols-2">
+                      <Skeleton className="h-28 w-full rounded-lg" />
+                      <Skeleton className="h-28 w-full rounded-lg" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-border/70 bg-muted/20 p-6">
+                  <div className="space-y-4">
+                    <Skeleton className="h-5 w-36" />
+                    <Skeleton className="h-4 w-96 max-w-full" />
+                    <Skeleton className="h-72 w-full rounded-xl" />
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-lg border border-border/70 bg-muted/20 p-6">
-                <div className="space-y-4">
-                  <Skeleton className="h-5 w-56" />
-                  <Skeleton className="h-4 w-80 max-w-full" />
-                  <div className="grid gap-6 xl:grid-cols-2">
-                    <Skeleton className="h-28 w-full rounded-lg" />
-                    <Skeleton className="h-28 w-full rounded-lg" />
-                  </div>
-                </div>
+              <div className="order-1 lg:order-2">
+                <MetricsCardSkeleton />
               </div>
-
-              <div className="rounded-lg border border-border/70 bg-muted/20 p-6">
-                <div className="space-y-4">
-                  <Skeleton className="h-5 w-36" />
-                  <Skeleton className="h-4 w-96 max-w-full" />
-                  <Skeleton className="h-72 w-full rounded-xl" />
-                </div>
-              </div>
-            </div>
-
-            <div className="order-1 lg:order-2">
-              <MetricsCardSkeleton />
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
     </div>
   );
 }

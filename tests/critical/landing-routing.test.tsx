@@ -29,7 +29,7 @@ describe("critical flow: landing + all methods routing", () => {
       })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: /explorar money making methods/i })
+      screen.getByRole("link", { name: /explore money making methods/i })
     ).toHaveAttribute("href", "/allMethods");
     expect(
       screen.getByRole("heading", { name: "Changelog de novedades" })

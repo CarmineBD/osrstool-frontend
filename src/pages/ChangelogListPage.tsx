@@ -1,6 +1,13 @@
 import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
+import {
+  PUBLIC_BODY_CLASS,
+  PUBLIC_LINK_CLASS,
+  PUBLIC_PANEL_CLASS,
+  PUBLIC_SUBPANEL_CLASS,
+  PUBLIC_TITLE_CLASS,
+} from "@/components/public-page/publicPageStyles";
 import { changelogEntries, formatChangelogDate } from "@/content/changelog";
 import { useSeo } from "@/hooks/useSeo";
 
@@ -49,11 +56,11 @@ export function ChangelogListPage() {
 
   return (
     <section className="mx-auto w-full max-w-5xl px-6 py-10">
-      <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+      <div className={`${PUBLIC_PANEL_CLASS} p-8`}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-black text-slate-900">Todas las novedades</h1>
-            <p className="mt-2 text-sm text-slate-700">
+            <h1 className={PUBLIC_TITLE_CLASS}>Todas las novedades</h1>
+            <p className={`mt-2 ${PUBLIC_BODY_CLASS}`}>
               Historial de cambios y lanzamientos de OSRSTool.
             </p>
           </div>
@@ -66,16 +73,16 @@ export function ChangelogListPage() {
           {entries.map((entry) => (
             <article
               key={entry.slug}
-              className="rounded-xl border border-slate-200 bg-slate-50 p-5"
+              className={`${PUBLIC_SUBPANEL_CLASS} p-5`}
             >
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand">
                 {formatChangelogDate(entry.date)} | {entry.version}
               </p>
-              <h2 className="mt-2 text-xl font-bold text-slate-900">{entry.title}</h2>
-              <p className="mt-2 text-sm text-slate-700">{entry.summary}</p>
+              <h2 className="mt-2 text-xl font-bold text-foreground">{entry.title}</h2>
+              <p className={`mt-2 ${PUBLIC_BODY_CLASS}`}>{entry.summary}</p>
               <Link
                 to={`/changelog/${entry.slug}`}
-                className="mt-4 inline-block text-sm font-semibold text-slate-900 underline"
+                className={`mt-4 inline-block text-sm ${PUBLIC_LINK_CLASS}`}
               >
                 Ver detalle de la novedad
               </Link>

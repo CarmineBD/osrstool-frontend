@@ -178,7 +178,8 @@ export function VariantForm({
             value={label}
             className={cn(
               "bg-background",
-              isLabelDuplicate && "border-red-500 focus-visible:ring-red-500",
+              isLabelDuplicate &&
+                "border-destructive focus-visible:ring-destructive",
             )}
             onChange={(event) => {
               const next = event.target.value;
