@@ -1,5 +1,10 @@
 // src/lib/api.ts
 import { authFetch as apiFetch } from "./http";
+import {
+  SEARCH_QUERY_MAX_LENGTH,
+  USERNAME_MAX_LENGTH,
+  normalizeBoundedText,
+} from "@/lib/validation";
 
 function resolveApiUrl(): string {
   const directUrl =
@@ -310,10 +315,17 @@ export async function fetchMethods(
   cursor?: string,
 ): Promise<MethodsResponse> {
   const url = toApiUrl("/methods");
-  if (username) url.searchParams.set("username", username);
+  if (username) {
+    url.searchParams.set(
+      "username",
+      normalizeBoundedText(username.trim(), USERNAME_MAX_LENGTH),
+    );
+  }
   if (page !== undefined) url.searchParams.set("page", page.toString());
   if (cursor) url.searchParams.set("cursor", cursor);
-  if (name) url.searchParams.set("name", name);
+  if (name) {
+    url.searchParams.set("name", normalizeBoundedText(name.trim(), SEARCH_QUERY_MAX_LENGTH));
+  }
   if (filters?.category) url.searchParams.set("category", filters.category);
   if (filters?.clickIntensity !== undefined) {
     url.searchParams.set("clickIntensity", filters.clickIntensity.toString());
@@ -852,7 +864,10 @@ export async function fetchMethodsSkillsSummary(
   const url = toApiUrl("/methods/skills/summary");
   const normalizedUsername = username?.trim();
   if (normalizedUsername) {
-    url.searchParams.set("username", normalizedUsername);
+    url.searchParams.set(
+      "username",
+      normalizeBoundedText(normalizedUsername, USERNAME_MAX_LENGTH),
+    );
   }
   url.searchParams.set("enabled", String(enabled));
 
@@ -887,7 +902,7 @@ export async function searchItems(
   signal?: AbortSignal,
   options?: ItemSearchOptions,
 ): Promise<ItemSearchResponse> {
-  const trimmed = query.trim();
+  const trimmed = normalizeBoundedText(query.trim(), SEARCH_QUERY_MAX_LENGTH);
   if (!trimmed) return { items: [], page: 1, pageCount: 0 };
   if (!API_URL) {
     throw new Error("VITE_API_URL is missing");
@@ -956,7 +971,12 @@ export async function fetchMethodDetail(
   username?: string,
 ): Promise<MethodDetailResponse> {
   const url = toApiUrl(`/methods/${id}`);
-  if (username) url.searchParams.set("username", username);
+  if (username) {
+    url.searchParams.set(
+      "username",
+      normalizeBoundedText(username.trim(), USERNAME_MAX_LENGTH),
+    );
+  }
   const res = await apiFetch(url.toString());
   if (!res.ok) {
     throw new Error(`HTTP ${res.status} – Error fetching method`);
@@ -982,7 +1002,12 @@ export async function fetchMethodDetailBySlug(
     throw new Error("Method slug is required");
   }
   const url = toApiUrl(`/methods/slug/${encodeURIComponent(normalizedSlug)}`);
-  if (username) url.searchParams.set("username", username);
+  if (username) {
+    url.searchParams.set(
+      "username",
+      normalizeBoundedText(username.trim(), USERNAME_MAX_LENGTH),
+    );
+  }
   const res = await apiFetch(url.toString());
   if (!res.ok) {
     if (res.status === 404) {

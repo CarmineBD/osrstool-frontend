@@ -55,17 +55,27 @@ import type {
 import {
   METHOD_CATEGORY_OPTIONS,
   type MethodUpsertFormValues,
+  type MethodUpsertSubmitValues,
 } from "@/features/method-upsert/useMethodUpsert";
 import { getItemsQueryKey } from "@/lib/queryKeys";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
 import { cn } from "@/lib/utils";
+import {
+  DESCRIPTION_MAX_LENGTH,
+  METHOD_NAME_MAX_LENGTH,
+  normalizeBoundedText,
+} from "@/lib/validation";
 
 interface MethodUpsertFormProps {
   isEditMode: boolean;
-  form: UseFormReturn<MethodUpsertFormValues>;
+  form: UseFormReturn<
+    MethodUpsertFormValues,
+    unknown,
+    MethodUpsertSubmitValues
+  >;
   enabled: boolean;
   onEnabledChange: (checked: boolean) => void;
-  onSubmit: (values: MethodUpsertFormValues) => void | Promise<void>;
+  onSubmit: (values: MethodUpsertSubmitValues) => void | Promise<void>;
   onSubmitAttempt: () => void;
   onFormKeyDown: (event: KeyboardEvent<HTMLFormElement>) => void;
   selectorCatalogLoading: boolean;
@@ -80,6 +90,7 @@ interface MethodUpsertFormProps {
   isVariantLabelDuplicate: (label: string) => boolean;
   hasDuplicateVariantLabels: boolean;
   showVariantValidationErrors: boolean;
+  submitValidationMessage?: string | null;
   isSaving: boolean;
   isDeleting: boolean;
   onCancel: () => void;
@@ -118,6 +129,7 @@ export function MethodUpsertForm({
   isVariantLabelDuplicate,
   hasDuplicateVariantLabels,
   showVariantValidationErrors,
+  submitValidationMessage,
   isSaving,
   isDeleting,
   onCancel,
@@ -233,7 +245,20 @@ export function MethodUpsertForm({
                           <RequiredMark />
                         </FormLabel>
                         <FormControl>
-                          <Input placeholder="Method name" className="bg-background" {...field} />
+                          <Input
+                            placeholder="Method name"
+                            className="bg-background"
+                            maxLength={METHOD_NAME_MAX_LENGTH}
+                            {...field}
+                            onChange={(event) =>
+                              field.onChange(
+                                normalizeBoundedText(
+                                  event.target.value,
+                                  METHOD_NAME_MAX_LENGTH,
+                                ),
+                              )
+                            }
+                          />
                         </FormControl>
                         <FormMessage className="mt-2" />
                       </FormItem>
@@ -293,7 +318,16 @@ export function MethodUpsertForm({
                           <Textarea
                             placeholder="Describe the method"
                             className="min-h-[150px] bg-background"
+                            maxLength={DESCRIPTION_MAX_LENGTH}
                             {...field}
+                            onChange={(event) =>
+                              field.onChange(
+                                normalizeBoundedText(
+                                  event.target.value,
+                                  DESCRIPTION_MAX_LENGTH,
+                                ),
+                              )
+                            }
                           />
                         </FormControl>
                         <FormMessage className="mt-2" />
@@ -521,6 +555,10 @@ export function MethodUpsertForm({
                 {hasDuplicateVariantLabels ? (
                   <p className={EDITOR_ERROR_TEXT_CLASS}>
                     Resolve duplicate variant labels before saving.
+                  </p>
+                ) : submitValidationMessage ? (
+                  <p className={EDITOR_ERROR_TEXT_CLASS}>
+                    {submitValidationMessage}
                   </p>
                 ) : (
                   <p className={EDITOR_META_TEXT_CLASS}>

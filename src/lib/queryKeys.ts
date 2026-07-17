@@ -1,4 +1,5 @@
 import type { Method } from "@/lib/api";
+import { normalizeBoundedText, USERNAME_MAX_LENGTH } from "@/lib/validation";
 
 export function normalizeMethodSlug(slug?: string): string {
   return (slug ?? "").trim();
@@ -6,7 +7,7 @@ export function normalizeMethodSlug(slug?: string): string {
 
 export function normalizeUsername(username?: string): string | undefined {
   const normalized = username?.trim();
-  return normalized ? normalized : undefined;
+  return normalized ? normalizeBoundedText(normalized, USERNAME_MAX_LENGTH) : undefined;
 }
 
 export function getMethodDetailQueryKey(slug: string, username?: string) {

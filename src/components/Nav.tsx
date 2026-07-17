@@ -26,6 +26,10 @@ import { cn, getUrlByType } from "@/lib/utils";
 import { OPEN_NAV_USERNAME_EVENT } from "@/lib/events";
 import { fetchMe } from "@/lib/me";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
+import {
+  normalizeBoundedText,
+  USERNAME_MAX_LENGTH,
+} from "@/lib/validation";
 
 export type Props = { hideInput?: boolean };
 const LOGIN_REQUIRED_MESSAGE = "sign-in/login to fetch data by osrs usernames";
@@ -198,7 +202,7 @@ export function Nav({ hideInput }: Props) {
                         to="/skilling"
                       >
                         <div className="text-base font-medium">
-                          Se all skills
+                          See all skills
                         </div>
                       </Link>
                     </NavigationMenuLink>
@@ -265,16 +269,19 @@ export function Nav({ hideInput }: Props) {
                   type="text"
                   id="username-input"
                   placeholder="Enter username"
+                  maxLength={USERNAME_MAX_LENGTH}
                   value={input}
                   readOnly={!session}
                   onClick={handleUsernameInputInteraction}
                   onFocus={handleUsernameInputInteraction}
                   onChange={(e) => {
                     if (!session) return;
-                    setInput(e.target.value);
+                    setInput(
+                      normalizeBoundedText(e.target.value, USERNAME_MAX_LENGTH),
+                    );
                   }}
                 />
-                <Button type="submit">Buscar</Button>
+                <Button type="submit">Fetch</Button>
               </form>
               {userError && <p className="text-sm text-destructive">{userError}</p>}
             </div>
@@ -304,7 +311,7 @@ export function Nav({ hideInput }: Props) {
             variant="outline"
             size="icon"
             className="lg:hidden"
-            aria-label={isMobileMenuOpen ? "Cerrar menu" : "Abrir menu"}
+            aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
             onClick={() => setIsMobileMenuOpen((prev) => !prev)}
           >
             <span className="relative block size-4">
@@ -432,16 +439,22 @@ export function Nav({ hideInput }: Props) {
                         type="text"
                         id="username-input-mobile"
                         placeholder="Enter username"
+                        maxLength={USERNAME_MAX_LENGTH}
                         value={input}
                         readOnly={!session}
                         onClick={handleUsernameInputInteraction}
                         onFocus={handleUsernameInputInteraction}
                         onChange={(e) => {
                           if (!session) return;
-                          setInput(e.target.value);
+                          setInput(
+                            normalizeBoundedText(
+                              e.target.value,
+                              USERNAME_MAX_LENGTH,
+                            ),
+                          );
                         }}
                       />
-                      <Button type="submit">Buscar</Button>
+                      <Button type="submit">Fetch</Button>
                     </form>
                     {userError && <p className="text-sm text-destructive">{userError}</p>}
                   </div>

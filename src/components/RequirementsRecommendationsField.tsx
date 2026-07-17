@@ -1,11 +1,13 @@
 import {
   EDITOR_FIELD_LABEL_CLASS,
+  EDITOR_META_TEXT_CLASS,
   EmptySelectionState,
 } from "@/components/method-editor/MethodEditorPrimitives";
 import { RequirementsEntriesTables } from "@/components/requirements-recommendations/RequirementsEntriesTables";
 import { RequirementsSearchCombobox } from "@/components/requirements-recommendations/RequirementsSearchCombobox";
 import type { RequirementsRecommendationsFieldProps } from "@/components/requirements-recommendations/requirementsRecommendations.types";
 import { useRequirementsRecommendations } from "@/components/requirements-recommendations/useRequirementsRecommendations";
+import { REQUIREMENT_ENTRIES_MAX_COUNT } from "@/lib/validation";
 
 export function RequirementsRecommendationsField(
   props: RequirementsRecommendationsFieldProps
@@ -44,6 +46,12 @@ export function RequirementsRecommendationsField(
         questIconUrl={state.questIconUrl}
         achievementDiaryIconUrl={state.achievementDiaryIconUrl}
       />
+
+      <p className={`${EDITOR_META_TEXT_CLASS} mt-2`}>
+        Requirements: {state.requiredEntryCount}/{REQUIREMENT_ENTRIES_MAX_COUNT}.
+        Recommendations: {state.recommendedEntryCount}/
+        {REQUIREMENT_ENTRIES_MAX_COUNT}.
+      </p>
 
       <div className="mt-4">
         {hasSelectedEntries ? (

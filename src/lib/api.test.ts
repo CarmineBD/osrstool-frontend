@@ -196,6 +196,32 @@ describe("api update payload helpers", () => {
     fetchSpy.mockRestore();
   });
 
+  it("truncates long method and username filters before fetching methods", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ data: { methods: [] } }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await fetchMethods("abcdefghijklmnop", undefined, "x".repeat(130));
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const requestInput = fetchSpy.mock.calls[0]?.[0];
+    const requestUrl =
+      typeof requestInput === "string"
+        ? requestInput
+        : requestInput instanceof URL
+          ? requestInput.toString()
+          : requestInput.url;
+    const url = new URL(requestUrl, window.location.origin);
+
+    expect(url.searchParams.get("username")).toBe("abcdefghijkl");
+    expect(url.searchParams.get("name")).toBe("x".repeat(100));
+
+    fetchSpy.mockRestore();
+  });
+
   it("passes the free-to-play-only filter when enabled", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({ data: { methods: [] } }), {
@@ -272,6 +298,31 @@ describe("api update payload helpers", () => {
     const url = new URL(requestUrl, window.location.origin);
 
     expect(url.searchParams.get("showUntradeables")).toBe("true");
+
+    fetchSpy.mockRestore();
+  });
+
+  it("truncates long item search queries", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ data: { items: [] } }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await searchItems("q".repeat(140), 10, 1);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const requestInput = fetchSpy.mock.calls[0]?.[0];
+    const requestUrl =
+      typeof requestInput === "string"
+        ? requestInput
+        : requestInput instanceof URL
+          ? requestInput.toString()
+          : requestInput.url;
+    const url = new URL(requestUrl, window.location.origin);
+
+    expect(url.searchParams.get("q")).toBe("q".repeat(100));
 
     fetchSpy.mockRestore();
   });

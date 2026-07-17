@@ -25,6 +25,7 @@ import type {
   SearchOption,
   SearchOptionGroup,
 } from "@/components/requirements-recommendations/requirementsRecommendations.types";
+import { SEARCH_QUERY_MAX_LENGTH } from "@/lib/validation";
 
 interface RequirementsSearchComboboxProps {
   label?: string;
@@ -83,6 +84,7 @@ export function RequirementsSearchCombobox({
           <ComboboxInput
             aria-label={label}
             className="w-full"
+            maxLength={SEARCH_QUERY_MAX_LENGTH}
             placeholder={
               placeholder ?? "Search items, skills, quests, or achievement diaries"
             }

@@ -19,6 +19,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { IconX } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
+import {
+  MAX_XP_HOUR_SKILLS,
+  MAX_XP_PER_HOUR,
+  normalizeBoundedText,
+  normalizeDigitInput,
+  SEARCH_QUERY_MAX_LENGTH,
+} from "@/lib/validation";
 
 type XpHourEntry = NonNullable<Variant["xpHour"]>[number];
 
@@ -28,17 +35,14 @@ interface XpSkillsFieldProps {
   entries: XpHourEntry[];
   onChange: (next: XpHourEntry[]) => void;
   placeholder?: string;
+  maxEntries?: number;
 }
 
 const MAX_SKILL_RESULTS = 25;
-const MAX_XP_DIGITS = 8;
+const MAX_XP_DIGITS = String(MAX_XP_PER_HOUR).length;
 
 function normalizeSkill(value: string): string {
   return value.trim().toLowerCase();
-}
-
-function normalizeDigits(value: string, maxDigits: number): string {
-  return value.replace(/\D/g, "").slice(0, maxDigits);
 }
 
 export function XpSkillsField({
@@ -47,6 +51,7 @@ export function XpSkillsField({
   entries,
   onChange,
   placeholder,
+  maxEntries = MAX_XP_HOUR_SKILLS,
 }: XpSkillsFieldProps) {
   const [query, setQuery] = useState("");
 
@@ -93,7 +98,7 @@ export function XpSkillsField({
   const handleAddSkill = (skill: SkillOption | null) => {
     if (!skill) return;
     const normalized = normalizeSkill(skill.name);
-    if (!normalized || hasSkill(normalized)) {
+    if (!normalized || hasSkill(normalized) || entries.length >= maxEntries) {
       setQuery("");
       return;
     }
@@ -107,14 +112,14 @@ export function XpSkillsField({
   };
 
   const handleExperienceChange = (skillName: string, value: string) => {
-    const normalizedValue = normalizeDigits(value, MAX_XP_DIGITS);
+    const normalizedValue = normalizeDigitInput(value, MAX_XP_DIGITS);
     const nextExperience = normalizedValue === "" ? 0 : Number(normalizedValue);
     if (!Number.isFinite(nextExperience)) return;
     const target = normalizeSkill(skillName);
     onChange(
       entries.map((entry) =>
         normalizeSkill(entry.skill) === target
-          ? { ...entry, experience: Math.max(0, nextExperience) }
+          ? { ...entry, experience: Math.min(MAX_XP_PER_HOUR, Math.max(0, nextExperience)) }
           : entry
       )
     );
@@ -127,7 +132,9 @@ export function XpSkillsField({
       {label ? <label className={EDITOR_FIELD_LABEL_CLASS}>{label}</label> : null}
       <Combobox<SkillOption>
         inputValue={query}
-        onInputValueChange={(value) => setQuery(value)}
+        onInputValueChange={(value) =>
+          setQuery(normalizeBoundedText(value, SEARCH_QUERY_MAX_LENGTH))
+        }
         onValueChange={(value) => handleAddSkill(value)}
         filter={null}
         itemToStringLabel={(item) => item.name}
@@ -139,6 +146,7 @@ export function XpSkillsField({
       >
         <ComboboxInput
           className="w-full"
+          maxLength={SEARCH_QUERY_MAX_LENGTH}
           placeholder={placeholder ?? "Search for a skill..."}
           showClear={query.trim().length > 0}
         />
@@ -146,8 +154,13 @@ export function XpSkillsField({
           <ComboboxList>
             {filteredSkills.map((skill) => {
               const isAdded = hasSkill(skill.name);
+              const isLimitReached = entries.length >= maxEntries && !isAdded;
               return (
-                <ComboboxItem key={skill.value} value={skill} disabled={isAdded}>
+                <ComboboxItem
+                  key={skill.value}
+                  value={skill}
+                  disabled={isAdded || isLimitReached}
+                >
                   <div className="flex items-center gap-2">
                     <PixelArtIcon
                       src={getUrlByType(skill.name)}
@@ -157,6 +170,8 @@ export function XpSkillsField({
                     <span>{skill.name}</span>
                     {isAdded ? (
                       <span className={EDITOR_META_TEXT_CLASS}>Added</span>
+                    ) : isLimitReached ? (
+                      <span className={EDITOR_META_TEXT_CLASS}>Limit reached</span>
                     ) : null}
                   </div>
                 </ComboboxItem>
@@ -166,6 +181,10 @@ export function XpSkillsField({
           <ComboboxEmpty>{emptyMessage}</ComboboxEmpty>
         </ComboboxContent>
       </Combobox>
+
+      <p className={cn("mt-3", EDITOR_META_TEXT_CLASS)}>
+        {entries.length}/{maxEntries} skills
+      </p>
 
       {entries.length > 0 ? (
         <div className="mt-3 flex flex-wrap gap-2">

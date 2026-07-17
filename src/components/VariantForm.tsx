@@ -31,6 +31,18 @@ import type {
   Variant,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import {
+  clampInteger,
+  DESCRIPTION_MAX_LENGTH,
+  INPUTS_MAX_COUNT,
+  MAX_AFKINESS,
+  MAX_CLICK_INTENSITY,
+  MAX_XP_HOUR_SKILLS,
+  normalizeBoundedText,
+  normalizeDigitInput,
+  OUTPUTS_MAX_COUNT,
+  VARIANT_LABEL_MAX_LENGTH,
+} from "@/lib/validation";
 
 interface VariantFormProps {
   index: number;
@@ -49,10 +61,6 @@ function normalizeIconId(value: number | null | undefined): number | undefined {
   return Number.isInteger(value) && (value as number) > 0
     ? (value as number)
     : undefined;
-}
-
-function normalizeDigits(value: string, maxDigits: number): string {
-  return value.replace(/\D/g, "").slice(0, maxDigits);
 }
 
 export function VariantForm({
@@ -176,13 +184,17 @@ export function VariantForm({
           <label className={EDITOR_FIELD_LABEL_CLASS}>Name</label>
           <Input
             value={label}
+            maxLength={VARIANT_LABEL_MAX_LENGTH}
             className={cn(
               "bg-background",
               isLabelDuplicate &&
                 "border-destructive focus-visible:ring-destructive",
             )}
             onChange={(event) => {
-              const next = event.target.value;
+              const next = normalizeBoundedText(
+                event.target.value,
+                VARIANT_LABEL_MAX_LENGTH,
+              );
               setLabel(next);
               onChange?.({ ...variant, label: next });
             }}
@@ -219,9 +231,13 @@ export function VariantForm({
           <Textarea
             placeholder="Describe this variant"
             className="min-h-[150px] bg-background"
+            maxLength={DESCRIPTION_MAX_LENGTH}
             value={description}
             onChange={(event) => {
-              const next = event.target.value;
+              const next = normalizeBoundedText(
+                event.target.value,
+                DESCRIPTION_MAX_LENGTH,
+              );
               setDescription(next);
               onChange?.({ ...variant, description: next });
             }}
@@ -237,6 +253,7 @@ export function VariantForm({
           label="XP per hour"
           skills={skillOptions}
           entries={xpHour}
+          maxEntries={MAX_XP_HOUR_SKILLS}
           placeholder="Search for a skill..."
           onChange={(next) => {
             setXpHour(next);
@@ -253,9 +270,12 @@ export function VariantForm({
             className="h-10 w-full max-w-[7rem] bg-background"
             value={afkiness !== undefined ? String(afkiness) : ""}
             onChange={(event) => {
-              const nextValue = normalizeDigits(event.target.value, 3);
-              const numericValue =
-                nextValue === "" ? undefined : Number(nextValue);
+              const nextValue = normalizeDigitInput(event.target.value, 3);
+              const numericValue = clampInteger(
+                nextValue === "" ? undefined : Number(nextValue),
+                0,
+                MAX_AFKINESS,
+              );
               setAfkiness(numericValue);
               onChange?.({ ...variant, afkiness: numericValue });
             }}
@@ -271,9 +291,12 @@ export function VariantForm({
             className="h-10 w-full max-w-[7rem] bg-background"
             value={clickIntensity !== undefined ? String(clickIntensity) : ""}
             onChange={(event) => {
-              const nextValue = normalizeDigits(event.target.value, 5);
-              const numericValue =
-                nextValue === "" ? undefined : Number(nextValue);
+              const nextValue = normalizeDigitInput(event.target.value, 5);
+              const numericValue = clampInteger(
+                nextValue === "" ? undefined : Number(nextValue),
+                0,
+                MAX_CLICK_INTENSITY,
+              );
               setClickIntensity(numericValue);
               onChange?.({ ...variant, clickIntensity: numericValue });
             }}
@@ -288,6 +311,7 @@ export function VariantForm({
         <IoItemsField
           label="Inputs"
           items={inputs}
+          maxItems={INPUTS_MAX_COUNT}
           onChange={(next) => {
             setInputs(next);
             onChange?.({ ...variant, inputs: next });
@@ -296,6 +320,7 @@ export function VariantForm({
         <IoItemsField
           label="Outputs"
           items={outputs}
+          maxItems={OUTPUTS_MAX_COUNT}
           onChange={(next) => {
             setOutputs(next);
             onChange?.({ ...variant, outputs: next });
