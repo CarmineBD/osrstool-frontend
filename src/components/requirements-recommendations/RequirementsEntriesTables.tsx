@@ -30,8 +30,17 @@ import type {
 import {
   formatAchievementDiaryLabel,
   formatRequiredLabel,
+  getSkillLevelBounds,
   sanitizeReasonInput,
 } from "@/components/requirements-recommendations/requirementsRecommendations.utils";
+import {
+  clampDecimal,
+  clampInteger,
+  MAX_ITEM_QUANTITY,
+  MAX_ITEM_QUANTITY_DECIMAL_PLACES,
+  normalizeBoundedText,
+  REASON_MAX_LENGTH,
+} from "@/lib/validation";
 
 type EntryUpdater = (entry: UnifiedEntry) => UnifiedEntry;
 
@@ -149,7 +158,8 @@ export function RequirementsEntriesTables({
                     <Input
                       type="number"
                       min={0}
-                      step="any"
+                      max={MAX_ITEM_QUANTITY}
+                      step="0.000001"
                       inputMode="decimal"
                       value={entry.quantity}
                       onChange={(event) => {
@@ -158,7 +168,16 @@ export function RequirementsEntriesTables({
                         if (!Number.isFinite(parsed)) return;
                         updateEntry(entry.key, (current) =>
                           current.kind === "item"
-                            ? { ...current, quantity: Math.max(0, parsed) }
+                            ? {
+                                ...current,
+                                quantity:
+                                  clampDecimal(
+                                    parsed,
+                                    0,
+                                    MAX_ITEM_QUANTITY,
+                                    MAX_ITEM_QUANTITY_DECIMAL_PLACES,
+                                  ) ?? 0,
+                              }
                             : current
                         );
                       }}
@@ -169,11 +188,17 @@ export function RequirementsEntriesTables({
                     <Input
                       type="text"
                       placeholder="Optional"
+                      maxLength={REASON_MAX_LENGTH}
                       value={entry.reason ?? ""}
                       onChange={(event) =>
                         updateEntry(entry.key, (current) => ({
                           ...current,
-                          reason: sanitizeReasonInput(event.target.value),
+                          reason: sanitizeReasonInput(
+                            normalizeBoundedText(
+                              event.target.value,
+                              REASON_MAX_LENGTH,
+                            ),
+                          ),
                         }))
                       }
                     />
@@ -253,11 +278,17 @@ export function RequirementsEntriesTables({
                     <Input
                       type="text"
                       placeholder="Optional"
+                      maxLength={REASON_MAX_LENGTH}
                       value={entry.reason ?? ""}
                       onChange={(event) =>
                         updateEntry(entry.key, (current) => ({
                           ...current,
-                          reason: sanitizeReasonInput(event.target.value),
+                          reason: sanitizeReasonInput(
+                            normalizeBoundedText(
+                              event.target.value,
+                              REASON_MAX_LENGTH,
+                            ),
+                          ),
                         }))
                       }
                     />
@@ -342,11 +373,17 @@ export function RequirementsEntriesTables({
                     <Input
                       type="text"
                       placeholder="Optional"
+                      maxLength={REASON_MAX_LENGTH}
                       value={entry.reason ?? ""}
                       onChange={(event) =>
                         updateEntry(entry.key, (current) => ({
                           ...current,
-                          reason: sanitizeReasonInput(event.target.value),
+                          reason: sanitizeReasonInput(
+                            normalizeBoundedText(
+                              event.target.value,
+                              REASON_MAX_LENGTH,
+                            ),
+                          ),
                         }))
                       }
                     />
@@ -411,17 +448,30 @@ export function RequirementsEntriesTables({
                   <TableCell>
                     <Input
                       type="number"
-                      min={0}
-                      step="any"
-                      inputMode="decimal"
+                      min={getSkillLevelBounds(entry.skill).min}
+                      max={getSkillLevelBounds(entry.skill).max}
+                      step={1}
+                      inputMode="numeric"
                       value={entry.level}
                       onChange={(event) => {
                         const value = event.target.value;
-                        const parsed = value === "" ? 0 : Number(value);
+                        const parsed =
+                          value === ""
+                            ? getSkillLevelBounds(entry.skill).min
+                            : Number(value);
                         if (!Number.isFinite(parsed)) return;
                         updateEntry(entry.key, (current) =>
                           current.kind === "skill"
-                            ? { ...current, level: Math.max(0, parsed) }
+                            ? {
+                                ...current,
+                                level:
+                                  clampInteger(
+                                    parsed,
+                                    getSkillLevelBounds(current.skill).min,
+                                    getSkillLevelBounds(current.skill).max,
+                                  ) ??
+                                  getSkillLevelBounds(current.skill).min,
+                              }
                             : current
                         );
                       }}
@@ -432,11 +482,17 @@ export function RequirementsEntriesTables({
                     <Input
                       type="text"
                       placeholder="Optional"
+                      maxLength={REASON_MAX_LENGTH}
                       value={entry.reason ?? ""}
                       onChange={(event) =>
                         updateEntry(entry.key, (current) => ({
                           ...current,
-                          reason: sanitizeReasonInput(event.target.value),
+                          reason: sanitizeReasonInput(
+                            normalizeBoundedText(
+                              event.target.value,
+                              REASON_MAX_LENGTH,
+                            ),
+                          ),
                         }))
                       }
                     />

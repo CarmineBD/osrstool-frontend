@@ -28,14 +28,56 @@ import {
   type Variant,
 } from "@/lib/api";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
+import {
+  countRequirementEntries,
+  DESCRIPTION_MAX_LENGTH,
+  hasAtMostDecimalPlaces,
+  INPUTS_MAX_COUNT,
+  MAX_COMBAT_LEVEL,
+  MAX_AFKINESS,
+  MAX_CLICK_INTENSITY,
+  MAX_ITEM_QUANTITY,
+  MAX_ITEM_QUANTITY_DECIMAL_PLACES,
+  MAX_SKILL_LEVEL,
+  MAX_XP_HOUR_SKILLS,
+  MAX_XP_PER_HOUR,
+  METHOD_NAME_MAX_LENGTH,
+  MIN_COMBAT_LEVEL,
+  OUTPUTS_MAX_COUNT,
+  REASON_MAX_LENGTH,
+  REQUIREMENT_ENTRIES_MAX_COUNT,
+  VARIANT_LABEL_MAX_LENGTH,
+} from "@/lib/validation";
 
 export type MethodUpsertMode = "create" | "edit";
 
+export const METHOD_CATEGORY_OPTIONS = [
+  "skilling",
+  "collecting",
+  "combat",
+  "processing",
+] as const;
+
 export const methodFormSchema = z
   .object({
-    name: z.string().min(1, { message: "Name is required" }),
-    category: z.string().min(1, { message: "Category is required" }),
-    description: z.string().optional(),
+    name: z
+      .string()
+      .trim()
+      .min(1, { message: "Name is required" })
+      .max(METHOD_NAME_MAX_LENGTH, {
+        message: `Name must be ${METHOD_NAME_MAX_LENGTH} characters or fewer`,
+      }),
+    category: z
+      .union([z.enum(METHOD_CATEGORY_OPTIONS), z.literal("")])
+      .refine((value) => value !== "", {
+        message: "Category is required",
+      }),
+    description: z
+      .string()
+      .max(DESCRIPTION_MAX_LENGTH, {
+        message: `Description must be ${DESCRIPTION_MAX_LENGTH} characters or fewer`,
+      })
+      .optional(),
     icon_id: z.number().int().positive().optional(),
   })
   .superRefine((values, ctx) => {
@@ -47,14 +89,8 @@ export const methodFormSchema = z
     });
   });
 
-export type MethodUpsertFormValues = z.infer<typeof methodFormSchema>;
-
-export const METHOD_CATEGORY_OPTIONS = [
-  "skilling",
-  "collecting",
-  "combat",
-  "processing",
-] as const;
+export type MethodUpsertFormValues = z.input<typeof methodFormSchema>;
+export type MethodUpsertSubmitValues = z.output<typeof methodFormSchema>;
 
 const createEmptyVariant = (label = "New variant"): Variant => ({
   label,
@@ -94,6 +130,190 @@ function normalizeIconId(value: number | null | undefined): number | undefined {
   return Number.isInteger(value) && (value as number) > 0
     ? (value as number)
     : undefined;
+}
+
+function normalizeMethodCategory(
+  value: string | undefined,
+): MethodUpsertFormValues["category"] {
+  const normalized = value?.toLowerCase().trim() ?? "";
+  return METHOD_CATEGORY_OPTIONS.includes(
+    normalized as (typeof METHOD_CATEGORY_OPTIONS)[number],
+  )
+    ? (normalized as (typeof METHOD_CATEGORY_OPTIONS)[number])
+    : "";
+}
+
+function isCombatRequirementSkill(skill: string): boolean {
+  return skill.trim().toLowerCase() === "combat";
+}
+
+function validateVariant(variant: Variant, index: number): string | null {
+  const variantLabel = variant.label?.trim() || `Variant ${index + 1}`;
+
+  if (!variant.label?.trim()) {
+    return `${variantLabel}: name is required.`;
+  }
+  if (variant.label.trim().length > VARIANT_LABEL_MAX_LENGTH) {
+    return `${variantLabel}: name must be ${VARIANT_LABEL_MAX_LENGTH} characters or fewer.`;
+  }
+  if ((variant.description ?? "").length > DESCRIPTION_MAX_LENGTH) {
+    return `${variantLabel}: description must be ${DESCRIPTION_MAX_LENGTH} characters or fewer.`;
+  }
+  if (!normalizeIconId(variant.icon_id)) {
+    return `${variantLabel}: icon is required.`;
+  }
+  if (
+    variant.clickIntensity !== undefined &&
+    (!Number.isInteger(variant.clickIntensity) ||
+      variant.clickIntensity < 0 ||
+      variant.clickIntensity > MAX_CLICK_INTENSITY)
+  ) {
+    return `${variantLabel}: clicks/hr must be an integer between 0 and ${MAX_CLICK_INTENSITY}.`;
+  }
+  if (
+    variant.afkiness !== undefined &&
+    (!Number.isInteger(variant.afkiness) ||
+      variant.afkiness < 0 ||
+      variant.afkiness > MAX_AFKINESS)
+  ) {
+    return `${variantLabel}: % AFK must be an integer between 0 and ${MAX_AFKINESS}.`;
+  }
+  if ((variant.xpHour?.length ?? 0) > MAX_XP_HOUR_SKILLS) {
+    return `${variantLabel}: XP per hour supports at most ${MAX_XP_HOUR_SKILLS} skills.`;
+  }
+  for (const entry of variant.xpHour ?? []) {
+    if (
+      !Number.isInteger(entry.experience) ||
+      entry.experience < 0 ||
+      entry.experience > MAX_XP_PER_HOUR
+    ) {
+      return `${variantLabel}: XP per hour must be an integer between 0 and ${MAX_XP_PER_HOUR}.`;
+    }
+  }
+  if ((variant.inputs?.length ?? 0) > INPUTS_MAX_COUNT) {
+    return `${variantLabel}: inputs can contain at most ${INPUTS_MAX_COUNT} items.`;
+  }
+  if ((variant.outputs?.length ?? 0) > OUTPUTS_MAX_COUNT) {
+    return `${variantLabel}: outputs can contain at most ${OUTPUTS_MAX_COUNT} items.`;
+  }
+
+  const ioEntries = [
+    ...(variant.inputs ?? []).map((entry) => ({ ...entry, bucket: "input" })),
+    ...(variant.outputs ?? []).map((entry) => ({ ...entry, bucket: "output" })),
+  ];
+  for (const entry of ioEntries) {
+    if (
+      !Number.isFinite(entry.quantity) ||
+      entry.quantity < 0 ||
+      entry.quantity > MAX_ITEM_QUANTITY ||
+      !hasAtMostDecimalPlaces(entry.quantity, MAX_ITEM_QUANTITY_DECIMAL_PLACES)
+    ) {
+      return `${variantLabel}: each ${entry.bucket} quantity must be between 0 and ${MAX_ITEM_QUANTITY} with at most ${MAX_ITEM_QUANTITY_DECIMAL_PLACES} decimal places.`;
+    }
+    if ((entry.reason ?? "").length > REASON_MAX_LENGTH) {
+      return `${variantLabel}: each ${entry.bucket} reason must be ${REASON_MAX_LENGTH} characters or fewer.`;
+    }
+  }
+
+  if (
+    countRequirementEntries(variant.requirements) > REQUIREMENT_ENTRIES_MAX_COUNT
+  ) {
+    return `${variantLabel}: requirements can contain at most ${REQUIREMENT_ENTRIES_MAX_COUNT} entries.`;
+  }
+  if (
+    countRequirementEntries(variant.recommendations) > REQUIREMENT_ENTRIES_MAX_COUNT
+  ) {
+    return `${variantLabel}: recommendations can contain at most ${REQUIREMENT_ENTRIES_MAX_COUNT} entries.`;
+  }
+
+  for (const item of variant.requirements?.items ?? []) {
+    if (
+      !Number.isFinite(item.quantity) ||
+      item.quantity < 0 ||
+      item.quantity > MAX_ITEM_QUANTITY ||
+      !hasAtMostDecimalPlaces(item.quantity, MAX_ITEM_QUANTITY_DECIMAL_PLACES)
+    ) {
+      return `${variantLabel}: each required item quantity must be between 0 and ${MAX_ITEM_QUANTITY} with at most ${MAX_ITEM_QUANTITY_DECIMAL_PLACES} decimal places.`;
+    }
+    if ((item.reason ?? "").length > REASON_MAX_LENGTH) {
+      return `${variantLabel}: each required item reason must be ${REASON_MAX_LENGTH} characters or fewer.`;
+    }
+  }
+
+  for (const item of variant.recommendations?.items ?? []) {
+    if (
+      !Number.isFinite(item.quantity) ||
+      item.quantity < 0 ||
+      item.quantity > MAX_ITEM_QUANTITY ||
+      !hasAtMostDecimalPlaces(item.quantity, MAX_ITEM_QUANTITY_DECIMAL_PLACES)
+    ) {
+      return `${variantLabel}: each recommended item quantity must be between 0 and ${MAX_ITEM_QUANTITY} with at most ${MAX_ITEM_QUANTITY_DECIMAL_PLACES} decimal places.`;
+    }
+    if ((item.reason ?? "").length > REASON_MAX_LENGTH) {
+      return `${variantLabel}: each recommended item reason must be ${REASON_MAX_LENGTH} characters or fewer.`;
+    }
+  }
+
+  const levelGroups = [
+    ...(variant.requirements?.levels ?? []).map((entry) => ({
+      ...entry,
+      bucket: "required",
+    })),
+    ...(variant.recommendations?.levels ?? []).map((entry) => ({
+      ...entry,
+      bucket: "recommended",
+    })),
+  ];
+  for (const entry of levelGroups) {
+    const maxLevel = isCombatRequirementSkill(entry.skill)
+      ? MAX_COMBAT_LEVEL
+      : MAX_SKILL_LEVEL;
+    const minLevel = isCombatRequirementSkill(entry.skill) ? MIN_COMBAT_LEVEL : 1;
+    if (
+      !Number.isInteger(entry.level) ||
+      entry.level < minLevel ||
+      entry.level > maxLevel
+    ) {
+      return `${variantLabel}: each ${entry.bucket} level must be an integer between ${minLevel} and ${maxLevel}.`;
+    }
+    if ((entry.reason ?? "").length > REASON_MAX_LENGTH) {
+      return `${variantLabel}: each ${entry.bucket} level reason must be ${REASON_MAX_LENGTH} characters or fewer.`;
+    }
+  }
+
+  const questGroups = [
+    ...(variant.requirements?.quests ?? []).map((entry) => ({
+      ...entry,
+      bucket: "required",
+    })),
+    ...(variant.recommendations?.quests ?? []).map((entry) => ({
+      ...entry,
+      bucket: "recommended",
+    })),
+  ];
+  for (const entry of questGroups) {
+    if ((entry.reason ?? "").length > REASON_MAX_LENGTH) {
+      return `${variantLabel}: each ${entry.bucket} quest reason must be ${REASON_MAX_LENGTH} characters or fewer.`;
+    }
+  }
+
+  const diaryGroups = [
+    ...(variant.requirements?.achievement_diaries ?? []).map((entry) => ({
+      ...entry,
+      bucket: "required",
+    })),
+    ...(variant.recommendations?.achievement_diaries ?? []).map((entry) => ({
+      ...entry,
+      bucket: "recommended",
+    })),
+  ];
+  for (const entry of diaryGroups) {
+    if ((entry.reason ?? "").length > REASON_MAX_LENGTH) {
+      return `${variantLabel}: each ${entry.bucket} achievement diary reason must be ${REASON_MAX_LENGTH} characters or fewer.`;
+    }
+  }
+
+  return null;
 }
 
 function normalizeVariantKey(value: string | undefined): string {
@@ -234,7 +454,9 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
   const [membershipConflictMessage, setMembershipConflictMessage] =
     useState<string>("");
   const [pendingSubmitValues, setPendingSubmitValues] =
-    useState<MethodUpsertFormValues | null>(null);
+    useState<MethodUpsertSubmitValues | null>(null);
+  const [submitValidationMessage, setSubmitValidationMessage] =
+    useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showVariantValidationErrors, setShowVariantValidationErrors] =
@@ -244,7 +466,11 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
 
   const method = data?.method;
 
-  const form = useForm<MethodUpsertFormValues>({
+  const form = useForm<
+    MethodUpsertFormValues,
+    unknown,
+    MethodUpsertSubmitValues
+  >({
     resolver: zodResolver(methodFormSchema),
     defaultValues: { name: "", category: "", description: "", icon_id: undefined },
   });
@@ -264,7 +490,7 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
 
     form.reset({
       name: method.name,
-      category: (method.category ?? "").toLowerCase().trim(),
+      category: normalizeMethodCategory(method.category),
       description: method.description ?? "",
       icon_id: normalizeIconId(method.icon_id),
     });
@@ -342,7 +568,7 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
   };
 
   const submitWithEnabled = async (
-    values: MethodUpsertFormValues,
+    values: MethodUpsertSubmitValues,
     enabledValue: boolean,
     variantsToSubmit: Variant[] = variants,
   ) => {
@@ -392,7 +618,7 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
 
   const handleSubmitError = (
     submitError: unknown,
-    values: MethodUpsertFormValues,
+    values: MethodUpsertSubmitValues,
   ) => {
     if (
       submitError instanceof ApiRequestError &&
@@ -414,7 +640,7 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
   };
 
   const runSubmit = async (
-    values: MethodUpsertFormValues,
+    values: MethodUpsertSubmitValues,
     variantsToSubmit: Variant[] = variants,
   ) => {
     if (isSavingRef.current) return;
@@ -424,6 +650,7 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
     setUserError(null);
 
     try {
+      setSubmitValidationMessage(null);
       await submitWithEnabled(values, enabled, variantsToSubmit);
     } catch (submitError) {
       handleSubmitError(submitError, values);
@@ -433,9 +660,18 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
     }
   };
 
-  const onSubmit = async (values: MethodUpsertFormValues) => {
+  const onSubmit = async (values: MethodUpsertSubmitValues) => {
     setShowVariantValidationErrors(true);
+    setSubmitValidationMessage(null);
     if (hasVariantIconErrors) return;
+
+    for (const [index, variant] of variants.entries()) {
+      const validationError = validateVariant(variant, index);
+      if (validationError) {
+        setSubmitValidationMessage(validationError);
+        return;
+      }
+    }
 
     await runSubmit(values);
   };
@@ -594,6 +830,7 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
     setMembershipConflictOpen,
     membershipConflicts,
     membershipConflictMessage,
+    submitValidationMessage,
     showVariantValidationErrors,
     setShowVariantValidationErrors,
     onSubmit,

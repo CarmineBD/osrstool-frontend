@@ -69,6 +69,7 @@ export function MethodUpsert({ mode }: Props) {
           isVariantLabelDuplicate={state.isVariantLabelDuplicate}
           hasDuplicateVariantLabels={state.hasDuplicateVariantLabels}
           showVariantValidationErrors={state.showVariantValidationErrors}
+          submitValidationMessage={state.submitValidationMessage}
           isSaving={state.isSaving}
           isDeleting={state.isDeleting}
           onCancel={state.handleCancel}

@@ -33,6 +33,10 @@ import { RequiredMark } from "@/components/RequiredMark";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import {
+  normalizeBoundedText,
+  SEARCH_QUERY_MAX_LENGTH,
+} from "@/lib/validation";
 
 const SEARCH_LIMIT = 10;
 const DEBOUNCE_MS = 200;
@@ -333,7 +337,11 @@ export function ItemIconField({
         className="sr-only"
         role="combobox"
         value={query}
-        onChange={(event) => setQuery(event.target.value)}
+        onChange={(event) =>
+          setQuery(
+            normalizeBoundedText(event.target.value, SEARCH_QUERY_MAX_LENGTH),
+          )
+        }
       />
 
       <Popover open={open} onOpenChange={handleOpenChange}>
@@ -370,8 +378,16 @@ export function ItemIconField({
               aria-controls={listboxId}
               placeholder={placeholder ?? "Search for an item icon..."}
               value={query}
+              maxLength={SEARCH_QUERY_MAX_LENGTH}
               autoFocus
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) =>
+                setQuery(
+                  normalizeBoundedText(
+                    event.target.value,
+                    SEARCH_QUERY_MAX_LENGTH,
+                  ),
+                )
+              }
             />
 
             <DropdownMenu>

@@ -11,6 +11,17 @@ import type {
   UnifiedQuestEntry,
   UnifiedSkillEntry,
 } from "@/components/requirements-recommendations/requirementsRecommendations.types";
+import {
+  clampDecimal,
+  clampInteger,
+  MAX_COMBAT_LEVEL,
+  MAX_ITEM_QUANTITY,
+  MAX_ITEM_QUANTITY_DECIMAL_PLACES,
+  MAX_SKILL_LEVEL,
+  MIN_COMBAT_LEVEL,
+  normalizeBoundedText,
+  REASON_MAX_LENGTH,
+} from "@/lib/validation";
 
 export const ITEM_SEARCH_LIMIT = 5;
 export const LOCAL_SEARCH_LIMIT = 5;
@@ -42,7 +53,10 @@ export function normalizeText(value: string): string {
 
 export function sanitizeReasonInput(value: unknown): string | null {
   if (typeof value !== "string") return null;
-  const singleLine = value.replace(/\r?\n|\r/g, " ");
+  const singleLine = normalizeBoundedText(
+    value.replace(/\r?\n|\r/g, " "),
+    REASON_MAX_LENGTH,
+  );
   return singleLine === "" ? null : singleLine;
 }
 
@@ -96,6 +110,16 @@ export function formatAchievementDiaryLabel(name: string, tier?: DiaryTier): str
 
 export function formatRequiredLabel(isRequired: boolean): string {
   return isRequired ? "Required" : "Recommended";
+}
+
+export function isCombatRequirementSkill(skill: string): boolean {
+  return normalizeText(skill) === "combat";
+}
+
+export function getSkillLevelBounds(skill: string) {
+  return isCombatRequirementSkill(skill)
+    ? { min: MIN_COMBAT_LEVEL, max: MAX_COMBAT_LEVEL }
+    : { min: 1, max: MAX_SKILL_LEVEL };
 }
 
 export function buildUnifiedEntryInstanceKey(
@@ -202,7 +226,13 @@ export function buildUnifiedEntries(
         key: buildUnifiedEntryKey("item", baseKey, isRequired),
         baseKey,
         id,
-        quantity: Number.isFinite(quantity) ? Math.max(0, quantity) : 1,
+        quantity:
+          clampDecimal(
+            Number.isFinite(quantity) ? quantity : 1,
+            0,
+            MAX_ITEM_QUANTITY,
+            MAX_ITEM_QUANTITY_DECIMAL_PLACES,
+          ) ?? 1,
         reason: normalizeReason(item.reason),
         isRequired,
       });
@@ -212,13 +242,19 @@ export function buildUnifiedEntries(
       const skill = level.skill?.trim();
       if (!skill) continue;
       const parsedLevel = Number(level.level);
+      const bounds = getSkillLevelBounds(skill);
       const baseKey = skillEntryKey(skill);
       mergeUnifiedEntry(entriesMap, {
         kind: "skill",
         key: buildUnifiedEntryKey("skill", baseKey, isRequired),
         baseKey,
         skill,
-        level: Number.isFinite(parsedLevel) ? Math.max(0, parsedLevel) : 1,
+        level:
+          clampInteger(
+            Number.isFinite(parsedLevel) ? parsedLevel : bounds.min,
+            bounds.min,
+            bounds.max,
+          ) ?? bounds.min,
         reason: normalizeReason(level.reason),
         isRequired,
       });
@@ -298,15 +334,27 @@ export function splitUnifiedEntries(entries: UnifiedEntry[]): {
     if (entry.kind === "item") {
       target.items.push({
         id: entry.id,
-        quantity: Math.max(0, Number(entry.quantity) || 0),
+        quantity:
+          clampDecimal(
+            Number(entry.quantity) || 0,
+            0,
+            MAX_ITEM_QUANTITY,
+            MAX_ITEM_QUANTITY_DECIMAL_PLACES,
+          ) ?? 0,
         ...(reason ? { reason } : {}),
       });
       continue;
     }
     if (entry.kind === "skill") {
+      const bounds = getSkillLevelBounds(entry.skill);
       target.levels.push({
         skill: entry.skill,
-        level: Math.max(0, Number(entry.level) || 0),
+        level:
+          clampInteger(
+            Number(entry.level) || bounds.min,
+            bounds.min,
+            bounds.max,
+          ) ?? bounds.min,
         ...(reason ? { reason } : {}),
       });
       continue;

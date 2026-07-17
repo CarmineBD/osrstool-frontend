@@ -29,6 +29,7 @@ import {
   achievementDiaryEntryKey,
   buildUnifiedEntryKey,
   buildUnifiedEntries,
+  getSkillLevelBounds,
   formatAchievementDiaryLabel,
   hasMoreItemPages,
   isAchievementDiaryEntry,
@@ -48,6 +49,11 @@ import {
   supportsDualRequirementEntries,
   splitUnifiedEntries,
 } from "@/components/requirements-recommendations/requirementsRecommendations.utils";
+import {
+  normalizeBoundedText,
+  REQUIREMENT_ENTRIES_MAX_COUNT,
+  SEARCH_QUERY_MAX_LENGTH,
+} from "@/lib/validation";
 
 type EntryUpdater = (entry: UnifiedEntry) => UnifiedEntry;
 
@@ -68,6 +74,8 @@ export interface UseRequirementsRecommendationsResult {
   questEntries: UnifiedQuestEntry[];
   achievementDiaryEntries: UnifiedAchievementDiaryEntry[];
   skillEntries: UnifiedSkillEntry[];
+  requiredEntryCount: number;
+  recommendedEntryCount: number;
   handleSearchListScroll: (event: UIEvent<HTMLElement>) => void;
   handleSelectOption: (option: SearchOption | null) => void;
   updateEntry: (entryKey: string, updater: EntryUpdater) => void;
@@ -84,7 +92,7 @@ export function useRequirementsRecommendations({
   achievementDiaryOptions,
   onChange,
 }: RequirementsRecommendationsFieldProps): UseRequirementsRecommendationsResult {
-  const [query, setQuery] = useState("");
+  const [query, setQueryState] = useState("");
   const [showUntradeables, setShowUntradeables] = useState(false);
   const [entries, setEntries] = useState<UnifiedEntry[]>(() =>
     buildUnifiedEntries(requirements, recommendations)
@@ -133,6 +141,10 @@ export function useRequirementsRecommendations({
     },
     [onChange]
   );
+
+  const setQuery = useCallback((value: string) => {
+    setQueryState(normalizeBoundedText(value, SEARCH_QUERY_MAX_LENGTH));
+  }, []);
 
   const selectedItemIdsKey = useMemo(
     () =>
@@ -455,6 +467,16 @@ export function useRequirementsRecommendations({
     [entries]
   );
 
+  const requiredEntryCount = useMemo(
+    () => entries.filter((entry) => entry.isRequired).length,
+    [entries],
+  );
+
+  const recommendedEntryCount = useMemo(
+    () => entries.filter((entry) => !entry.isRequired).length,
+    [entries],
+  );
+
   const visibleSearchGroups = useMemo<SearchOptionGroup[]>(
     () =>
       [
@@ -538,6 +560,19 @@ export function useRequirementsRecommendations({
             )
           : -1;
 
+        if (
+          currentEntry.isRequired !== normalizedUpdatedEntry.isRequired &&
+          conflictingIndex === -1
+        ) {
+          const targetCount = normalizedUpdatedEntry.isRequired
+            ? previousEntries.filter((entry) => entry.isRequired).length
+            : previousEntries.filter((entry) => !entry.isRequired).length;
+
+          if (targetCount >= REQUIREMENT_ENTRIES_MAX_COUNT) {
+            return previousEntries;
+          }
+        }
+
         if (conflictingIndex !== -1) {
           const conflictingEntry = nextEntries[conflictingIndex];
           nextEntries[conflictingIndex] = {
@@ -582,6 +617,11 @@ export function useRequirementsRecommendations({
         return;
       }
       const isRequired = supportsDualEntries ? !selectionState?.hasRequired : true;
+      const targetCount = isRequired ? requiredEntryCount : recommendedEntryCount;
+      if (targetCount >= REQUIREMENT_ENTRIES_MAX_COUNT) {
+        setQuery("");
+        return;
+      }
       const key = buildUnifiedEntryKey(option.kind, option.entryKey, isRequired);
 
       if (option.kind === "item") {
@@ -640,19 +680,25 @@ export function useRequirementsRecommendations({
 
       applyEntries((previousEntries) => [
         ...previousEntries,
-        {
-          kind: "skill",
-          key,
-          baseKey: option.entryKey,
-          skill: option.skill,
-          level: 1,
-          reason: null,
-          isRequired,
-        },
+          {
+            kind: "skill",
+            key,
+            baseKey: option.entryKey,
+            skill: option.skill,
+            level: getSkillLevelBounds(option.skill).min,
+            reason: null,
+            isRequired,
+          },
       ]);
       setQuery("");
     },
-    [applyEntries, entrySelectionState]
+    [
+      applyEntries,
+      entrySelectionState,
+      recommendedEntryCount,
+      requiredEntryCount,
+      setQuery,
+    ]
   );
 
   const itemEntries = useMemo(() => entries.filter(isItemEntry), [entries]);
@@ -700,6 +746,8 @@ export function useRequirementsRecommendations({
     questEntries,
     achievementDiaryEntries,
     skillEntries,
+    requiredEntryCount,
+    recommendedEntryCount,
     handleSearchListScroll,
     handleSelectOption,
     updateEntry,

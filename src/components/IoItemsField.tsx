@@ -56,6 +56,14 @@ import {
   IconX,
 } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
+import {
+  clampDecimal,
+  MAX_ITEM_QUANTITY,
+  MAX_ITEM_QUANTITY_DECIMAL_PLACES,
+  normalizeBoundedText,
+  REASON_MAX_LENGTH,
+  SEARCH_QUERY_MAX_LENGTH,
+} from "@/lib/validation";
 
 const SEARCH_LIMIT = 10;
 const DEBOUNCE_MS = 200;
@@ -90,6 +98,7 @@ interface IoItemsFieldProps {
   items: IoItem[];
   onChange: (next: IoItem[]) => void;
   placeholder?: string;
+  maxItems?: number;
 }
 
 export function IoItemsField({
@@ -97,6 +106,7 @@ export function IoItemsField({
   items,
   onChange,
   placeholder,
+  maxItems,
 }: IoItemsFieldProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ItemSearchResult[]>([]);
@@ -295,7 +305,7 @@ export function IoItemsField({
   const handleAddItem = (item: ItemSearchResult | null) => {
     if (!item) return;
     const exists = items.some((entry) => entry.id === item.id);
-    if (exists) {
+    if (exists || (maxItems !== undefined && items.length >= maxItems)) {
       setQuery("");
       return;
     }
@@ -310,20 +320,27 @@ export function IoItemsField({
   const handleQuantityChange = (id: number, value: string) => {
     const nextQuantity = value === "" ? 0 : Number(value);
     if (!Number.isFinite(nextQuantity)) return;
+    const normalizedQuantity =
+      clampDecimal(
+        nextQuantity,
+        0,
+        MAX_ITEM_QUANTITY,
+        MAX_ITEM_QUANTITY_DECIMAL_PLACES,
+      ) ?? 0;
     onChange(
       items.map((entry) =>
         entry.id === id
-          ? { ...entry, quantity: Math.max(0, nextQuantity) }
+          ? { ...entry, quantity: normalizedQuantity }
           : entry
       )
     );
   };
 
   const handleReasonChange = (id: number, value: string) => {
-    const nextValue = value === "" ? null : value;
+    const nextValue = normalizeBoundedText(value, REASON_MAX_LENGTH);
     onChange(
       items.map((entry) =>
-        entry.id === id ? { ...entry, reason: nextValue } : entry
+        entry.id === id ? { ...entry, reason: nextValue === "" ? null : nextValue } : entry
       )
     );
   };
@@ -389,7 +406,9 @@ export function IoItemsField({
       <div className="flex items-start gap-2">
         <Combobox<ItemSearchResult>
           inputValue={query}
-          onInputValueChange={(value) => setQuery(value)}
+          onInputValueChange={(value) =>
+            setQuery(normalizeBoundedText(value, SEARCH_QUERY_MAX_LENGTH))
+          }
           onValueChange={(value) => handleAddItem(value)}
           filter={null}
           itemToStringLabel={(item) => item.name}
@@ -401,6 +420,7 @@ export function IoItemsField({
         >
           <ComboboxInput
             className="w-full"
+            maxLength={SEARCH_QUERY_MAX_LENGTH}
             placeholder={placeholder ?? "Search for an item..."}
             showClear={query.trim().length > 0}
           />
@@ -420,13 +440,21 @@ export function IoItemsField({
                   ))
                 : results.map((item) => {
                     const isAdded = items.some((entry) => entry.id === item.id);
+                    const isLimitReached =
+                      maxItems !== undefined && items.length >= maxItems && !isAdded;
                     return (
-                      <ComboboxItem key={item.id} value={item} disabled={isAdded}>
+                      <ComboboxItem
+                        key={item.id}
+                        value={item}
+                        disabled={isAdded || isLimitReached}
+                      >
                         <div className="flex items-center gap-2">
                           <PixelArtIcon src={item.iconUrl} alt={item.name} />
                           <span>{item.name}</span>
                           {isAdded ? (
                             <span className={EDITOR_META_TEXT_CLASS}>Added</span>
+                          ) : isLimitReached ? (
+                            <span className={EDITOR_META_TEXT_CLASS}>Limit reached</span>
                           ) : null}
                         </div>
                       </ComboboxItem>
@@ -475,6 +503,12 @@ export function IoItemsField({
         </DropdownMenu>
       </div>
 
+      {maxItems !== undefined ? (
+        <p className={cn("mt-2", EDITOR_META_TEXT_CLASS)}>
+          {items.length}/{maxItems} items
+        </p>
+      ) : null}
+
       <div className="mt-4">
         {items.length === 0 ? (
           <EmptySelectionState description={emptySelectionMessage} />
@@ -519,7 +553,8 @@ export function IoItemsField({
                       <Input
                         type="number"
                         min={0}
-                        step="any"
+                        max={MAX_ITEM_QUANTITY}
+                        step="0.000001"
                         inputMode="decimal"
                         value={entry.quantity}
                         onChange={(e) =>
@@ -531,6 +566,7 @@ export function IoItemsField({
                     <TableCell className="align-top">
                       <Textarea
                         placeholder="Optional"
+                        maxLength={REASON_MAX_LENGTH}
                         value={entry.reason ?? ""}
                         onChange={(e) =>
                           handleReasonChange(entry.id, e.target.value)
