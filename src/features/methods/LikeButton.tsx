@@ -55,7 +55,7 @@ export function LikeButton({
       <Heart
         className={cn(
           "h-4 w-4 shrink-0",
-          isLiked ? "fill-red-500 text-red-500" : "text-muted-foreground"
+          isLiked ? "fill-danger text-danger" : "text-muted-foreground"
         )}
       />
       {hasLikeCount ? (

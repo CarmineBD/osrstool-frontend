@@ -638,7 +638,7 @@ export function MethodsList({
               to={`/moneyMakingMethod/${row.methodSlug}${
                 row.variantCount > 1 ? `/${row.variantSlug}` : ""
               }`}
-              className="block min-w-0 truncate text-blue-600 hover:underline"
+              className="block min-w-0 truncate text-link transition-colors hover:text-link-hover hover:underline"
               onMouseEnter={() => scheduleMethodPrefetch(row.methodSlug)}
               onMouseLeave={clearPrefetchTimer}
               onFocus={() => scheduleMethodPrefetch(row.methodSlug)}
@@ -664,7 +664,7 @@ export function MethodsList({
       <div className="space-y-1">
         <Link
           to={`/moneyMakingMethod/${row.methodSlug}/${row.variantSlug}`}
-          className="block min-w-0 truncate text-blue-600 hover:underline"
+          className="block min-w-0 truncate text-link transition-colors hover:text-link-hover hover:underline"
           onMouseEnter={() => scheduleMethodPrefetch(row.methodSlug)}
           onMouseLeave={clearPrefetchTimer}
           onFocus={() => scheduleMethodPrefetch(row.methodSlug)}
@@ -1060,7 +1060,7 @@ export function MethodsList({
             ))
           ) : error && !data ? (
             <TableRow>
-              <TableCell colSpan={tableColumnCount} className="text-red-500">
+              <TableCell colSpan={tableColumnCount} className="text-destructive">
                 Error: {`${error}`}
               </TableCell>
             </TableRow>

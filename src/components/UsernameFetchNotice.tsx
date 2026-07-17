@@ -52,7 +52,7 @@ const noticeToneClassByState: Record<UsernameFetchNoticeState, string> = {
   error:
     "border-destructive/30 bg-destructive/10 text-foreground dark:border-destructive/35 dark:bg-destructive/12 dark:text-foreground",
   success:
-    "border-emerald-300/45 bg-emerald-50/70 text-foreground dark:border-emerald-900/45 dark:bg-emerald-950/20 dark:text-foreground",
+    "border-success/35 bg-success-soft text-success-foreground",
 };
 
 type NoticeContent = {
@@ -129,7 +129,7 @@ export function UsernameFetchNotice(props: UsernameFetchNoticeProps) {
         type="button"
         aria-label={dismissLabel}
         onClick={() => setIsDismissed(true)}
-        className="absolute top-2 right-2 inline-flex size-7 items-center justify-center rounded-md text-current/70 transition-colors hover:bg-black/8 hover:text-current"
+        className="absolute top-2 right-2 inline-flex size-7 items-center justify-center rounded-md text-current/70 transition-colors hover:bg-foreground/8 hover:text-current"
       >
         <IconX className="size-4" />
       </button>
