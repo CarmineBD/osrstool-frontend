@@ -239,6 +239,7 @@ export function SkillingPage() {
           {isSuperAdmin ? (
             <div className="flex items-center gap-2 pt-2">
               <Switch
+                aria-label="Enabled methods filter"
                 checked={enabledFilter}
                 onCheckedChange={(checked) => setEnabledFilter(checked)}
               />

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, X } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -262,6 +263,8 @@ export function Nav({ hideInput }: Props) {
         </NavigationMenu>
 
         <div className="flex items-center gap-2 lg:gap-4">
+          <ThemeToggle labelClassName="hidden xl:inline" />
+
           {!hideInput && (
             <div className="hidden flex-col gap-1 lg:flex">
               <form onSubmit={handleSubmit} className="flex gap-2">
