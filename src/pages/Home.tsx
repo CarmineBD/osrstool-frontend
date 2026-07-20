@@ -32,7 +32,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { UsernameFetchNotice } from "@/components/UsernameFetchNotice";
-import type { MethodsFilters } from "@/lib/api";
+import {
+  DEFAULT_IGNORED_METHOD_TAGS,
+  fetchMethodTags,
+  type MethodsFilters,
+} from "@/lib/api";
 import { getUrlByType } from "@/lib/utils";
 import { fetchMe } from "@/lib/me";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
@@ -47,6 +51,7 @@ import {
   sanitizeMethodsTableFieldsState,
   type MethodsTableColumnId,
 } from "@/features/methods/tableColumns";
+import { MethodTagsFilterCombobox } from "@/features/methods/MethodTagsFilterCombobox";
 import {
   MAX_CLICK_INTENSITY,
   normalizeBoundedText,
@@ -118,6 +123,7 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
     undefined,
   );
   const [showOnlyFreeToPlay, setShowOnlyFreeToPlay] = useState(false);
+  const [ignoredTags, setIgnoredTags] = useState(DEFAULT_IGNORED_METHOD_TAGS);
   const [enabled, setEnabled] = useState<boolean>(true);
   const [sortConfig, setSortConfig] = useState<SortConfig>(DEFAULT_SORT_CONFIG);
   const previousUserIdRef = useRef<string | null>(null);
@@ -129,6 +135,13 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
     retry: false,
   });
   const isSuperAdmin = meData?.data?.role === "super_admin";
+  const { data: methodTagOptions = [] } = useQuery({
+    queryKey: ["method-tags"],
+    queryFn: fetchMethodTags,
+    enabled: isFiltersOpen,
+    staleTime: QUERY_STALE_TIME_MS,
+    retry: false,
+  });
   const tableColumns = useMemo(
     () => getMethodsTableColumns(hasLockedSkill),
     [hasLockedSkill],
@@ -287,6 +300,7 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
     if (givesExperience !== undefined) count += 1;
     if (showProfitables !== undefined) count += 1;
     if (showOnlyFreeToPlay) count += 1;
+    if (ignoredTags.length > 0) count += 1;
     if (isSuperAdmin && enabled !== true) count += 1;
     return count;
   }, [
@@ -299,6 +313,7 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
     givesExperience,
     showProfitables,
     showOnlyFreeToPlay,
+    ignoredTags,
     isSuperAdmin,
     enabled,
   ]);
@@ -318,6 +333,7 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
       skill: normalizedLockedSkill ?? (skill || undefined),
       variants: normalizedLockedSkill ? "all" : undefined,
       showProfitables,
+      ignoredTags: ignoredTags.length > 0 ? ignoredTags : undefined,
       sortBy: sortConfig.sortBy,
       order: sortConfig.order,
     }),
@@ -333,6 +349,7 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
       normalizedLockedSkill,
       skill,
       showProfitables,
+      ignoredTags,
       sortConfig.sortBy,
       sortConfig.order,
     ],
@@ -891,6 +908,30 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
                           Skill locked: {lockedSkillLabel}
                         </FieldDescription>
                       ) : null}
+                    </Field>
+
+                    <Field className="mx-auto grid gap-2 w-full">
+                      <div className="flex items-center justify-between gap-2">
+                        <FieldLabel>Ignored tags</FieldLabel>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-auto px-2 py-1 text-xs"
+                          disabled={ignoredTags.length === 0}
+                          onClick={() => setIgnoredTags([])}
+                        >
+                          Clear
+                        </Button>
+                      </div>
+                      <MethodTagsFilterCombobox
+                        options={methodTagOptions}
+                        value={ignoredTags}
+                        onValueChange={setIgnoredTags}
+                      />
+                      <FieldDescription>
+                        Hide methods containing any selected tag.
+                      </FieldDescription>
                     </Field>
 
                   </div>
