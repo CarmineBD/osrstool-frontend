@@ -42,7 +42,7 @@ describe("critical flow: landing + all methods routing", () => {
     expect(
       screen.getByRole("link", { name: /#2\s+Main icon\s+Rune Dragons/i })
     ).toBeInTheDocument();
-    expect(screen.getByText("1.2m/hr")).toBeInTheDocument();
+    expect(screen.getByText("1.2m")).toBeInTheDocument();
     expect(screen.getByText("+5.4%")).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: /leer articulo completo/i })).toHaveLength(3);
     expect(
