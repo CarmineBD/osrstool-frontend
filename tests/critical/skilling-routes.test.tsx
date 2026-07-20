@@ -465,7 +465,9 @@ describe("critical flow: skilling routes", () => {
       expect(seenEnabledValues).toContain("false");
     });
 
-    await user.click(screen.getByRole("switch"));
+    await user.click(
+      screen.getByRole("switch", { name: /enabled methods filter/i }),
+    );
 
     await waitFor(() => {
       expect(seenEnabledValues).toContain("true");
