@@ -39,6 +39,7 @@ describe("critical flow: list render + filters", () => {
   it("renders methods and applies method-name filtering", async () => {
     const seenNames: string[] = [];
     const seenShowOnlyFreeToPlay: string[] = [];
+    const seenIgnoredTags: string[] = [];
     const seenSortBy: string[] = [];
     const seenOrder: string[] = [];
 
@@ -70,10 +71,12 @@ describe("critical flow: list render + filters", () => {
         const name = requestUrl.searchParams.get("name") ?? "";
         const showOnlyFreeToPlay =
           requestUrl.searchParams.get("show_only_free_to_play") ?? "";
+        const ignoredTags = requestUrl.searchParams.getAll("ignoredTags").join(",");
         const sortBy = requestUrl.searchParams.get("sortBy") ?? "";
         const order = requestUrl.searchParams.get("order") ?? "";
         seenNames.push(name);
         seenShowOnlyFreeToPlay.push(showOnlyFreeToPlay);
+        seenIgnoredTags.push(ignoredTags);
         seenSortBy.push(sortBy);
         seenOrder.push(order);
 
@@ -107,11 +110,27 @@ describe("critical flow: list render + filters", () => {
     ).toBeInTheDocument();
     expect(await screen.findByAltText("Shark fishing icon")).toBeInTheDocument();
     expect(seenShowOnlyFreeToPlay).toContain("false");
+    expect(seenIgnoredTags).toContain("not_viable");
     expect(seenSortBy).toContain("highProfit");
     expect(seenOrder).toContain("desc");
 
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: /show filters/i }));
+    expect((await screen.findAllByText("Not viable")).length).toBeGreaterThan(0);
+    await user.click(screen.getByLabelText("Ignored tags"));
+    expect(screen.queryByText("No tags found.")).not.toBeInTheDocument();
+    await user.hover(
+      screen.getByRole("button", { name: /ge limits explanation/i }),
+    );
+    expect(
+      (
+        await screen.findAllByText(
+          /some required inputs exceed grand exchange buy limits at the one-hour scale/i,
+        )
+      ).length,
+    ).toBeGreaterThan(0);
+    await user.keyboard("{Escape}");
+    await user.click(screen.getByRole("button", { name: /clear/i }));
     await user.click(screen.getByRole("switch", { name: /f2p only/i }));
     await user.type(
       screen.getByPlaceholderText("Search by method name"),
@@ -125,6 +144,7 @@ describe("critical flow: list render + filters", () => {
     expect(screen.getByText("Fast route")).toBeInTheDocument();
     expect(seenNames).toContain("dragon");
     expect(seenShowOnlyFreeToPlay).toContain("true");
+    expect(seenIgnoredTags).toContain("");
     expect(seenSortBy).toContain("highProfit");
     expect(seenOrder).toContain("desc");
   }, 10000);

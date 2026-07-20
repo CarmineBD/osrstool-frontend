@@ -120,6 +120,25 @@ export interface VariantTag {
   description?: string | null;
 }
 
+export type MethodVariantTagKey =
+  | "ge_limits"
+  | "high_investment_required"
+  | "risky_to_lose_money"
+  | "not_viable"
+  | "safe"
+  | "very_slow_to_buy_inputs"
+  | "very_slow_to_sell_outputs"
+  | (string & {});
+
+export interface MethodVariantTagDefinition {
+  key: MethodVariantTagKey;
+  label: string;
+  severity: 1 | 2 | 3;
+  description?: string;
+}
+
+export const DEFAULT_IGNORED_METHOD_TAGS: MethodVariantTagKey[] = ["not_viable"];
+
 export interface Variant {
   id?: string;
   slug?: string;
@@ -296,6 +315,7 @@ export interface MethodsFilters {
   variants?: "all";
   showProfitables?: boolean;
   likedByMe?: boolean;
+  ignoredTags?: MethodVariantTagKey[];
   sortBy?:
     | "clickIntensity"
     | "afkiness"
@@ -356,6 +376,16 @@ export async function fetchMethods(
   }
   if (filters?.likedByMe !== undefined) {
     url.searchParams.set("likedByMe", String(filters.likedByMe));
+  }
+  if (filters?.ignoredTags?.length) {
+    const uniqueIgnoredTags = Array.from(
+      new Set(
+        filters.ignoredTags
+          .map((tag) => tag.trim())
+          .filter((tag) => tag.length > 0),
+      ),
+    );
+    uniqueIgnoredTags.forEach((tag) => url.searchParams.append("ignoredTags", tag));
   }
   if (filters?.sortBy) url.searchParams.set("sortBy", filters.sortBy);
   if (filters?.order) url.searchParams.set("order", filters.order);
@@ -497,6 +527,66 @@ export async function fetchTrendingProfitMethods(): Promise<Method[]> {
 
   const json: unknown = await res.json();
   return normalizeMethods(parseMethodsFromResponse(json));
+}
+
+function parseMethodTagDefinitions(value: unknown): MethodVariantTagDefinition[] {
+  if (!value || typeof value !== "object") return [];
+
+  const root = value as Record<string, unknown>;
+  const data =
+    root.data && typeof root.data === "object"
+      ? (root.data as Record<string, unknown>)
+      : undefined;
+  const entries = Array.isArray(data?.tags)
+    ? data.tags
+    : Array.isArray(root.tags)
+      ? root.tags
+      : [];
+
+  const uniqueTags = new Map<string, MethodVariantTagDefinition>();
+  for (const entry of entries) {
+    if (!entry || typeof entry !== "object") continue;
+
+    const record = entry as Record<string, unknown>;
+    const key =
+      typeof record.key === "string" && record.key.trim().length > 0
+        ? (record.key.trim() as MethodVariantTagKey)
+        : null;
+    const label =
+      typeof record.label === "string" && record.label.trim().length > 0
+        ? record.label.trim()
+        : null;
+    const severity =
+      record.severity === 1 || record.severity === 2 || record.severity === 3
+        ? record.severity
+        : null;
+    const description =
+      typeof record.description === "string" && record.description.trim().length > 0
+        ? record.description.trim()
+        : undefined;
+
+    if (!key || !label || !severity || uniqueTags.has(key)) continue;
+    uniqueTags.set(key, { key, label, severity, description });
+  }
+
+  return Array.from(uniqueTags.values());
+}
+
+export async function fetchMethodTags(): Promise<MethodVariantTagDefinition[]> {
+  const url = toApiUrl("/methods/tags");
+  const res = await apiFetch(url.toString(), {
+    cache: "no-store",
+    headers: {
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
+    },
+  });
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status} - Error fetching method tags`);
+  }
+
+  const json: unknown = await res.json();
+  return parseMethodTagDefinitions(json);
 }
 
 export interface Item {

@@ -487,16 +487,14 @@ export function MethodsList({
             <div className="flex flex-wrap gap-1">
               {overflow.map((entry, index) => {
                 const normalized = entry.skill.trim().toLowerCase();
+                const iconUrl = getUrlByType(normalized);
                 return (
                   <Badge
                     size="sm"
                     key={`${normalized}-${index}`}
                     variant="secondary"
                   >
-                    <img
-                      src={getUrlByType(normalized) ?? ""}
-                      alt={`${normalized}_icon`}
-                    />
+                    {iconUrl ? <img src={iconUrl} alt={`${normalized}_icon`} /> : null}
                     {`${entry.skill}: ${entry.level}`}
                   </Badge>
                 );
@@ -565,16 +563,14 @@ export function MethodsList({
             <div className="flex flex-wrap gap-1">
               {overflow.map((entry, index) => {
                 const normalized = entry.skill.trim().toLowerCase();
+                const iconUrl = getUrlByType(normalized);
                 return (
                   <Badge
                     size="sm"
                     key={`${normalized}-${index}`}
                     variant="secondary"
                   >
-                    <img
-                      src={getUrlByType(normalized) ?? ""}
-                      alt={`${normalized}_icon`}
-                    />
+                    {iconUrl ? <img src={iconUrl} alt={`${normalized}_icon`} /> : null}
                     {`${entry.skill}: ${formatNumber(entry.experience)}`}
                   </Badge>
                 );
@@ -596,15 +592,17 @@ export function MethodsList({
           return (
             <>
               {visible.map(
-                ({ skill, level }: { skill: string; level: number }) => (
-                  <Badge size="lg" key={skill} variant="secondary">
-                    <img
-                      src={getUrlByType(skill) ?? ""}
-                      alt={`${skill.toLowerCase()}_icon`}
-                    />
-                    {level}
-                  </Badge>
-                ),
+                ({ skill, level }: { skill: string; level: number }) => {
+                  const iconUrl = getUrlByType(skill);
+                  return (
+                    <Badge size="lg" key={skill} variant="secondary">
+                      {iconUrl ? (
+                        <img src={iconUrl} alt={`${skill.toLowerCase()}_icon`} />
+                      ) : null}
+                      {level}
+                    </Badge>
+                  );
+                },
               )}
               {renderRequirementsOverflow(overflow)}
             </>
@@ -739,15 +737,17 @@ export function MethodsList({
                 }: {
                   skill: string;
                   experience: number;
-                }) => (
-                  <Badge size="lg" key={skill} variant="secondary">
-                    <img
-                      src={getUrlByType(skill) ?? ""}
-                      alt={`${skill.toLowerCase()}_icon`}
-                    />
-                    {formatNumber(experience)}
-                  </Badge>
-                ),
+                }) => {
+                  const iconUrl = getUrlByType(skill);
+                  return (
+                    <Badge size="lg" key={skill} variant="secondary">
+                      {iconUrl ? (
+                        <img src={iconUrl} alt={`${skill.toLowerCase()}_icon`} />
+                      ) : null}
+                      {formatNumber(experience)}
+                    </Badge>
+                  );
+                },
               )}
               {renderXpOverflow(overflow)}
             </>

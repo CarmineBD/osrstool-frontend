@@ -75,16 +75,19 @@ describe("critical flow: methods list tags", () => {
 
     renderWithProviders(<Home />);
 
-    expect(
-      await screen.findByRole("link", { name: "Tipping bolts" }),
-    ).toBeInTheDocument();
+    const methodLink = await screen.findByRole("link", { name: "Tipping bolts" });
+    expect(methodLink).toBeInTheDocument();
+    const methodRow = methodLink.closest("tr");
+    expect(methodRow).not.toBeNull();
+    const row = within(methodRow as HTMLTableRowElement);
 
     const user = userEvent.setup();
-    const moreButton = await screen.findByRole("button", {
+    const moreButton = await row.findByRole("button", {
       name: /show 1 more tags/i,
     });
-    const geLimitsTag = screen.getByText("GE limits").closest("[data-slot='badge']");
-    const highInvestmentTag = screen
+    const geLimitsText = row.getByText("GE limits");
+    const geLimitsTag = geLimitsText.closest("[data-slot='badge']");
+    const highInvestmentTag = row
       .getByText("High investment required")
       .closest("[data-slot='badge']");
 
@@ -96,7 +99,7 @@ describe("critical flow: methods list tags", () => {
       "text-warning-foreground",
     );
 
-    await user.hover(screen.getByText("GE limits"));
+    await user.hover(geLimitsText);
     const tagTooltips = await screen.findAllByRole("tooltip");
     const tagTooltip = tagTooltips[tagTooltips.length - 1];
     const multilineDescription = within(tagTooltip).getByText(
@@ -108,7 +111,7 @@ describe("critical flow: methods list tags", () => {
       within(tagTooltip).getByText(/runite bolts require more than the ge cap/i),
     ).toBeInTheDocument();
 
-    await user.unhover(screen.getByText("GE limits"));
+    await user.unhover(geLimitsText);
     await user.hover(moreButton);
 
     expect(moreButton).toHaveAttribute("title", "Safe");

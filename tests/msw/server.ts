@@ -42,6 +42,62 @@ export const server = setupServer(
     return HttpResponse.json({ data });
   }),
   http.get("*/quests", () => HttpResponse.json([])),
+  http.get("*/methods/tags", () =>
+    HttpResponse.json({
+      data: {
+        tags: [
+          {
+            key: "ge_limits",
+            label: "GE limits",
+            severity: 2,
+            description:
+              "Some required inputs exceed Grand Exchange buy limits at the one-hour scale.",
+          },
+          {
+            key: "high_investment_required",
+            label: "High investment required",
+            severity: 2,
+            description:
+              "This method requires a high upfront investment. One hour of inputs costs more than the method's best-case hourly profit.",
+          },
+          {
+            key: "risky_to_lose_money",
+            label: "Risky to lose money",
+            severity: 3,
+            description:
+              "This method can be profitable in the best case, but it can lose money in the worst case.",
+          },
+          {
+            key: "not_viable",
+            label: "Not viable",
+            severity: 3,
+            description:
+              "This method has extreme market impact. Operating it at the one-hour scale may take days to fully buy and sell through the market.",
+          },
+          {
+            key: "safe",
+            label: "Safe",
+            severity: 1,
+            description: "This method stayed above break-even over the last 24 hours.",
+          },
+          {
+            key: "very_slow_to_buy_inputs",
+            label: "Very Slow to buy inputs",
+            severity: 2,
+            description:
+              "Buying the required inputs may take a long time because hourly demand is much higher than market volume.",
+          },
+          {
+            key: "very_slow_to_sell_outputs",
+            label: "Very Slow to sell outputs",
+            severity: 2,
+            description:
+              "Selling the generated outputs may take a long time because hourly supply is much higher than market volume.",
+          },
+        ],
+      },
+    }),
+  ),
   http.get("*/methods/trending-profit", ({ request }) => {
     const url = new URL(request.url);
     if (url.searchParams.get("window") !== "1h") {

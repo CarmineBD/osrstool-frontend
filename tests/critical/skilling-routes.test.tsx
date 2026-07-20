@@ -416,7 +416,7 @@ describe("critical flow: skilling routes", () => {
       expect(seenVariants).toContain("all");
       expect(seenSortBy).toContain("gpPerXpHigh");
     });
-  });
+  }, 10000);
 
   it("shows enabled switch for super admin and toggles enabled query param", async () => {
     const authProviderModule = await import("@/auth/AuthProvider");

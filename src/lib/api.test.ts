@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   buildMethodUpdatePayload,
   createMethodWithVariants,
+  fetchMethodTags,
   fetchMethods,
   fetchTrendingProfitMethods,
   fetchItems,
@@ -245,6 +246,84 @@ describe("api update payload helpers", () => {
     const url = new URL(requestUrl, window.location.origin);
 
     expect(url.searchParams.get("show_only_free_to_play")).toBe("true");
+
+    fetchSpy.mockRestore();
+  });
+
+  it("passes ignoredTags as repeated query params when fetching methods", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ data: { methods: [] } }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await fetchMethods(undefined, undefined, undefined, {
+      ignoredTags: ["not_viable", "safe"],
+    });
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const requestInput = fetchSpy.mock.calls[0]?.[0];
+    const requestUrl =
+      typeof requestInput === "string"
+        ? requestInput
+        : requestInput instanceof URL
+          ? requestInput.toString()
+          : requestInput.url;
+    const url = new URL(requestUrl, window.location.origin);
+
+    expect(url.searchParams.getAll("ignoredTags")).toEqual([
+      "not_viable",
+      "safe",
+    ]);
+
+    fetchSpy.mockRestore();
+  });
+
+  it("fetches the method tags catalog", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          data: {
+            tags: [
+              {
+                key: "not_viable",
+                label: "Not viable",
+                severity: 3,
+                description:
+                  "This method has extreme market impact. Operating it at the one-hour scale may take days to fully buy and sell through the market.",
+              },
+              {
+                key: "safe",
+                label: "Safe",
+                severity: 1,
+                description: "This method stayed above break-even over the last 24 hours.",
+              },
+            ],
+          },
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    await expect(fetchMethodTags()).resolves.toEqual([
+      {
+        key: "not_viable",
+        label: "Not viable",
+        severity: 3,
+        description:
+          "This method has extreme market impact. Operating it at the one-hour scale may take days to fully buy and sell through the market.",
+      },
+      {
+        key: "safe",
+        label: "Safe",
+        severity: 1,
+        description: "This method stayed above break-even over the last 24 hours.",
+      },
+    ]);
 
     fetchSpy.mockRestore();
   });
