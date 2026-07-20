@@ -279,9 +279,23 @@ function normalizeVariant(variant: Variant): Variant {
 }
 
 function normalizeMethod(method: Method): Method {
+  const variants = (method.variants ?? []).map(normalizeVariant);
+  const aggregatedLikes = variants.reduce<number | undefined>((total, variant) => {
+    if (typeof variant.likes !== "number") {
+      return total;
+    }
+
+    return (total ?? 0) + variant.likes;
+  }, undefined);
+
   return {
     ...method,
-    variants: (method.variants ?? []).map(normalizeVariant),
+    ...(typeof method.likes === "number"
+      ? { likes: method.likes }
+      : typeof aggregatedLikes === "number"
+        ? { likes: aggregatedLikes }
+        : {}),
+    variants,
   };
 }
 

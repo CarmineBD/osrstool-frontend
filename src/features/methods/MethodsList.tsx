@@ -39,8 +39,7 @@ import {
   type Variant,
   type VariantTag,
 } from "@/lib/api";
-import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
-import { LikeButton } from "./LikeButton";
+import { ArrowDown, ArrowUp, ArrowUpDown, Heart } from "lucide-react";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
 import {
   getItemsQueryKey,
@@ -125,7 +124,6 @@ export type Props = {
 
 interface Row {
   id: string;
-  methodId: string;
   methodSlug: string;
   variantSlug: string;
   variantLabel: string;
@@ -146,7 +144,6 @@ interface Row {
   marketImpactInstant?: number;
   marketImpactSlow?: number;
   likes?: number;
-  likedByMe?: boolean;
   tags: VariantTag[];
 }
 
@@ -257,7 +254,6 @@ export function MethodsList({
           : [];
       return {
         id: `${method.slug}-${variant.slug ?? variant.id ?? index}`,
-        methodId: method.id,
         methodSlug: method.slug,
         variantSlug: variant.slug ?? (variant.id ?? index).toString(),
         variantLabel: variant.label,
@@ -278,7 +274,6 @@ export function MethodsList({
         marketImpactInstant: variant.marketImpactInstant,
         marketImpactSlow: variant.marketImpactSlow,
         likes: method.likes,
-        likedByMe: method.likedByMe,
         tags: getVariantTags(variant),
       };
     }),
@@ -771,12 +766,10 @@ export function MethodsList({
 
   const renderLikesCell = (row: Row, className?: string) => (
     <TableCell className={className}>
-      <LikeButton
-        methodId={row.methodId}
-        likedByMe={row.likedByMe}
-        likes={row.likes}
-        className="h-auto px-0 hover:bg-transparent"
-      />
+      <div className="inline-flex items-center gap-2 text-sm font-medium tabular-nums text-foreground">
+        <Heart className="h-4 w-4 text-muted-foreground" />
+        <span>{formatNumber(row.likes ?? 0)}</span>
+      </div>
     </TableCell>
   );
 
