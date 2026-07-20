@@ -9,33 +9,58 @@ import {
 } from "@tanstack/react-query";
 import {
   fetchMethods,
-  likeMethod,
-  unlikeMethod,
+  likeVariant,
+  unlikeVariant,
   type Method,
   type MethodDetailResponse,
   type MethodsFilters,
   type MethodsResponse,
+  type Variant,
 } from "../../lib/api";
 import { useUsername } from "@/contexts/UsernameContext";
 import type { MeResponse } from "@/lib/me";
-import { QUERY_REFETCH_INTERVAL_MS, QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
+import {
+  QUERY_REFETCH_INTERVAL_MS,
+  QUERY_STALE_TIME_MS,
+} from "@/lib/queryRefresh";
 
 type ToggleLikeInput = {
   methodId: string;
+  variantId: string;
   likedByMe?: boolean;
 };
 
 type ToggleLikeContext = {
-  previousMethods: Array<[QueryKey, MethodsResponse | undefined]>;
   previousMethodDetails: Array<[QueryKey, MethodDetailResponse | undefined]>;
   previousMe: MeResponse | undefined;
 };
 
-function updateMethodLikeState(
+function updateVariantLikeState(
+  variant: Variant,
+  variantId: string,
+  nextLikedByMe: boolean,
+  likesDelta: number,
+): Variant {
+  if (variant.id !== variantId) return variant;
+
+  const nextLikes =
+    typeof variant.likes === "number"
+      ? Math.max(0, variant.likes + likesDelta)
+      : variant.likes;
+
+  return {
+    ...variant,
+    likedByMe: nextLikedByMe,
+    ...(typeof nextLikes === "number" ? { likes: nextLikes } : {}),
+  };
+}
+
+function updateMethodVariantLikeState(
   method: Method,
   methodId: string,
+  variantId: string,
   nextLikedByMe: boolean,
-  likesDelta: number
+  likesDelta: number,
 ): Method {
   if (method.id !== methodId) return method;
 
@@ -46,57 +71,10 @@ function updateMethodLikeState(
 
   return {
     ...method,
-    likedByMe: nextLikedByMe,
     ...(typeof nextLikes === "number" ? { likes: nextLikes } : {}),
-  };
-}
-
-function getMethodsFiltersFromQueryKey(queryKey: QueryKey): MethodsFilters | undefined {
-  if (!Array.isArray(queryKey) || queryKey[0] !== "methods") {
-    return undefined;
-  }
-
-  const maybeFilters = queryKey[4];
-  if (!maybeFilters || typeof maybeFilters !== "object") {
-    return undefined;
-  }
-
-  return maybeFilters as MethodsFilters;
-}
-
-function updateMethodsResponseLikeState(
-  response: MethodsResponse | undefined,
-  queryFilters: MethodsFilters | undefined,
-  methodId: string,
-  nextLikedByMe: boolean,
-  likesDelta: number,
-  sourceMethod?: Method
-): MethodsResponse | undefined {
-  if (!response) return response;
-
-  let hasTargetMethod = false;
-  const nextMethods = response.methods.map((method) => {
-    if (method.id !== methodId) return method;
-    hasTargetMethod = true;
-    return updateMethodLikeState(method, methodId, nextLikedByMe, likesDelta);
-  });
-
-  if (!hasTargetMethod) {
-    if (queryFilters?.likedByMe === true && nextLikedByMe && sourceMethod) {
-      return {
-        ...response,
-        methods: [
-          updateMethodLikeState(sourceMethod, methodId, nextLikedByMe, likesDelta),
-          ...response.methods,
-        ],
-      };
-    }
-    return response;
-  }
-
-  return {
-    ...response,
-    methods: nextMethods,
+    variants: method.variants.map((variant) =>
+      updateVariantLikeState(variant, variantId, nextLikedByMe, likesDelta),
+    ),
   };
 }
 
@@ -105,7 +83,7 @@ export function useMethods(
   page = 1,
   name?: string,
   filters?: MethodsFilters,
-  cursor?: string
+  cursor?: string,
 ): UseQueryResult<MethodsResponse, Error> {
   const { setUserError } = useUsername();
   const query = useQuery<MethodsResponse, Error>({
@@ -131,7 +109,7 @@ export function useMethods(
   return query;
 }
 
-export function useToggleMethodLike(): UseMutationResult<
+export function useToggleVariantLike(): UseMutationResult<
   void,
   Error,
   ToggleLikeInput,
@@ -141,55 +119,28 @@ export function useToggleMethodLike(): UseMutationResult<
   const { setUserError } = useUsername();
 
   return useMutation<void, Error, ToggleLikeInput, ToggleLikeContext>({
-    mutationFn: async ({ methodId, likedByMe }) => {
+    mutationFn: async ({ variantId, likedByMe }) => {
       const nextLikedByMe = !likedByMe;
       if (nextLikedByMe) {
-        await likeMethod(methodId);
+        await likeVariant(variantId);
         return;
       }
-      await unlikeMethod(methodId);
+
+      await unlikeVariant(variantId);
     },
-    onMutate: async ({ methodId, likedByMe }) => {
+    onMutate: async ({ methodId, variantId, likedByMe }) => {
       const nextLikedByMe = !likedByMe;
       const likesDelta = nextLikedByMe ? 1 : -1;
 
       await Promise.all([
-        queryClient.cancelQueries({ queryKey: ["methods"] }),
         queryClient.cancelQueries({ queryKey: ["methodDetail"] }),
         queryClient.cancelQueries({ queryKey: ["me"] }),
       ]);
 
-      const previousMethods = queryClient.getQueriesData<MethodsResponse>({
-        queryKey: ["methods"],
+      const previousMethodDetails = queryClient.getQueriesData<MethodDetailResponse>({
+        queryKey: ["methodDetail"],
       });
-      const previousMethodDetails = queryClient.getQueriesData<MethodDetailResponse>(
-        {
-          queryKey: ["methodDetail"],
-        }
-      );
       const previousMe = queryClient.getQueryData<MeResponse>(["me"]);
-      const sourceMethod =
-        previousMethods
-          .flatMap(([, response]) => response?.methods ?? [])
-          .find((method) => method.id === methodId) ??
-        previousMethodDetails
-          .map(([, detail]) => detail?.method)
-          .find((method): method is Method => !!method && method.id === methodId);
-
-      for (const [queryKey, response] of previousMethods) {
-        const queryFilters = getMethodsFiltersFromQueryKey(queryKey);
-        const nextResponse = updateMethodsResponseLikeState(
-          response,
-          queryFilters,
-          methodId,
-          nextLikedByMe,
-          likesDelta,
-          sourceMethod
-        );
-        if (nextResponse !== response) {
-          queryClient.setQueryData(queryKey, nextResponse);
-        }
-      }
 
       for (const [queryKey, detail] of previousMethodDetails) {
         if (!detail?.method || detail.method.id !== methodId) {
@@ -198,11 +149,12 @@ export function useToggleMethodLike(): UseMutationResult<
 
         queryClient.setQueryData<MethodDetailResponse>(queryKey, {
           ...detail,
-          method: updateMethodLikeState(
+          method: updateMethodVariantLikeState(
             detail.method,
             methodId,
+            variantId,
             nextLikedByMe,
-            likesDelta
+            likesDelta,
           ),
         });
       }
@@ -230,14 +182,10 @@ export function useToggleMethodLike(): UseMutationResult<
 
       setUserError(null);
 
-      return { previousMethods, previousMethodDetails, previousMe };
+      return { previousMethodDetails, previousMe };
     },
     onError: (_error, _variables, context) => {
       if (!context) return;
-
-      for (const [queryKey, response] of context.previousMethods) {
-        queryClient.setQueryData(queryKey, response);
-      }
 
       for (const [queryKey, detail] of context.previousMethodDetails) {
         queryClient.setQueryData(queryKey, detail);
@@ -247,17 +195,14 @@ export function useToggleMethodLike(): UseMutationResult<
         queryClient.setQueryData(["me"], context.previousMe);
       }
 
-      setUserError("No se pudo actualizar el like. Intenta nuevamente.");
+      setUserError("Could not update the like. Please try again.");
     },
     onSettled: () => {
-      void queryClient.invalidateQueries({
-        queryKey: ["methods"],
-        refetchType: "inactive",
-        predicate: (query) => {
-          const queryFilters = getMethodsFiltersFromQueryKey(query.queryKey);
-          return queryFilters?.likedByMe === true;
-        },
-      });
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["methods"] }),
+        queryClient.invalidateQueries({ queryKey: ["methodDetail"] }),
+        queryClient.invalidateQueries({ queryKey: ["me"] }),
+      ]);
     },
   });
 }

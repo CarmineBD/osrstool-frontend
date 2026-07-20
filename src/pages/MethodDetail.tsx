@@ -122,6 +122,7 @@ export function MethodDetail(_props: Props) {
                   <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
                     <div className="order-2 min-w-0 lg:order-1">
                       <MethodVariantContent
+                        methodId={state.method.id}
                         variant={activeVariant}
                         itemsMap={state.itemsMap}
                         username={username}

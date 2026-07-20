@@ -60,6 +60,7 @@ import {
   getUrlByType,
 } from "@/lib/utils";
 import type { Item, Variant } from "@/lib/api";
+import { LikeButton } from "@/features/methods/LikeButton";
 
 const LazyVariantHistoryChart = lazy(
   () => import("@/components/VariantHistoryChart"),
@@ -69,6 +70,7 @@ const POSITIVE_TEXT_CLASS = "text-[var(--method-detail-positive)]";
 const NEGATIVE_TEXT_CLASS = "text-[var(--method-detail-negative)]";
 
 interface MethodVariantContentProps {
+  methodId: string;
   variant: Variant;
   itemsMap: Record<number, Item>;
   username?: string;
@@ -1264,6 +1266,7 @@ function RequirementsAndRecommendationsSection({
 }
 
 export function MethodVariantContent({
+  methodId,
   variant,
   itemsMap,
   username,
@@ -1312,6 +1315,15 @@ export function MethodVariantContent({
                 Scenario-specific notes and setup for the selected variant.
               </p>
             </div>
+            {variant.id ? (
+              <LikeButton
+                methodId={methodId}
+                variantId={variant.id}
+                likedByMe={variant.likedByMe}
+                likes={variant.likes ?? 0}
+                className="self-start"
+              />
+            ) : null}
           </div>
 
           {variant.description?.trim() ? (

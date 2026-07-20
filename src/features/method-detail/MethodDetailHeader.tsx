@@ -6,7 +6,6 @@ import {
 } from "@/components/method-editor/MethodEditorPrimitives";
 import type { Method } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { LikeButton } from "@/features/methods/LikeButton";
 
 interface MethodDetailHeaderProps {
   method: Method;
@@ -30,11 +29,6 @@ export function MethodDetailHeader({
       </div>
 
       <div className="flex items-center gap-2">
-        <LikeButton
-          methodId={method.id}
-          likedByMe={method.likedByMe}
-          likes={method.likes ?? 0}
-        />
         {isSuperAdmin ? (
           <Button
             variant="ghost"
