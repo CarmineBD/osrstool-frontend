@@ -1,16 +1,17 @@
 ## Summary
 
-- move like and unlike actions from method-level controls to individual variants in the method detail flow
-- update optimistic like handling and API integration to target variant endpoints and keep detail state in sync
-- show method list likes as aggregated variant totals, including a fallback when the backend omits the method-level aggregate
-- add API and critical flow coverage for variant likes and aggregated list counts
+- add an `AnimatedProfitValue` primitive and reuse it across profit-heavy method detail, history, table, skilling, and landing views
+- animate alert exits for username and admin notices, with focused coverage for the new alert presence behavior
+- animate methods table column visibility changes and smooth the method variant selector detail reveal
+- refresh the landing page trending cards to match the updated profit presentation and tighter visual hierarchy
 
 ## How to test
 
 - `npm run lint`
-- `CI=true npm test`
+- `npm test`
 - `npm run build`
 
 ## Notes
 
-- `npm run lint` still reports the existing `react-refresh/only-export-components` warnings in shared files, but exits with code `0`
+- No business logic changes.
+- `npm run lint` still reports the existing `react-refresh/only-export-components` warnings, but exits with code `0`
