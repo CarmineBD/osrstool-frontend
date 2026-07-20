@@ -1,17 +1,16 @@
 ## Summary
 
-- add global theme infrastructure with persisted light/dark preference handling, DOM synchronization, and an early bootstrap script to prevent theme flashing on first paint
-- define the dark semantic token palette so existing shared surfaces, cards, and method-detail theme tokens can inherit dark mode without per-component rewrites
-- add a reusable header theme switch and strengthen test coverage and accessibility labels so theme and admin switches remain queryable and stable
+- move like and unlike actions from method-level controls to individual variants in the method detail flow
+- update optimistic like handling and API integration to target variant endpoints and keep detail state in sync
+- show method list likes as aggregated variant totals, including a fallback when the backend omits the method-level aggregate
+- add API and critical flow coverage for variant likes and aggregated list counts
 
 ## How to test
 
 - `npm run lint`
-- `npm test`
+- `CI=true npm test`
 - `npm run build`
-- `npm run dev`
-- open the app, toggle the theme from the header, and refresh the page to confirm the selected mode persists
 
 ## Notes
 
-- no business logic changes beyond persisted theme preference handling and the accessibility label used by the skilling admin toggle test
+- `npm run lint` still reports the existing `react-refresh/only-export-components` warnings in shared files, but exits with code `0`
