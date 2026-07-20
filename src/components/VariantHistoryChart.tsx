@@ -13,15 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   EDITOR_META_TEXT_CLASS,
   EDITOR_TAB_LIST_CLASS,
-  SectionHeader,
 } from "@/components/method-editor/MethodEditorPrimitives";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ChartContainer,
@@ -283,219 +275,196 @@ export function VariantHistoryChart({
           : "text-muted-foreground";
 
   return (
-    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_16rem]">
-      <Card className="gap-0 overflow-hidden rounded-xl border-border/70">
-        <CardHeader className="border-b border-border/60 pb-4">
-          <SectionHeader
-            title="Historical GP range"
-            description="Compare low and high profit over time."
-            level="h3"
-          />
-        </CardHeader>
-        <CardContent className="space-y-4 pt-4">
-          <Tabs
-            value={range}
-            onValueChange={(v) =>
-              setRange(v as (typeof RANGE_OPTIONS)[number]["value"])
-            }
-            className="gap-4"
+    <div className="grid grid-cols-1 gap-4 2xl:grid-cols-[minmax(0,1fr)_16rem]">
+      <div className="space-y-4">
+        <Tabs
+          value={range}
+          onValueChange={(v) =>
+            setRange(v as (typeof RANGE_OPTIONS)[number]["value"])
+          }
+          className="gap-4"
+        >
+          <TabsList
+            className={`${EDITOR_TAB_LIST_CLASS} grid w-full grid-cols-2 sm:grid-cols-4`}
           >
-            <TabsList
-              className={`${EDITOR_TAB_LIST_CLASS} grid w-full grid-cols-2 sm:grid-cols-4`}
-            >
-              {RANGE_OPTIONS.map((opt) => (
-                <TabsTrigger key={opt.value} value={opt.value}>
-                  {opt.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-          {isHistoryLoading ? (
-            <div className="space-y-3">
-              <Skeleton className="h-64 w-full rounded-xl" />
-              <div className="flex justify-between gap-2">
-                <Skeleton className="h-3 w-16" />
-                <Skeleton className="h-3 w-16" />
-                <Skeleton className="h-3 w-16" />
-                <Skeleton className="h-3 w-16" />
-              </div>
+            {RANGE_OPTIONS.map((opt) => (
+              <TabsTrigger key={opt.value} value={opt.value}>
+                {opt.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+        {isHistoryLoading ? (
+          <div className="space-y-3">
+            <Skeleton className="h-64 w-full rounded-xl lg:h-72" />
+            <div className="flex justify-between gap-2">
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-3 w-16" />
             </div>
-          ) : error ? (
-            <p className="text-sm text-destructive">Error loading history.</p>
-          ) : (
-            <ChartContainer config={chartConfig} className="h-64 w-full">
-              <LineChart
-                data={points}
-                margin={{ top: 0, right: 0, left: 0, bottom: 32 }}
-              >
-                <CartesianGrid vertical={false} />
-                <XAxis
-                  dataKey="timestamp"
-                  type="number"
-                  domain={["dataMin", "dataMax"]}
-                  padding={{ left: 0, right: 0 }}
-                  ticks={xTicks}
-                  interval={0}
-                  minTickGap={0}
-                  tickMargin={8}
-                  angle={-35}
-                  textAnchor="end"
-                  tickFormatter={(value) => {
-                    const date = new Date(Number(value));
-                    return range === "24h"
-                      ? axisTimeFormatter.format(date)
-                      : range === "1m"
-                        ? axisDayFormatter.format(date)
-                        : axisDateFormatter.format(date);
-                  }}
-                />
-                <YAxis
-                  domain={chartMetrics.yDomain}
-                  ticks={chartMetrics.yTicks}
-                  width={56}
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={8}
-                  tickFormatter={(value) => formatNumber(Number(value))}
-                />
-                <ChartTooltip
-                  cursor={false}
-                  content={
-                    <ChartTooltipContent
-                      payloadSortOrder={["highProfit", "lowProfit"]}
-                      labelFormatter={(_, payload) => {
-                        const ts = payload?.[0]?.payload?.timestamp as
-                          | number
-                          | undefined;
-                        if (ts === undefined) return "";
-                        return tooltipDateTimeFormatter.format(new Date(ts));
-                      }}
-                    />
-                  }
-                />
-
-                {chartMetrics.shouldShowZeroReferenceLine ? (
-                  <ReferenceLine
-                    y={0}
-                    stroke="var(--border)"
-                    strokeDasharray="4 4"
-                    ifOverflow="hidden"
-                  />
-                ) : null}
-
-                {snapshots.map((s) => (
-                  <ReferenceLine
-                    key={s.timestamp}
-                    x={new Date(s.timestamp).getTime()}
-                    stroke="var(--border)"
-                    strokeDasharray="4 4"
-                    label={{
-                      value: s.title,
-                      position: "top",
-                      fontSize: 10,
+          </div>
+        ) : error ? (
+          <p className="text-sm text-destructive">Error loading history.</p>
+        ) : (
+          <ChartContainer config={chartConfig} className="h-64 w-full lg:h-72">
+            <LineChart
+              data={points}
+              margin={{ top: 0, right: 0, left: 0, bottom: 32 }}
+            >
+              <CartesianGrid vertical={false} />
+              <XAxis
+                dataKey="timestamp"
+                type="number"
+                domain={["dataMin", "dataMax"]}
+                padding={{ left: 0, right: 0 }}
+                ticks={xTicks}
+                interval={0}
+                minTickGap={0}
+                tickMargin={8}
+                angle={-35}
+                textAnchor="end"
+                tickFormatter={(value) => {
+                  const date = new Date(Number(value));
+                  return range === "24h"
+                    ? axisTimeFormatter.format(date)
+                    : range === "1m"
+                      ? axisDayFormatter.format(date)
+                      : axisDateFormatter.format(date);
+                }}
+              />
+              <YAxis
+                domain={chartMetrics.yDomain}
+                ticks={chartMetrics.yTicks}
+                width={56}
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                tickFormatter={(value) => formatNumber(Number(value))}
+              />
+              <ChartTooltip
+                cursor={false}
+                content={
+                  <ChartTooltipContent
+                    payloadSortOrder={["highProfit", "lowProfit"]}
+                    labelFormatter={(_, payload) => {
+                      const ts = payload?.[0]?.payload?.timestamp as
+                        | number
+                        | undefined;
+                      if (ts === undefined) return "";
+                      return tooltipDateTimeFormatter.format(new Date(ts));
                     }}
                   />
-                ))}
-                <Line
-                  dataKey="lowProfit"
-                  type="monotone"
-                  stroke="var(--color-lowProfit)"
-                  strokeWidth={2}
-                  dot={false}
+                }
+              />
+
+              {chartMetrics.shouldShowZeroReferenceLine ? (
+                <ReferenceLine
+                  y={0}
+                  stroke="var(--border)"
+                  strokeDasharray="4 4"
+                  ifOverflow="hidden"
                 />
-                <Line
-                  dataKey="highProfit"
-                  type="monotone"
-                  stroke="var(--color-highProfit)"
-                  strokeWidth={2}
-                  dot={false}
+              ) : null}
+
+              {snapshots.map((s) => (
+                <ReferenceLine
+                  key={s.timestamp}
+                  x={new Date(s.timestamp).getTime()}
+                  stroke="var(--border)"
+                  strokeDasharray="4 4"
+                  label={{
+                    value: s.title,
+                    position: "top",
+                    fontSize: 10,
+                  }}
                 />
-              </LineChart>
-            </ChartContainer>
+              ))}
+              <Line
+                dataKey="lowProfit"
+                type="monotone"
+                stroke="var(--color-lowProfit)"
+                strokeWidth={2}
+                dot={false}
+              />
+              <Line
+                dataKey="highProfit"
+                type="monotone"
+                stroke="var(--color-highProfit)"
+                strokeWidth={2}
+                dot={false}
+              />
+            </LineChart>
+          </ChartContainer>
+        )}
+      </div>
+      <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 2xl:flex 2xl:flex-col">
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground">{`Trend ${selectedTrend.label}`}</p>
+          {isHistoryLoading ? (
+            <>
+              <Skeleton className="h-8 w-28" />
+              <Skeleton className="h-4 w-24" />
+            </>
+          ) : typeof selectedTrend.value === "number" ? (
+            <div
+              className={`flex items-center justify-start gap-3 text-2xl font-semibold tabular-nums ${trendValueToneClassName}`}
+            >
+              <div>{`${formatPercent(selectedTrend.value, 0)}`}</div>
+              {selectedTrend.value > 0 ? (
+                <IconTrendingUp className="size-4" />
+              ) : selectedTrend.value < 0 ? (
+                <IconTrendingDown className="size-4" />
+              ) : null}
+            </div>
+          ) : (
+            <span className="text-2xl font-semibold text-muted-foreground">
+              N/A
+            </span>
           )}
-        </CardContent>
-      </Card>
-      <div className="flex w-full flex-col gap-4">
-        <Card className="gap-0 rounded-xl border-border/70">
-          <CardHeader>
-            <CardDescription>Trend {selectedTrend.label}</CardDescription>
+        </div>
+        <div className="grid grid-cols-2 gap-4 text-center text-sm">
+          <div>
+            <div className={EDITOR_META_TEXT_CLASS}>Min</div>
             {isHistoryLoading ? (
-              <>
-                <Skeleton className="h-8 w-28" />
-                <Skeleton className="h-4 w-24" />
-              </>
+              <div className="space-y-2">
+                <Skeleton className="mx-auto h-7 w-20" />
+                <Skeleton className="mx-auto h-4 w-20" />
+              </div>
             ) : (
               <>
-                <CardTitle className="flex items-center gap-2 text-2xl font-semibold tabular-nums">
-                  {typeof selectedTrend.value === "number" ? (
-                    <div className={`flex items-center justify-center gap-3 ${trendValueToneClassName}`}>
-                      <div>{`${formatPercent(selectedTrend.value, 0)}`}</div>
-                      <div>
-                        {selectedTrend.value > 0 ? (
-                          <IconTrendingUp className="size-4" />
-                        ) : selectedTrend.value < 0 ? (
-                          <IconTrendingDown className="size-4" />
-                        ) : null}
-                      </div>
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground">N/A</span>
-                  )}
-                </CardTitle>
+                <div className="text-2xl font-semibold tabular-nums">
+                  {minPoint ? formatNumber(minPoint.highProfit) : "N/A"}
+                </div>
+                {minPoint ? (
+                  <div className={EDITOR_META_TEXT_CLASS}>
+                    {statsDateFormatter.format(new Date(minPoint.timestamp))}
+                  </div>
+                ) : null}
               </>
             )}
-          </CardHeader>
-        </Card>
-        <Card className="gap-0 rounded-xl border-border/70">
-          <CardContent className="pt-4">
-            <div className="grid grid-cols-2 gap-4 text-center text-sm">
-              <div>
-                <div className={EDITOR_META_TEXT_CLASS}>Min</div>
-                {isHistoryLoading ? (
-                  <div className="space-y-2">
-                    <Skeleton className="mx-auto h-7 w-20" />
-                    <Skeleton className="mx-auto h-4 w-20" />
-                  </div>
-                ) : (
-                  <>
-                    <div className="text-2xl font-semibold tabular-nums">
-                      {minPoint ? formatNumber(minPoint.highProfit) : "N/A"}
-                    </div>
-                    {minPoint ? (
-                      <div className={EDITOR_META_TEXT_CLASS}>
-                        {statsDateFormatter.format(
-                          new Date(minPoint.timestamp),
-                        )}
-                      </div>
-                    ) : null}
-                  </>
-                )}
+          </div>
+          <div>
+            <div className={EDITOR_META_TEXT_CLASS}>Max</div>
+            {isHistoryLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="mx-auto h-7 w-20" />
+                <Skeleton className="mx-auto h-4 w-20" />
               </div>
-              <div>
-                <div className={EDITOR_META_TEXT_CLASS}>Max</div>
-                {isHistoryLoading ? (
-                  <div className="space-y-2">
-                    <Skeleton className="mx-auto h-7 w-20" />
-                    <Skeleton className="mx-auto h-4 w-20" />
+            ) : (
+              <>
+                <div className="text-2xl font-semibold tabular-nums">
+                  {maxPoint ? formatNumber(maxPoint.highProfit) : "N/A"}
+                </div>
+                {maxPoint ? (
+                  <div className={EDITOR_META_TEXT_CLASS}>
+                    {statsDateFormatter.format(new Date(maxPoint.timestamp))}
                   </div>
-                ) : (
-                  <>
-                    <div className="text-2xl font-semibold tabular-nums">
-                      {maxPoint ? formatNumber(maxPoint.highProfit) : "N/A"}
-                    </div>
-                    {maxPoint ? (
-                      <div className={EDITOR_META_TEXT_CLASS}>
-                        {statsDateFormatter.format(
-                          new Date(maxPoint.timestamp),
-                        )}
-                      </div>
-                    ) : null}
-                  </>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                ) : null}
+              </>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

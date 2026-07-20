@@ -25,9 +25,11 @@ import {
 } from "@/components/OsrsItemTray";
 import {
   EDITOR_BODY_TEXT_CLASS,
+  EDITOR_PAGE_EYEBROW_CLASS,
   EDITOR_META_TEXT_CLASS,
   EDITOR_NESTED_SURFACE_CLASS,
-  EDITOR_SECTION_CARD_CLASS,
+  EDITOR_SECTION_TITLE_CLASS,
+  EditorSubsection,
   EmptySelectionState,
   PixelArtIcon,
   SectionHeader,
@@ -319,12 +321,10 @@ function MarketImpactIndicator({
         className={cn(
           "h-2 bg-muted",
           "[&>[data-slot=progress-indicator]]:transition-all",
-          rating === "great" &&
-            "[&>[data-slot=progress-indicator]]:bg-success",
+          rating === "great" && "[&>[data-slot=progress-indicator]]:bg-success",
           rating === "very good" &&
             "[&>[data-slot=progress-indicator]]:bg-success/80",
-          rating === "good" &&
-            "[&>[data-slot=progress-indicator]]:bg-warning",
+          rating === "good" && "[&>[data-slot=progress-indicator]]:bg-warning",
           rating === "bad" &&
             "[&>[data-slot=progress-indicator]]:bg-warning/80",
           rating === "very bad" &&
@@ -401,35 +401,6 @@ function formatItemElapsedTime(value: number | undefined): string {
   const parsedValue = toFiniteNumber(value);
   if (parsedValue === null) return "N/A";
   return formatElapsedTimeFromUnix(parsedValue);
-}
-
-function DetailSection({
-  eyebrow,
-  title,
-  description,
-  actions,
-  children,
-  className,
-}: {
-  eyebrow?: string;
-  title: string;
-  description?: string;
-  actions?: ReactNode;
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <section className={cn(EDITOR_SECTION_CARD_CLASS, className)}>
-      <SectionHeader
-        eyebrow={eyebrow}
-        title={title}
-        description={description}
-        actions={actions}
-        level="h2"
-      />
-      <div className="space-y-4">{children}</div>
-    </section>
-  );
 }
 
 function ItemTooltipToggleButton({
@@ -676,7 +647,10 @@ function MissingRequirementsNotice({
   const hasUsername = Boolean(normalizedUsername);
   const hasMissingRequirements = Boolean(variant.missingRequirements);
   const stickyNoticeClass = cn(
-    !hasUsername || hasMissingRequirements ? "lg:sticky lg:top-24 lg:z-10" : "",
+    !hasUsername || hasMissingRequirements
+      ? "relative lg:sticky lg:top-24 lg:z-30 lg:shadow-sm"
+      : "",
+    hasMissingRequirements && "lg:bg-danger-soft",
   );
 
   if (!hasUsername) {
@@ -1007,7 +981,7 @@ function IoItemsGrid({
     showWeights && !isLoading ? Math.round(enabledTotalCoins) : total;
 
   return (
-    <div className="flex-1 space-y-3">
+    <div className="flex-1 space-y-3 flex flex-col justify-between">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="text-sm font-semibold leading-5 text-foreground">
@@ -1177,7 +1151,6 @@ function GuidanceColumn({
   itemsMap,
   isItemsLoading = false,
   tooltipKeyPrefix,
-  emptyDescription,
   showAdvancedDetails,
   onToggleAdvancedDetails,
 }: {
@@ -1187,7 +1160,6 @@ function GuidanceColumn({
   itemsMap: Record<number, Item>;
   isItemsLoading?: boolean;
   tooltipKeyPrefix: string;
-  emptyDescription: string;
   showAdvancedDetails: boolean;
   onToggleAdvancedDetails: () => void;
 }) {
@@ -1197,41 +1169,41 @@ function GuidanceColumn({
     requirement?.achievement_diaries?.length,
   );
   const hasItems = items.length > 0;
-  const hasContent = hasProgression || hasItems;
 
   return (
     <section
       className={cn(EDITOR_NESTED_SURFACE_CLASS, "space-y-4 bg-card p-4")}
     >
       <SectionHeader title={title} level="h3" />
+      {hasProgression ? (
+        <div className="flex flex-wrap gap-2">
+          <LevelsAndQuestBadges requirement={requirement} />
+        </div>
+      ) : null}
 
-      {!hasContent ? (
-        <EmptySelectionState description={emptyDescription} />
-      ) : (
-        <>
-          {hasProgression ? (
-            <div className="flex flex-wrap gap-2">
-              <LevelsAndQuestBadges requirement={requirement} />
-            </div>
-          ) : (
-            <p className={EDITOR_BODY_TEXT_CLASS}>No progression entries.</p>
-          )}
-
-          {hasItems ? (
-            <OsrsItemsContainer
-              items={items}
-              itemsMap={itemsMap}
-              isLoading={isItemsLoading}
-              tooltipKeyPrefix={tooltipKeyPrefix}
-              showAdvancedDetails={showAdvancedDetails}
-              onToggleAdvancedDetails={onToggleAdvancedDetails}
-            />
-          ) : (
-            <p className={EDITOR_BODY_TEXT_CLASS}>No items configured.</p>
-          )}
-        </>
-      )}
+      {hasItems ? (
+        <OsrsItemsContainer
+          items={items}
+          itemsMap={itemsMap}
+          isLoading={isItemsLoading}
+          tooltipKeyPrefix={tooltipKeyPrefix}
+          showAdvancedDetails={showAdvancedDetails}
+          onToggleAdvancedDetails={onToggleAdvancedDetails}
+        />
+      ) : null}
     </section>
+  );
+}
+
+function hasGuidanceContent(
+  requirement: Variant["requirements"] | undefined,
+  items: Variant["inputs"],
+) {
+  return Boolean(
+    requirement?.levels?.length ||
+    requirement?.quests?.length ||
+    requirement?.achievement_diaries?.length ||
+    items.length,
   );
 }
 
@@ -1248,30 +1220,45 @@ function RequirementsAndRecommendationsSection({
   showAdvancedDetails: boolean;
   onToggleAdvancedDetails: () => void;
 }) {
+  const hasRequirements = hasGuidanceContent(
+    variant.requirements,
+    variant.requirements?.items ?? [],
+  );
+  const hasRecommendations = hasGuidanceContent(
+    variant.recommendations,
+    variant.recommendations?.items ?? [],
+  );
+
+  if (!hasRequirements && !hasRecommendations) {
+    return null;
+  }
+
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-      <GuidanceColumn
-        title="Requirements"
-        requirement={variant.requirements}
-        items={variant.requirements?.items ?? []}
-        itemsMap={itemsMap}
-        isItemsLoading={isItemsLoading}
-        tooltipKeyPrefix="requirements"
-        emptyDescription="No requirements are configured for this variant."
-        showAdvancedDetails={showAdvancedDetails}
-        onToggleAdvancedDetails={onToggleAdvancedDetails}
-      />
-      <GuidanceColumn
-        title="Recommendations"
-        requirement={variant.recommendations}
-        items={variant.recommendations?.items ?? []}
-        itemsMap={itemsMap}
-        isItemsLoading={isItemsLoading}
-        tooltipKeyPrefix="recommendations"
-        emptyDescription="No recommendations are configured for this variant."
-        showAdvancedDetails={showAdvancedDetails}
-        onToggleAdvancedDetails={onToggleAdvancedDetails}
-      />
+      {hasRequirements ? (
+        <GuidanceColumn
+          title="Requirements"
+          requirement={variant.requirements}
+          items={variant.requirements?.items ?? []}
+          itemsMap={itemsMap}
+          isItemsLoading={isItemsLoading}
+          tooltipKeyPrefix="requirements"
+          showAdvancedDetails={showAdvancedDetails}
+          onToggleAdvancedDetails={onToggleAdvancedDetails}
+        />
+      ) : null}
+      {hasRecommendations ? (
+        <GuidanceColumn
+          title="Recommendations"
+          requirement={variant.recommendations}
+          items={variant.recommendations?.items ?? []}
+          itemsMap={itemsMap}
+          isItemsLoading={isItemsLoading}
+          tooltipKeyPrefix="recommendations"
+          showAdvancedDetails={showAdvancedDetails}
+          onToggleAdvancedDetails={onToggleAdvancedDetails}
+        />
+      ) : null}
     </div>
   );
 }
@@ -1289,104 +1276,123 @@ export function MethodVariantContent({
   const toggleAdvancedItemDetails = () =>
     setShowAdvancedItemDetails((current) => !current);
   const variantTitle = variant.label?.trim() || "Variant";
+  const hasRequirementsSection = hasGuidanceContent(
+    variant.requirements,
+    variant.requirements?.items ?? [],
+  );
+  const hasRecommendationsSection = hasGuidanceContent(
+    variant.recommendations,
+    variant.recommendations?.items ?? [],
+  );
 
   return (
     <div className="w-full space-y-6">
       <MissingRequirementsNotice variant={variant} username={username} />
 
-      <DetailSection
-        eyebrow="Active variant"
-        title={variantTitle}
-        description="Scenario-specific notes and setup for the selected variant."
-        actions={
-          <div className="flex items-center gap-2">
-            {iconUrl ? (
-              <PixelArtIcon
-                src={iconUrl}
-                alt={`${variantTitle} icon`}
-                title={variantTitle}
-              />
-            ) : null}
-            <VariantMembershipBadge members={variant.members} />
-          </div>
-        }
-      >
-        {variant.description?.trim() ? (
-          <div className={cn(EDITOR_NESTED_SURFACE_CLASS, "bg-card p-4")}>
-            <Markdown content={variant.description} items={itemsMap} />
-          </div>
-        ) : (
-          <EmptySelectionState description="No description is configured for this variant yet." />
+      <section
+        className={cn(
+          "overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm",
         )}
-      </DetailSection>
-
-      <DetailSection
-        title="Inputs & outputs"
-        description="Review the setup cost and expected loot for this scenario."
       >
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <IoItemsGrid
-            title="Inputs"
-            total={inputsTotal}
-            items={variant.inputs}
-            itemsMap={itemsMap}
-            weightPriceMode="input"
-            isLoading={isItemsLoading}
-            showAdvancedDetails={showAdvancedItemDetails}
-            onToggleAdvancedDetails={toggleAdvancedItemDetails}
-          />
-          <IoItemsGrid
-            title="Outputs"
-            total={outputsTotal}
-            items={variant.outputs}
-            itemsMap={itemsMap}
-            weightPriceMode="output"
-            isLoading={isItemsLoading}
-            showAdvancedDetails={showAdvancedItemDetails}
-            onToggleAdvancedDetails={toggleAdvancedItemDetails}
-          />
-        </div>
-      </DetailSection>
-
-      <DetailSection
-        title="Requirements & recommendations"
-        description="Mandatory prerequisites first, then optional improvements."
-      >
-        <RequirementsAndRecommendationsSection
-          variant={variant}
-          itemsMap={itemsMap}
-          isItemsLoading={isItemsLoading}
-          showAdvancedDetails={showAdvancedItemDetails}
-          onToggleAdvancedDetails={toggleAdvancedItemDetails}
-        />
-      </DetailSection>
-
-      <DetailSection
-        title="Profit history"
-        description="Use the trend view to judge short-term and long-term volatility."
-      >
-        {variant.id ? (
-          <Suspense
-            fallback={
-              <div className="space-y-3">
-                <Skeleton className="h-4 w-36" />
-                <Skeleton className="h-64 w-full rounded-xl" />
+        <div className="space-y-4 p-6">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div className="space-y-1">
+              <p className={EDITOR_PAGE_EYEBROW_CLASS}>Variant Details</p>
+              <div className="flex items-center gap-3">
+                {iconUrl ? (
+                  <PixelArtIcon
+                    src={iconUrl}
+                    alt={`${variantTitle} icon`}
+                    title={variantTitle}
+                  />
+                ) : null}
+                <h2 className={EDITOR_SECTION_TITLE_CLASS}>{variantTitle}</h2>
               </div>
-            }
-          >
-            <LazyVariantHistoryChart
-              variantId={variant.id}
-              trendLastHour={variant.trendLastHour}
-              trendLast24h={variant.trendLast24h}
-              trendLastWeek={variant.trendLastWeek}
-              trendLastMonth={variant.trendLastMonth}
-              trendLastYear={variant.trendLastYear}
+              <p className={EDITOR_BODY_TEXT_CLASS}>
+                Scenario-specific notes and setup for the selected variant.
+              </p>
+            </div>
+          </div>
+
+          {variant.description?.trim() ? (
+            <div className="space-y-4">
+              <Markdown content={variant.description} items={itemsMap} />
+            </div>
+          ) : (
+            <EmptySelectionState description="No description is configured for this variant yet." />
+          )}
+        </div>
+
+        <EditorSubsection
+          title="Inputs & outputs"
+          description="Review the setup cost and expected loot for this scenario."
+        >
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <IoItemsGrid
+              title="Inputs"
+              total={inputsTotal}
+              items={variant.inputs}
+              itemsMap={itemsMap}
+              weightPriceMode="input"
+              isLoading={isItemsLoading}
+              showAdvancedDetails={showAdvancedItemDetails}
+              onToggleAdvancedDetails={toggleAdvancedItemDetails}
             />
-          </Suspense>
-        ) : (
-          <EmptySelectionState description="History data is not available for this variant yet." />
-        )}
-      </DetailSection>
+            <IoItemsGrid
+              title="Outputs"
+              total={outputsTotal}
+              items={variant.outputs}
+              itemsMap={itemsMap}
+              weightPriceMode="output"
+              isLoading={isItemsLoading}
+              showAdvancedDetails={showAdvancedItemDetails}
+              onToggleAdvancedDetails={toggleAdvancedItemDetails}
+            />
+          </div>
+        </EditorSubsection>
+
+        {hasRequirementsSection || hasRecommendationsSection ? (
+          <EditorSubsection
+            title="Requirements & recommendations"
+            description="Mandatory prerequisites first, then optional improvements."
+          >
+            <RequirementsAndRecommendationsSection
+              variant={variant}
+              itemsMap={itemsMap}
+              isItemsLoading={isItemsLoading}
+              showAdvancedDetails={showAdvancedItemDetails}
+              onToggleAdvancedDetails={toggleAdvancedItemDetails}
+            />
+          </EditorSubsection>
+        ) : null}
+
+        <EditorSubsection
+          title="Profit history"
+          description="Use the trend view to judge short-term and long-term volatility."
+        >
+          {variant.id ? (
+            <Suspense
+              fallback={
+                <div className="space-y-3">
+                  <Skeleton className="h-4 w-36" />
+                  <Skeleton className="h-64 w-full rounded-xl lg:h-72" />
+                </div>
+              }
+            >
+              <LazyVariantHistoryChart
+                variantId={variant.id}
+                trendLastHour={variant.trendLastHour}
+                trendLast24h={variant.trendLast24h}
+                trendLastWeek={variant.trendLastWeek}
+                trendLastMonth={variant.trendLastMonth}
+                trendLastYear={variant.trendLastYear}
+              />
+            </Suspense>
+          ) : (
+            <EmptySelectionState description="History data is not available for this variant yet." />
+          )}
+        </EditorSubsection>
+      </section>
     </div>
   );
 }
