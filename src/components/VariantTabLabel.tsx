@@ -1,5 +1,6 @@
+import { AnimatedProfitValue } from "@/components/AnimatedProfitValue";
 import { PixelArtIcon } from "@/components/method-editor/MethodEditorPrimitives";
-import { cn, formatNumber } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 interface VariantTabLabelProps {
   label: string;
@@ -28,11 +29,6 @@ export function VariantTabLabel({
     typeof highProfit === "number" && Number.isFinite(highProfit) && highProfit < 0;
   const lowProfitIsNegative =
     typeof lowProfit === "number" && Number.isFinite(lowProfit) && lowProfit < 0;
-  const formatProfit = (value?: number) =>
-    typeof value === "number" && Number.isFinite(value)
-      ? formatNumber(value)
-      : "N/A";
-
   return (
     <span className={cn("flex min-w-0 items-center gap-2", className)}>
       <span className="flex min-w-0 flex-1 items-center gap-2">
@@ -54,7 +50,7 @@ export function VariantTabLabel({
               highProfitIsNegative ? "text-destructive" : "text-foreground",
             )}
           >
-            {formatProfit(highProfit)}
+            <AnimatedProfitValue value={highProfit} />
           </span>
           <span
             className={cn(
@@ -64,7 +60,7 @@ export function VariantTabLabel({
                 : "text-muted-foreground",
             )}
           >
-            {formatProfit(lowProfit)}
+            <AnimatedProfitValue value={lowProfit} />
           </span>
         </span>
       ) : null}

@@ -9,6 +9,7 @@ import {
   YAxis,
 } from "recharts";
 
+import { AnimatedProfitValue } from "@/components/AnimatedProfitValue";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   EDITOR_META_TEXT_CLASS,
@@ -434,7 +435,7 @@ export function VariantHistoryChart({
             ) : (
               <>
                 <div className="text-2xl font-semibold tabular-nums">
-                  {minPoint ? formatNumber(minPoint.highProfit) : "N/A"}
+                  <AnimatedProfitValue value={minPoint?.highProfit} />
                 </div>
                 {minPoint ? (
                   <div className={EDITOR_META_TEXT_CLASS}>
@@ -454,7 +455,7 @@ export function VariantHistoryChart({
             ) : (
               <>
                 <div className="text-2xl font-semibold tabular-nums">
-                  {maxPoint ? formatNumber(maxPoint.highProfit) : "N/A"}
+                  <AnimatedProfitValue value={maxPoint?.highProfit} />
                 </div>
                 {maxPoint ? (
                   <div className={EDITOR_META_TEXT_CLASS}>

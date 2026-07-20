@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
+import { AnimatedProfitValue } from "@/components/AnimatedProfitValue";
 import { useAuth } from "@/auth/AuthProvider";
 import { useUsername } from "@/contexts/UsernameContext";
 import { fetchMethodsSkillsSummary, type SkillSummaryMethod } from "@/lib/api";
@@ -47,6 +48,7 @@ type MethodMetricDetails = {
   methodLink: string | null;
   methodName: string;
   gpHr: string;
+  gpHrValue?: number;
   xpHr: string;
   afkiness: string;
 };
@@ -55,6 +57,7 @@ type SummaryMetric = {
   id: "profit" | "xp" | "afk";
   label: "GP/hr" | "XP/hr" | "% AFK";
   value: string;
+  numericValue?: number;
   details: MethodMetricDetails | null;
 };
 
@@ -79,6 +82,7 @@ function getMethodMetricDetails(
     methodLink: toMethodLink(method),
     methodName,
     gpHr,
+    gpHrValue: variant?.highProfit,
     xpHr,
     afkiness,
   };
@@ -166,14 +170,28 @@ function SkillSummaryTags({
                   onBlur={() => setHoveredMethodId(null)}
                   className="inline-flex items-center leading-none"
                 >
-                  {metric.label}: {metric.value}
+                  {metric.id === "profit" ? (
+                    <AnimatedProfitValue
+                      value={metric.numericValue}
+                      prefix={`${metric.label}: `}
+                      className="align-baseline"
+                    />
+                  ) : (
+                    `${metric.label}: ${metric.value}`
+                  )}
                 </button>
               </Badge>
             </TooltipTrigger>
             <TooltipContent sideOffset={6}>
               <div className="space-y-0.5">
                 <p className="font-semibold">{details.methodName}</p>
-                <p>GP/hr: {details.gpHr}</p>
+                <p>
+                  <AnimatedProfitValue
+                    value={details.gpHrValue}
+                    prefix="GP/hr: "
+                    className="align-baseline"
+                  />
+                </p>
                 <p>XP/hr: {details.xpHr}</p>
                 <p>% AFK: {details.afkiness}</p>
               </div>
@@ -281,6 +299,7 @@ export function SkillingPage() {
                 id: "profit",
                 label: "GP/hr",
                 value: bestProfitDetails?.gpHr ?? "N/A",
+                numericValue: bestProfitDetails?.gpHrValue,
                 details: bestProfitDetails,
               },
               {
