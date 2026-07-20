@@ -16,21 +16,27 @@ type AuthState = {
   session: AuthSession | null;
   user: AuthSession["user"] | null;
   isLoading: boolean;
+  isRecoveryMode: boolean;
   signUp: (email: string, password: string) => Promise<{
     needsEmailConfirmation: boolean;
     error: string | null;
   }>;
   signIn: (email: string, password: string) => Promise<string | null>;
   signOut: () => Promise<string | null>;
+  requestPasswordReset: (email: string, redirectTo?: string) => Promise<string | null>;
+  updatePassword: (password: string) => Promise<string | null>;
 };
 
 const defaultAuthState: AuthState = {
   session: null,
   user: null,
   isLoading: false,
+  isRecoveryMode: false,
   signUp: async () => ({ needsEmailConfirmation: false, error: null }),
   signIn: async () => null,
   signOut: async () => null,
+  requestPasswordReset: async () => null,
+  updatePassword: async () => null,
 };
 
 const authState: AuthState = {
@@ -74,6 +80,8 @@ vi.mock("@/lib/supabaseClient", () => {
     signUp: vi.fn(async () => ({ data: { session: null, user: null }, error: null })),
     signInWithPassword: vi.fn(async () => ({ error: null })),
     signOut: vi.fn(async () => ({ error: null })),
+    resetPasswordForEmail: vi.fn(async () => ({ error: null })),
+    updateUser: vi.fn(async () => ({ error: null })),
   };
 
   return {
