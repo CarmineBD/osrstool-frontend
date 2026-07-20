@@ -263,6 +263,8 @@ export function Nav({ hideInput }: Props) {
         </NavigationMenu>
 
         <div className="flex items-center gap-2 lg:gap-4">
+          <ThemeToggle labelClassName="hidden xl:inline" />
+
           {!hideInput && (
             <div className="hidden flex-col gap-1 lg:flex">
               <form onSubmit={handleSubmit} className="flex gap-2">
