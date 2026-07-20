@@ -20,6 +20,7 @@ import {
   type MethodDetailResponse,
   type Variant,
 } from "@/lib/api";
+import { getOrderedVariants } from "@/features/method-detail/variantOrdering";
 
 export interface UseMethodDetailResult {
   methodParam: string;
@@ -92,8 +93,14 @@ export function useMethodDetail(): UseMethodDetailResult {
 
   const itemsMap = itemsData ?? {};
 
+  const orderedVariants = useMemo(
+    () => getOrderedVariants(method?.variants ?? []),
+    [method?.variants],
+  );
+  const firstVariant = orderedVariants[0];
   const firstTabSlug =
-    method?.variants[0]?.slug ?? (method?.variants[0]?.id ?? "0").toString();
+    firstVariant?.variant.slug ??
+    (firstVariant?.variant.id ?? firstVariant?.originalIndex ?? "0").toString();
   const activeSlug = variantSlug ?? firstTabSlug;
   const methodSlug = method?.slug || normalizedMethodSlug;
   const hasMultipleVariants = (method?.variants?.length ?? 0) > 1;
