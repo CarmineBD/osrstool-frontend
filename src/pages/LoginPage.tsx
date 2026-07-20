@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
 import { Button } from "@/components/ui/button";
@@ -118,7 +118,15 @@ export function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="auth-password">Password</Label>
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="auth-password">Password</Label>
+                <Link
+                  to="/forgot-password"
+                  className="text-sm font-medium text-primary hover:underline"
+                >
+                  Forgot your password?
+                </Link>
+              </div>
               <InputGroup>
                 <InputGroupInput
                   id="auth-password"
