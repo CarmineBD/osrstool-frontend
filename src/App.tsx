@@ -16,6 +16,7 @@ import { SkillMethodsPage } from "./pages/SkillMethodsPage";
 import { WikiCategoryPage, WikiPage } from "./pages/WikiPage";
 import { MethodDetailSkeleton } from "./features/method-detail/MethodDetailSkeleton";
 import { MethodUpsertSkeleton } from "./features/method-upsert/MethodUpsertSkeleton";
+import { ThemeProvider } from "./contexts/ThemeProvider";
 
 const LazyMethodDetail = lazy(() =>
   import("./pages/MethodDetail").then((module) => ({
@@ -28,63 +29,67 @@ const LazyAdminPage = lazy(() => import("./pages/AdminPage"));
 
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <UsernameProvider>
-          <Routes>
-            <Route element={<Layout />}>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/allMethods" element={<Home />} />
-              <Route path="/changelog" element={<ChangelogListPage />} />
-              <Route path="/skilling" element={<SkillingPage />} />
-              <Route path="/skilling/:skill" element={<SkillMethodsPage />} />
-              <Route path="/wiki" element={<WikiPage />} />
-              <Route path="/wiki/:category" element={<WikiCategoryPage />} />
-              <Route path="/changelog/:slug" element={<ChangelogDetailPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route element={<ProtectedRoute />}>
-                <Route path="/account" element={<AccountPage />} />
+    <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <UsernameProvider>
+            <Routes>
+              <Route element={<Layout />}>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/allMethods" element={<Home />} />
+                <Route path="/changelog" element={<ChangelogListPage />} />
+                <Route path="/skilling" element={<SkillingPage />} />
+                <Route path="/skilling/:skill" element={<SkillMethodsPage />} />
+                <Route path="/wiki" element={<WikiPage />} />
+                <Route path="/wiki/:category" element={<WikiCategoryPage />} />
+                <Route path="/changelog/:slug" element={<ChangelogDetailPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route
+                  element={<ProtectedRoute />}
+                >
+                  <Route path="/account" element={<AccountPage />} />
+                </Route>
+                <Route element={<ProtectedRoute requiredRole="super_admin" />}>
+                  <Route
+                    path="/admin"
+                    element={
+                      <Suspense fallback={<MethodUpsertSkeleton />}>
+                        <LazyAdminPage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="/moneyMakingMethod/new"
+                    element={
+                      <Suspense fallback={<MethodUpsertSkeleton />}>
+                        <LazyMethodCreate />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="/moneyMakingMethod/:slug/edit"
+                    element={
+                      <Suspense fallback={<MethodUpsertSkeleton />}>
+                        <LazyMethodEdit />
+                      </Suspense>
+                    }
+                  />
+                </Route>
+                <Route
+                  path="/moneyMakingMethod/:slug/:variantSlug?"
+                  element={
+                    <Suspense fallback={<MethodDetailSkeleton />}>
+                      <LazyMethodDetail />
+                    </Suspense>
+                  }
+                />
+                <Route path="*" element={<NotFoundPage />} />
               </Route>
-              <Route element={<ProtectedRoute requiredRole="super_admin" />}>
-                <Route
-                  path="/admin"
-                  element={
-                    <Suspense fallback={<MethodUpsertSkeleton />}>
-                      <LazyAdminPage />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="/moneyMakingMethod/new"
-                  element={
-                    <Suspense fallback={<MethodUpsertSkeleton />}>
-                      <LazyMethodCreate />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="/moneyMakingMethod/:slug/edit"
-                  element={
-                    <Suspense fallback={<MethodUpsertSkeleton />}>
-                      <LazyMethodEdit />
-                    </Suspense>
-                  }
-                />
-              </Route>
-              <Route
-                path="/moneyMakingMethod/:slug/:variantSlug?"
-                element={
-                  <Suspense fallback={<MethodDetailSkeleton />}>
-                    <LazyMethodDetail />
-                  </Suspense>
-                }
-              />
-              <Route path="*" element={<NotFoundPage />} />
-            </Route>
-          </Routes>
-        </UsernameProvider>
-      </BrowserRouter>
-    </AuthProvider>
+            </Routes>
+          </UsernameProvider>
+        </BrowserRouter>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 
