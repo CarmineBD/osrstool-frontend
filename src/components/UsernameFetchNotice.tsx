@@ -1,6 +1,12 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { OPEN_NAV_USERNAME_EVENT } from "@/lib/events";
-import { Alert, AlertDescription, AlertTitle, AlertAction } from "./ui/alert";
+import {
+  Alert,
+  AlertAction,
+  AlertDescription,
+  AlertPresence,
+  AlertTitle,
+} from "./ui/alert";
 import { AlertCircleIcon, CheckCircle2Icon, InfoIcon } from "lucide-react";
 import { IconX } from "@tabler/icons-react";
 import { Button } from "./ui/button";
@@ -106,33 +112,33 @@ export function UsernameFetchNotice(props: UsernameFetchNoticeProps) {
     setIsDismissed(false);
   }, [state, resetKey]);
 
-  if (isDismissed) return null;
-
   const noticeContent = getNoticeContent(state);
   const body = state === "error" ? props.children : noticeContent.description;
 
   return (
-    <Alert
-      className={cn(
-        "pr-10 has-data-[slot=alert-action]:pr-30",
-        noticeToneClassByState[state],
-        className,
-      )}
-    >
-      {noticeContent.icon}
-      <AlertTitle>{noticeContent.title}</AlertTitle>
-      <AlertDescription>{body}</AlertDescription>
-      {noticeContent.action ? (
-        <AlertAction className="right-10">{noticeContent.action}</AlertAction>
-      ) : null}
-      <button
-        type="button"
-        aria-label={dismissLabel}
-        onClick={() => setIsDismissed(true)}
-        className="absolute top-2 right-2 inline-flex size-7 items-center justify-center rounded-md text-current/70 transition-colors hover:bg-foreground/8 hover:text-current"
+    <AlertPresence present={!isDismissed}>
+      <Alert
+        className={cn(
+          "pr-10 has-data-[slot=alert-action]:pr-30",
+          noticeToneClassByState[state],
+          className,
+        )}
       >
-        <IconX className="size-4" />
-      </button>
-    </Alert>
+        {noticeContent.icon}
+        <AlertTitle>{noticeContent.title}</AlertTitle>
+        <AlertDescription>{body}</AlertDescription>
+        {noticeContent.action ? (
+          <AlertAction className="right-10">{noticeContent.action}</AlertAction>
+        ) : null}
+        <button
+          type="button"
+          aria-label={dismissLabel}
+          onClick={() => setIsDismissed(true)}
+          className="absolute top-2 right-2 inline-flex size-7 items-center justify-center rounded-md text-current/70 transition-colors hover:bg-foreground/8 hover:text-current"
+        >
+          <IconX className="size-4" />
+        </button>
+      </Alert>
+    </AlertPresence>
   );
 }
