@@ -2,9 +2,10 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, TrendingDown, TrendingUp } from "lucide-react";
+import { AnimatedProfitValue } from "@/components/AnimatedProfitValue";
 import { PixelArtIcon } from "@/components/method-editor/MethodEditorPrimitives";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { VariantMembershipBadge } from "@/components/VariantMembershipBadge";
 import {
   Carousel,
   CarouselContent,
@@ -39,7 +40,7 @@ import {
   QUERY_REFETCH_INTERVAL_MS,
   QUERY_STALE_TIME_MS,
 } from "@/lib/queryRefresh";
-import { cn, formatNumber, formatPercent } from "@/lib/utils";
+import { cn, formatPercent } from "@/lib/utils";
 
 const SEO_TITLE = "OSRSTool | Metodos de Money Making para OSRS";
 const SEO_DESCRIPTION =
@@ -149,48 +150,49 @@ function TrendingMethodCard({
   return (
     <Link
       to={getVariantHref(method, variant)}
-      className={`${PUBLIC_ELEVATED_PANEL_CLASS} block h-full p-5 text-left transition-[border-color,background-color,box-shadow] hover:border-brand/35 hover:bg-surface-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35`}
+      className={`${PUBLIC_ELEVATED_PANEL_CLASS} block h-full p-4 text-left transition-[border-color,background-color,box-shadow] hover:border-brand/25 hover:bg-surface-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35 sm:p-5`}
     >
-      <article className="flex min-h-[120px] flex-col gap-4">
-        <div className="flex items-start justify-between gap-3">
-          <span className="rounded-md bg-brand-soft px-2 py-1 text-xs font-bold text-brand-soft-foreground">
+      <article className="flex min-h-[108px] flex-col gap-4">
+        <div className="flex items-center justify-between gap-3">
+          <Badge variant="secondary" size="sm" className="font-semibold">
             #{index + 1}
-          </span>
+          </Badge>
           <ArrowUpRight className="h-5 w-5 shrink-0 text-muted-foreground" />
         </div>
 
-        <div className="flex min-w-0 items-start justify-between gap-4">
+        <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
           <div className="min-w-0">
-            <div className="flex min-w-0 items-start gap-3">
+            <div className="flex min-w-0 items-start gap-2.5">
               <PixelArtIcon
                 src={variantIconUrl}
                 alt={variant?.label ? `${variant.label} icon` : ""}
                 className="mt-0.5 h-[30px] w-[30px]"
               />
-              <h2 className="line-clamp-2 text-xl font-black leading-tight text-foreground">
-                {method.name}
-              </h2>
-            </div>
-            {variant?.label ? (
-              <div className="mt-1 flex flex-wrap items-center gap-2">
-                <p className="line-clamp-1 text-sm font-semibold text-muted-foreground">
-                  {variant.label}
-                </p>
-                {variant ? (
-                  <VariantMembershipBadge members={variant.members} compact />
+              <div className="min-w-0">
+                <h2 className="line-clamp-2 text-base font-medium leading-5 text-link">
+                  {method.name}
+                </h2>
+                {variant?.label ? (
+                  <div className="mt-1">
+                    <p className="line-clamp-1 text-xs font-medium leading-4 text-muted-foreground">
+                      {variant.label}
+                    </p>
+                  </div>
                 ) : null}
               </div>
-            ) : null}
+            </div>
           </div>
-          <div className="shrink-0 space-y-1 text-right ">
-            <p className="whitespace-nowrap text-lg font-black leading-none text-foreground">
-              {typeof highProfit === "number"
-                ? `${formatNumber(highProfit)}/hr`
-                : "N/A"}
+          <div className="shrink-0 self-center text-right">
+            <p className="whitespace-nowrap text-sm font-bold leading-tight text-foreground">
+              {typeof highProfit === "number" ? (
+                <AnimatedProfitValue value={highProfit} />
+              ) : (
+                "N/A"
+              )}
             </p>
             <p
               className={cn(
-                "flex items-center justify-end gap-1 whitespace-nowrap text-base font-black leading-none",
+                "mt-1 flex items-center justify-end gap-1 whitespace-nowrap text-sm font-semibold leading-none",
                 growthIsNegative ? "text-danger" : "text-success",
               )}
             >
@@ -261,19 +263,26 @@ function TrendingMethodsCarousel() {
       </div>
 
       {isInitialLoading ? (
-        <div className={`${PUBLIC_ELEVATED_PANEL_CLASS} p-5`}>
+        <div className={`${PUBLIC_ELEVATED_PANEL_CLASS} p-4 sm:p-5`}>
           <div className="flex items-center justify-between">
-            <Skeleton className="h-7 w-9 rounded-md" />
+            <Skeleton className="h-6 w-10 rounded-md" />
             <Skeleton className="h-5 w-5" />
           </div>
-          <div className="mt-6 flex items-end justify-between gap-4">
-            <div className="min-w-0 flex-1">
-              <Skeleton className="h-7 w-4/5" />
-              <Skeleton className="mt-2 h-4 w-1/2" />
+          <div className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+            <div className="min-w-0">
+              <div className="flex items-start gap-2.5">
+                <Skeleton className="mt-0.5 h-[30px] w-[30px]" />
+                <div className="min-w-0 flex-1">
+                  <Skeleton className="h-5 w-4/5" />
+                  <div className="mt-2">
+                    <Skeleton className="h-4 w-20" />
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="flex shrink-0 gap-3">
-              <Skeleton className="h-6 w-20" />
-              <Skeleton className="h-6 w-14" />
+            <div className="shrink-0 self-center text-right">
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="mt-2 ml-auto h-4 w-16" />
             </div>
           </div>
         </div>

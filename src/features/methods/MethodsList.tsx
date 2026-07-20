@@ -1,7 +1,10 @@
 import {
   Fragment,
+  cloneElement,
+  isValidElement,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -10,6 +13,7 @@ import {
 import { useMethods } from "./hooks";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { AnimatedProfitValue } from "@/components/AnimatedProfitValue";
 import {
   Table,
   TableHeader,
@@ -64,12 +68,20 @@ type ColumnPresentation = {
   width: ColumnWidthToken;
   visibility: ColumnVisibilityTier;
 };
+type CellRectSnapshot = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+};
 
 const COLUMN_WIDTH_CLASSNAMES: Record<ColumnWidthToken, string> = {
   method: "w-[46%] sm:w-[44%] md:w-[18rem] xl:w-[20rem]",
   tags: "w-[30%] sm:w-[28%] md:w-[13rem] xl:w-[15rem]",
   small: "w-[24%] sm:w-[20%] md:w-[7.5rem]",
 };
+const COLUMN_VISIBILITY_ANIMATION_MS = 220;
+const COLUMN_VISIBILITY_ANIMATION_EASING = "cubic-bezier(0.22, 1, 0.36, 1)";
 
 const COLUMN_VISIBILITY_CLASSNAMES: Record<ColumnVisibilityTier, string> = {
   always: "",
@@ -181,6 +193,147 @@ function getSecondaryVariantLabel(
   return trimmedVariantLabel;
 }
 
+function prefersReducedMotion() {
+  if (
+    typeof window === "undefined" ||
+    typeof window.matchMedia !== "function"
+  ) {
+    return false;
+  }
+
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function buildColumnAnimationKey(rowKey: string, columnId: MethodsTableColumnId) {
+  return `${rowKey}::${columnId}`;
+}
+
+function snapshotCellRect(
+  element: HTMLElement,
+  containerRect: DOMRect,
+): CellRectSnapshot | null {
+  const rect = element.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) {
+    return null;
+  }
+
+  return {
+    left: rect.left - containerRect.left,
+    top: rect.top - containerRect.top,
+    width: rect.width,
+    height: rect.height,
+  };
+}
+
+function animateCellReflow(
+  element: HTMLElement,
+  previousRect: CellRectSnapshot,
+  currentRect: CellRectSnapshot,
+) {
+  const deltaX = previousRect.left - currentRect.left;
+  const deltaY = previousRect.top - currentRect.top;
+  const scaleX = previousRect.width / Math.max(currentRect.width, 1);
+  const scaleY = previousRect.height / Math.max(currentRect.height, 1);
+
+  if (
+    Math.abs(deltaX) < 0.5 &&
+    Math.abs(deltaY) < 0.5 &&
+    Math.abs(scaleX - 1) < 0.01 &&
+    Math.abs(scaleY - 1) < 0.01
+  ) {
+    return;
+  }
+
+  element.animate(
+    [
+      {
+        transform: `translate(${deltaX}px, ${deltaY}px) scale(${scaleX}, ${scaleY})`,
+        opacity: 0.92,
+      },
+      {
+        transform: "translate(0px, 0px) scale(1, 1)",
+        opacity: 1,
+      },
+    ],
+    {
+      duration: COLUMN_VISIBILITY_ANIMATION_MS,
+      easing: COLUMN_VISIBILITY_ANIMATION_EASING,
+    },
+  );
+}
+
+function animateCellEnter(element: HTMLElement) {
+  element.animate(
+    [
+      {
+        opacity: 0,
+        transform: "translateY(-4px) scale(0.94, 0.98)",
+      },
+      {
+        opacity: 1,
+        transform: "translateY(0px) scale(1, 1)",
+      },
+    ],
+    {
+      duration: COLUMN_VISIBILITY_ANIMATION_MS,
+      easing: COLUMN_VISIBILITY_ANIMATION_EASING,
+    },
+  );
+}
+
+function createExitGhost(
+  source: HTMLElement,
+  previousRect: CellRectSnapshot,
+) {
+  const ghost = document.createElement("div");
+  const computedStyle = window.getComputedStyle(source);
+
+  ghost.setAttribute("aria-hidden", "true");
+  ghost.innerHTML = source.innerHTML;
+  ghost.style.position = "absolute";
+  ghost.style.left = `${previousRect.left}px`;
+  ghost.style.top = `${previousRect.top}px`;
+  ghost.style.width = `${previousRect.width}px`;
+  ghost.style.height = `${previousRect.height}px`;
+  ghost.style.boxSizing = "border-box";
+  ghost.style.padding = computedStyle.padding;
+  ghost.style.background = computedStyle.background;
+  ghost.style.color = computedStyle.color;
+  ghost.style.font = computedStyle.font;
+  ghost.style.lineHeight = computedStyle.lineHeight;
+  ghost.style.textAlign = computedStyle.textAlign as typeof ghost.style.textAlign;
+  ghost.style.borderTop = computedStyle.borderTop;
+  ghost.style.borderRight = computedStyle.borderRight;
+  ghost.style.borderBottom = computedStyle.borderBottom;
+  ghost.style.borderLeft = computedStyle.borderLeft;
+  ghost.style.borderRadius = computedStyle.borderRadius;
+  ghost.style.overflow = "hidden";
+  ghost.style.pointerEvents = "none";
+  ghost.style.transformOrigin = "left center";
+  ghost.style.zIndex = "2";
+
+  return ghost;
+}
+
+function animateCellExit(ghost: HTMLElement) {
+  return ghost.animate(
+    [
+      {
+        opacity: 1,
+        transform: "translateY(0px) scale(1, 1)",
+      },
+      {
+        opacity: 0,
+        transform: "translateY(3px) scale(0.9, 0.98)",
+      },
+    ],
+    {
+      duration: COLUMN_VISIBILITY_ANIMATION_MS,
+      easing: COLUMN_VISIBILITY_ANIMATION_EASING,
+    },
+  );
+}
+
 export function MethodsList({
   username,
   name,
@@ -205,6 +358,12 @@ export function MethodsList({
   const hoverPrefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+  const tableAnimationRootRef = useRef<HTMLDivElement | null>(null);
+  const previousAnimatedCellsRef = useRef<Map<string, HTMLElement>>(new Map());
+  const previousAnimatedCellRectsRef = useRef<Map<string, CellRectSnapshot>>(
+    new Map(),
+  );
+  const previousColumnSignatureRef = useRef<string | null>(null);
   const hoveredSlugRef = useRef<string | null>(null);
   const cursor = page > 1 ? cursorByPage[page] : undefined;
   const { data, error, isFetching, isLoading } = useMethods(
@@ -681,10 +840,10 @@ export function MethodsList({
     <TableCell className={className}>
       <div className="flex flex-col">
         <span className="font-bold">
-          {row.highProfit !== undefined ? formatNumber(row.highProfit) : "N/A"}
+          <AnimatedProfitValue value={row.highProfit} />
         </span>
         <span>
-          {row.lowProfit !== undefined ? formatNumber(row.lowProfit) : "N/A"}
+          <AnimatedProfitValue value={row.lowProfit} />
         </span>
       </div>
     </TableCell>
@@ -1023,15 +1182,122 @@ export function MethodsList({
     .filter((columnId) => visibleColumnSet.has(columnId))
     .map((columnId) => columnsById.get(columnId))
     .filter((column): column is ColumnConfig => !!column);
+  const activeColumnSignature = activeColumns.map((column) => column.id).join("|");
   const tableColumnCount = activeColumns.length;
+
+  useLayoutEffect(() => {
+    const root = tableAnimationRootRef.current;
+    if (!root || prefersReducedMotion()) {
+      previousColumnSignatureRef.current = activeColumnSignature;
+      return;
+    }
+
+    const tableContainer = root.querySelector<HTMLElement>(
+      "[data-slot='table-container']",
+    );
+    if (!tableContainer || typeof HTMLElement.prototype.animate !== "function") {
+      previousColumnSignatureRef.current = activeColumnSignature;
+      return;
+    }
+
+    const currentElements = new Map<string, HTMLElement>();
+    const currentRects = new Map<string, CellRectSnapshot>();
+    const containerRect = tableContainer.getBoundingClientRect();
+    const nodes = root.querySelectorAll<HTMLElement>("[data-column-animation-key]");
+
+    for (const node of nodes) {
+      const animationKey = node.dataset.columnAnimationKey;
+      if (!animationKey) {
+        continue;
+      }
+
+      currentElements.set(animationKey, node);
+      const rect = snapshotCellRect(node, containerRect);
+      if (rect) {
+        currentRects.set(animationKey, rect);
+      }
+    }
+
+    const previousRects = previousAnimatedCellRectsRef.current;
+    const previousElements = previousAnimatedCellsRef.current;
+    const previousColumnSignature = previousColumnSignatureRef.current;
+
+    if (
+      previousColumnSignature !== null &&
+      previousColumnSignature !== activeColumnSignature
+    ) {
+      for (const [animationKey, currentElement] of currentElements) {
+        const previousRect = previousRects.get(animationKey);
+        const currentRect = currentRects.get(animationKey);
+
+        if (previousRect && currentRect) {
+          animateCellReflow(currentElement, previousRect, currentRect);
+          continue;
+        }
+
+        if (currentRect) {
+          animateCellEnter(currentElement);
+        }
+      }
+
+      for (const [animationKey, previousRect] of previousRects) {
+        if (currentRects.has(animationKey)) {
+          continue;
+        }
+
+        const previousElement = previousElements.get(animationKey);
+        if (!previousElement) {
+          continue;
+        }
+
+        const ghost = createExitGhost(previousElement, previousRect);
+        tableContainer.appendChild(ghost);
+        const animation = animateCellExit(ghost);
+        animation.addEventListener("finish", () => {
+          ghost.remove();
+        });
+      }
+    }
+
+    previousAnimatedCellsRef.current = currentElements;
+    previousAnimatedCellRectsRef.current = currentRects;
+    previousColumnSignatureRef.current = activeColumnSignature;
+  }, [activeColumnSignature]);
+
+  const attachColumnAnimationProps = (
+    node: ReactNode,
+    rowKey: string,
+    columnId: MethodsTableColumnId,
+  ) => {
+    if (!isValidElement(node)) {
+      return node;
+    }
+
+    return cloneElement(
+      node as React.ReactElement<Record<string, unknown>>,
+      {
+        "data-column-animation-key": buildColumnAnimationKey(rowKey, columnId),
+        "data-column-id": columnId,
+      },
+    );
+  };
 
   return (
     <div className="space-y-4">
-      <Table className="table-fixed">
+      <div ref={tableAnimationRootRef}>
+        <Table className="table-fixed">
         <TableHeader>
           <TableRow>
             {activeColumns.map((column) => (
-              <TableHead key={column.id} className={column.headerClassName}>
+              <TableHead
+                key={column.id}
+                data-column-animation-key={buildColumnAnimationKey(
+                  "header",
+                  column.id,
+                )}
+                data-column-id={column.id}
+                className={column.headerClassName}
+              >
                 {column.renderHeader()}
               </TableHead>
             ))}
@@ -1044,6 +1310,11 @@ export function MethodsList({
                 {activeColumns.map((column) => (
                   <TableCell
                     key={`fetching-skeleton-cell-${index}-${column.id}`}
+                    data-column-animation-key={buildColumnAnimationKey(
+                      `loading-${index}`,
+                      column.id,
+                    )}
+                    data-column-id={column.id}
                     className={column.cellClassName}
                   >
                     {column.renderSkeleton()}
@@ -1071,7 +1342,11 @@ export function MethodsList({
               <TableRow key={row.id}>
                 {activeColumns.map((column) => (
                   <Fragment key={`${row.id}-${column.id}`}>
-                    {column.renderCell(row)}
+                    {attachColumnAnimationProps(
+                      column.renderCell(row),
+                      row.id,
+                      column.id,
+                    )}
                   </Fragment>
                 ))}
               </TableRow>
@@ -1079,6 +1354,7 @@ export function MethodsList({
           )}
         </TableBody>
       </Table>
+      </div>
       {isInitialLoading ? (
         <div className="flex items-center justify-center gap-2">
           <Skeleton className="h-9 w-24" />

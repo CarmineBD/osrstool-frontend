@@ -39,6 +39,12 @@ export function MethodVariantSelector({
   const [isNotViableInfoOpen, setIsNotViableInfoOpen] = useState(false);
   const notViableDescription =
     "These methods have extreme market impact. Even in the best case, operating at this one-hour scale may require more than 1 day to fully buy and sell through the market.";
+  const expandingPanelClassName =
+    "grid transition-[grid-template-rows,opacity,margin] duration-200 ease-out";
+  const expandedPanelStateClassName =
+    "lg:grid-rows-[1fr] lg:opacity-100 lg:mt-0";
+  const collapsedPanelStateClassName =
+    "lg:grid-rows-[0fr] lg:opacity-0 lg:mt-0";
 
   return (
     <aside
@@ -97,37 +103,46 @@ export function MethodVariantSelector({
                     />
                     <div
                       className={cn(
-                        "flex items-center justify-center gap-3 lg:hidden lg:group-hover/variant-selector:flex lg:group-focus-within/variant-selector:flex",
-                        isNotViableInfoOpen && "lg:flex",
+                        "lg:hidden",
+                        expandingPanelClassName,
+                        "grid-rows-[1fr] opacity-100",
+                        "lg:group-hover/variant-selector:grid-rows-[1fr] lg:group-hover/variant-selector:opacity-100",
+                        "lg:group-focus-within/variant-selector:grid-rows-[1fr] lg:group-focus-within/variant-selector:opacity-100",
+                        collapsedPanelStateClassName,
+                        isNotViableInfoOpen && expandedPanelStateClassName,
                       )}
                     >
-                      <Separator className="min-w-0 flex-1 bg-border/80" />
-                      <div className="flex shrink-0 items-center gap-2">
-                        <p className="whitespace-nowrap text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                          Not viable
-                        </p>
-                        <Tooltip
-                          open={isNotViableInfoOpen}
-                          onOpenChange={setIsNotViableInfoOpen}
-                        >
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              aria-label="Why these variants are not viable"
-                              className="inline-flex shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+                      <div className="overflow-hidden">
+                        <div className="flex items-center justify-center gap-3 py-2">
+                          <Separator className="min-w-0 flex-1 bg-border/80" />
+                          <div className="flex shrink-0 items-center gap-2">
+                            <p className="whitespace-nowrap text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                              Not viable
+                            </p>
+                            <Tooltip
+                              open={isNotViableInfoOpen}
+                              onOpenChange={setIsNotViableInfoOpen}
                             >
-                              <IconInfoCircle className="size-4" />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent
-                            sideOffset={6}
-                            className="pointer-events-none max-w-xs text-left whitespace-normal"
-                          >
-                            <p className="m-0">{notViableDescription}</p>
-                          </TooltipContent>
-                        </Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  type="button"
+                                  aria-label="Why these variants are not viable"
+                                  className="inline-flex shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+                                >
+                                  <IconInfoCircle className="size-4" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent
+                                sideOffset={6}
+                                className="pointer-events-none max-w-xs text-left whitespace-normal"
+                              >
+                                <p className="m-0">{notViableDescription}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                          <Separator className="min-w-0 flex-1 bg-border/80" />
+                        </div>
                       </div>
-                      <Separator className="min-w-0 flex-1 bg-border/80" />
                     </div>
                   </>
                 ) : null}
@@ -173,15 +188,22 @@ export function MethodVariantSelector({
 
         <div
           className={cn(
-            "hidden space-y-3 lg:group-hover/variant-selector:block lg:group-focus-within/variant-selector:block",
-            isNotViableInfoOpen && "lg:block",
+            expandingPanelClassName,
+            "grid-rows-[1fr] opacity-100 lg:grid-rows-[0fr] lg:opacity-0",
+            "lg:group-hover/variant-selector:grid-rows-[1fr] lg:group-hover/variant-selector:opacity-100",
+            "lg:group-focus-within/variant-selector:grid-rows-[1fr] lg:group-focus-within/variant-selector:opacity-100",
+            isNotViableInfoOpen && expandedPanelStateClassName,
           )}
         >
-          <p className={EDITOR_PAGE_EYEBROW_CLASS}>Details</p>
-          <p className={EDITOR_BODY_TEXT_CLASS}>
-            Select a variant to compare requirements, loot, metrics, and history
-            without leaving the page.
-          </p>
+          <div className="overflow-hidden">
+            <div className="space-y-3 pt-1 lg:pt-0">
+              <p className={EDITOR_PAGE_EYEBROW_CLASS}>Details</p>
+              <p className={EDITOR_BODY_TEXT_CLASS}>
+                Select a variant to compare requirements, loot, metrics, and
+                history without leaving the page.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </aside>

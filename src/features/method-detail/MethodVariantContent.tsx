@@ -14,6 +14,7 @@ import {
   IconTrendingDown,
   IconTrendingUp,
 } from "@tabler/icons-react";
+import { AnimatedProfitValue } from "@/components/AnimatedProfitValue";
 import { UsernameFetchNotice } from "@/components/UsernameFetchNotice";
 import {
   formatOsrsItemQuantity,
@@ -738,9 +739,7 @@ function MetricsCards({ variant }: { variant: Variant }) {
                     className="size-5 shrink-0 object-contain"
                   />
                 </figure>
-                {variant.highProfit !== undefined
-                  ? formatNumber(variant.highProfit)
-                  : "N/A"}
+                <AnimatedProfitValue value={variant.highProfit} />
               </span>
             </div>
           </div>
@@ -756,9 +755,7 @@ function MetricsCards({ variant }: { variant: Variant }) {
               }
             />
             <span className={valueClassName}>
-              {variant.lowProfit !== undefined
-                ? formatNumber(variant.lowProfit)
-                : "N/A"}
+              <AnimatedProfitValue value={variant.lowProfit} />
             </span>
           </div>
 

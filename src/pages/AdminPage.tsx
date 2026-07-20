@@ -22,7 +22,12 @@ import {
   PixelArtIcon,
   SectionHeader,
 } from "@/components/method-editor/MethodEditorPrimitives";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Alert,
+  AlertDescription,
+  AlertPresence,
+  AlertTitle,
+} from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -643,15 +648,15 @@ export function AdminPage() {
               />
             </CardHeader>
             <CardContent className={EDITOR_CARD_CONTENT_CLASS}>
-              {actionNotice ? (
+              <AlertPresence present={Boolean(actionNotice)}>
                 <Alert>
                   <ShieldCheck className="size-4" />
                   <AlertTitle>Last admin action</AlertTitle>
                   <AlertDescription>{actionNotice}</AlertDescription>
                 </Alert>
-              ) : null}
+              </AlertPresence>
 
-              {overviewQuery.error ? (
+              <AlertPresence present={Boolean(overviewQuery.error)}>
                 <Alert variant="destructive">
                   <AlertTitle>Error loading overview</AlertTitle>
                   <AlertDescription>
@@ -660,7 +665,7 @@ export function AdminPage() {
                       : "Unknown error"}
                   </AlertDescription>
                 </Alert>
-              ) : null}
+              </AlertPresence>
 
               <section className="space-y-4">
                 <SectionHeader
@@ -845,7 +850,7 @@ export function AdminPage() {
                 {jobMeta?.scriptName ?? "all scripts"}.
               </p>
 
-              {jobsQuery.error ? (
+              <AlertPresence present={Boolean(jobsQuery.error)}>
                 <Alert variant="destructive">
                   <AlertTitle>Error loading jobs</AlertTitle>
                   <AlertDescription>
@@ -854,7 +859,7 @@ export function AdminPage() {
                       : "Unknown error"}
                   </AlertDescription>
                 </Alert>
-              ) : null}
+              </AlertPresence>
 
               {jobsQuery.isLoading && !jobs.length ? (
                 <Skeleton className="h-72 rounded-xl" />
