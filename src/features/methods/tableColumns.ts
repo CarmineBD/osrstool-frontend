@@ -84,7 +84,8 @@ const METHODS_TABLE_COLUMN_META: Record<MethodsTableColumnId, MethodsTableColumn
   likes: {
     id: "likes",
     label: "Likes",
-    description: "Shows how many likes the method has received and lets you like or unlike it.",
+    description:
+      "Shows the total likes received across the method's variants.",
   },
 };
 

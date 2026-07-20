@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button";
 import { cn, formatNumber } from "@/lib/utils";
 import { useAuth } from "@/auth/AuthProvider";
 import { useUsername } from "@/contexts/UsernameContext";
-import { useToggleMethodLike } from "./hooks";
+import { useToggleVariantLike } from "./hooks";
 
-const LIKE_LOGIN_REQUIRED_MESSAGE = "Inicia sesión para dar like";
+const LIKE_LOGIN_REQUIRED_MESSAGE = "Sign in to like variants";
 
 type Props = {
   methodId: string;
+  variantId: string;
   likedByMe?: boolean;
   likes?: number;
   className?: string;
@@ -18,6 +19,7 @@ type Props = {
 
 export function LikeButton({
   methodId,
+  variantId,
   likedByMe,
   likes,
   className,
@@ -27,7 +29,7 @@ export function LikeButton({
   const { setUserError } = useUsername();
   const navigate = useNavigate();
   const location = useLocation();
-  const toggleLikeMutation = useToggleMethodLike();
+  const toggleLikeMutation = useToggleVariantLike();
 
   const isLiked = likedByMe === true;
   const hasLikeCount = showCount && typeof likes === "number";
@@ -39,7 +41,7 @@ export function LikeButton({
       return;
     }
 
-    toggleLikeMutation.mutate({ methodId, likedByMe: isLiked });
+    toggleLikeMutation.mutate({ methodId, variantId, likedByMe: isLiked });
   };
 
   return (
@@ -49,13 +51,13 @@ export function LikeButton({
       size="sm"
       onClick={handleClick}
       disabled={toggleLikeMutation.isPending}
-      aria-label={isLiked ? "Unlike method" : "Like method"}
+      aria-label={isLiked ? "Unlike variant" : "Like variant"}
       className={cn("h-8 gap-2 px-2", className)}
     >
       <Heart
         className={cn(
           "h-4 w-4 shrink-0",
-          isLiked ? "fill-danger text-danger" : "text-muted-foreground"
+          isLiked ? "fill-danger text-danger" : "text-muted-foreground",
         )}
       />
       {hasLikeCount ? (

@@ -144,6 +144,8 @@ export interface Variant {
   slug?: string;
   label: string;
   icon_id?: number | null;
+  likes?: number;
+  likedByMe?: boolean;
   members: boolean;
   description?: string;
   afkiness?: number;
@@ -277,9 +279,23 @@ function normalizeVariant(variant: Variant): Variant {
 }
 
 function normalizeMethod(method: Method): Method {
+  const variants = (method.variants ?? []).map(normalizeVariant);
+  const aggregatedLikes = variants.reduce<number | undefined>((total, variant) => {
+    if (typeof variant.likes !== "number") {
+      return total;
+    }
+
+    return (total ?? 0) + variant.likes;
+  }, undefined);
+
   return {
     ...method,
-    variants: (method.variants ?? []).map(normalizeVariant),
+    ...(typeof method.likes === "number"
+      ? { likes: method.likes }
+      : typeof aggregatedLikes === "number"
+        ? { likes: aggregatedLikes }
+        : {}),
+    variants,
   };
 }
 
@@ -1117,21 +1133,21 @@ export async function fetchMethodDetailBySlug(
   return { method: normalizeMethod(method), warnings };
 }
 
-export async function likeMethod(methodId: string): Promise<void> {
-  const res = await apiFetch(`${API_URL}/methods/${methodId}/like`, {
+export async function likeVariant(variantId: string): Promise<void> {
+  const res = await apiFetch(`${API_URL}/methods/variant/${variantId}/like`, {
     method: "POST",
   });
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} - Error liking method`);
+    throw new Error(`HTTP ${res.status} - Error liking variant`);
   }
 }
 
-export async function unlikeMethod(methodId: string): Promise<void> {
-  const res = await apiFetch(`${API_URL}/methods/${methodId}/like`, {
+export async function unlikeVariant(variantId: string): Promise<void> {
+  const res = await apiFetch(`${API_URL}/methods/variant/${variantId}/like`, {
     method: "DELETE",
   });
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} - Error unliking method`);
+    throw new Error(`HTTP ${res.status} - Error unliking variant`);
   }
 }
 

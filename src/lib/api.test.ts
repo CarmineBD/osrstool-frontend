@@ -197,6 +197,57 @@ describe("api update payload helpers", () => {
     fetchSpy.mockRestore();
   });
 
+  it("falls back to summing variant likes when a method aggregate is missing", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          data: {
+            methods: [
+              {
+                id: "method-1",
+                slug: "zulrah",
+                name: "Zulrah",
+                category: "combat",
+                variants: [
+                  {
+                    id: "variant-1",
+                    slug: "main",
+                    label: "Main",
+                    likes: 2,
+                    members: true,
+                    requirements: {},
+                    inputs: [],
+                    outputs: [],
+                  },
+                  {
+                    id: "variant-2",
+                    slug: "alt",
+                    label: "Alt",
+                    likes: 3,
+                    members: true,
+                    requirements: {},
+                    inputs: [],
+                    outputs: [],
+                  },
+                ],
+              },
+            ],
+          },
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    const response = await fetchMethods();
+
+    expect(response.methods[0]?.likes).toBe(5);
+
+    fetchSpy.mockRestore();
+  });
+
   it("truncates long method and username filters before fetching methods", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({ data: { methods: [] } }), {
