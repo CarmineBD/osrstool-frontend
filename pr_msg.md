@@ -1,17 +1,15 @@
 ## Summary
 
-- add an `AnimatedProfitValue` primitive and reuse it across profit-heavy method detail, history, table, skilling, and landing views
-- animate alert exits for username and admin notices, with focused coverage for the new alert presence behavior
-- animate methods table column visibility changes and smooth the method variant selector detail reveal
-- refresh the landing page trending cards to match the updated profit presentation and tighter visual hierarchy
+- add forgot password and reset password routes, including a recovery entry point from the login form
+- extend the auth provider with password reset requests, password updates, and recovery-session tracking for Supabase recovery links
+- add critical route coverage and test helpers for the password recovery flow
 
 ## How to test
 
 - `npm run lint`
-- `npm test`
+- `$env:CI='true'; npm test`
 - `npm run build`
 
 ## Notes
 
-- No business logic changes.
-- `npm run lint` still reports the existing `react-refresh/only-export-components` warnings, but exits with code `0`
+- The reset flow expects Supabase recovery emails to redirect users to `/reset-password`.
