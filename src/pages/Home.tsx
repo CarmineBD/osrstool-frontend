@@ -103,10 +103,13 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
 
   const { username } = useUsername();
   const normalizedUsername = username.trim();
+  const hasUsername = normalizedUsername.length > 0;
   const { session, user } = useAuth();
   const [methodInput, setMethodInput] = useState<string>("");
   const [debouncedMethodInput, setDebouncedMethodInput] = useState<string>("");
   const [isFiltersOpen, setIsFiltersOpen] = useState<boolean>(false);
+  const [isUsernameDataEnabled, setIsUsernameDataEnabled] =
+    useState<boolean>(true);
 
   const [category, setCategory] = useState<string>("");
   const [clickIntensity, setClickIntensity] = useState<number>(MAX_CLICK_INTENSITY);
@@ -289,6 +292,8 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
     () => debouncedMethodInput.trim(),
     [debouncedMethodInput],
   );
+  const effectiveUsername =
+    hasUsername && isUsernameDataEnabled ? normalizedUsername : "";
 
   const appliedFilterCount = useMemo(() => {
     let count = 0;
@@ -541,7 +546,7 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
   return (
     <div className="min-h-screen bg-surface-page">
       <div className="container mx-auto p-8 space-y-6">
-        {!normalizedUsername ? (
+        {!hasUsername ? (
           <UsernameFetchNotice state="info" className="sticky top-20 z-20" />
         ) : null}
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -985,6 +990,27 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
                   </div>
 
                   <div className="space-y-3">
+                    <Field
+                      className="flex items-center gap-2"
+                      data-disabled={!hasUsername}
+                    >
+                      <FieldLabel>Use username data</FieldLabel>
+                      <div>
+                        <Switch
+                          aria-label="Use username data"
+                          checked={hasUsername && isUsernameDataEnabled}
+                          disabled={!hasUsername}
+                          onCheckedChange={setIsUsernameDataEnabled}
+                        />
+                        <FieldDescription>
+                          {!hasUsername
+                            ? "Enter your username to enable stat-based method filtering."
+                            : isUsernameDataEnabled
+                              ? "Filter methods by your fetched stats."
+                              : "Ignore fetched username data and show all methods."}
+                        </FieldDescription>
+                      </div>
+                    </Field>
                     <div className="flex items-center gap-2">
                       <Field className="flex items-center gap-2">
                         <FieldLabel>Profitables</FieldLabel>
@@ -1052,7 +1078,7 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
           </div>
         </div>
         <MethodsList
-          username={username}
+          username={effectiveUsername}
           name={methodName}
           filters={appliedFilters}
           isSkillTable={hasLockedSkill}
