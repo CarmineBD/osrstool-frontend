@@ -1,4 +1,4 @@
-import { fireEvent, screen } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
@@ -148,6 +148,92 @@ describe("critical flow: list render + filters", () => {
     expect(seenSortBy).toContain("highProfit");
     expect(seenOrder).toContain("desc");
   }, 10000);
+
+  it("disables the username-data switch when no username is available", async () => {
+    server.use(
+      http.get("*/methods", () =>
+        HttpResponse.json({
+          data: {
+            methods: [buildMethod("method-1", "Shark fishing", "shark-fishing", 1001)],
+            page: 1,
+            perPage: 10,
+            total: 1,
+          },
+        })
+      )
+    );
+
+    const user = userEvent.setup();
+    renderWithProviders(<Home />);
+
+    await screen.findByRole("link", { name: "Shark fishing" });
+    await user.click(screen.getByRole("button", { name: /show filters/i }));
+
+    const usernameDataSwitch = screen.getByRole("switch", {
+      name: /use username data/i,
+    });
+    expect(usernameDataSwitch).toBeDisabled();
+    expect(usernameDataSwitch).toHaveAttribute("aria-checked", "false");
+    expect(
+      screen.getByText("Enter your username to enable stat-based method filtering."),
+    ).toBeInTheDocument();
+  });
+
+  it("lets users toggle username-based filtering on and off", async () => {
+    const seenUsernames: string[] = [];
+    const usernameContextModule = await import("@/contexts/UsernameContext");
+    usernameContextModule.__setUsernameMockState({ username: "Zezima" });
+
+    server.use(
+      http.get("*/items", () => HttpResponse.json({ data: {} })),
+      http.get("*/methods", ({ request }) => {
+        const requestUrl = new URL(request.url);
+        seenUsernames.push(requestUrl.searchParams.get("username") ?? "");
+
+        return HttpResponse.json({
+          data: {
+            methods: [buildMethod("method-1", "Shark fishing", "shark-fishing", 1001)],
+            page: 1,
+            perPage: 10,
+            total: 1,
+          },
+        });
+      })
+    );
+
+    const user = userEvent.setup();
+    renderWithProviders(<Home />);
+
+    await screen.findByRole("link", { name: "Shark fishing" });
+    expect(seenUsernames).toContain("Zezima");
+
+    await user.click(screen.getByRole("button", { name: /show filters/i }));
+    const usernameDataSwitch = screen.getByRole("switch", {
+      name: /use username data/i,
+    });
+
+    expect(usernameDataSwitch).toHaveAttribute("aria-checked", "true");
+    expect(
+      screen.getByText("Filter methods by your fetched stats."),
+    ).toBeInTheDocument();
+
+    await user.click(usernameDataSwitch);
+
+    await waitFor(() => {
+      expect(seenUsernames).toContain("");
+    });
+    expect(usernameDataSwitch).toHaveAttribute("aria-checked", "false");
+    expect(
+      screen.getByText("Ignore fetched username data and show all methods."),
+    ).toBeInTheDocument();
+
+    await user.click(usernameDataSwitch);
+
+    expect(usernameDataSwitch).toHaveAttribute("aria-checked", "true");
+    expect(
+      screen.getByText("Filter methods by your fetched stats."),
+    ).toBeInTheDocument();
+  });
 
   it("shows the selected best variant below the method name unless it matches the method name", async () => {
     server.use(
