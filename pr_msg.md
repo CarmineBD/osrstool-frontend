@@ -1,8 +1,8 @@
 ## Summary
 
-- add forgot password and reset password routes, including a recovery entry point from the login form
-- extend the auth provider with password reset requests, password updates, and recovery-session tracking for Supabase recovery links
-- add critical route coverage and test helpers for the password recovery flow
+- add a filters switch on the methods search page to let users enable or ignore username-based stat filtering
+- keep the new switch enabled by default when a username is present and disable it with concise guidance when no username is available
+- extend critical coverage for the new filter behavior, including disabled and toggle-on/off states
 
 ## How to test
 
@@ -12,4 +12,4 @@
 
 ## Notes
 
-- The reset flow expects Supabase recovery emails to redirect users to `/reset-password`.
+- This change updates methods list filtering behavior when a username is present.
