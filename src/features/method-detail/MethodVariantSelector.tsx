@@ -55,7 +55,7 @@ export function MethodVariantSelector({
     >
       <div
         className={cn(
-          "group/variant-selector space-y-4 rounded-xl border border-border/70 bg-card p-6 shadow-sm lg:relative lg:z-50 lg:max-h-[calc(100vh-7rem)] lg:w-[7.5rem] lg:overflow-y-hidden lg:transition-[width,box-shadow] lg:duration-200 lg:ease-out lg:hover:w-[19rem] lg:hover:overflow-y-auto lg:focus-within:w-[19rem] lg:focus-within:overflow-y-auto lg:hover:shadow-lg lg:focus-within:shadow-lg",
+          "group/variant-selector space-y-4 rounded-xl border border-border/70 bg-card p-6 shadow-sm lg:relative lg:z-50 lg:max-h-[calc(100vh-7rem)] lg:w-[7.5rem] lg:overflow-x-hidden lg:overflow-y-hidden lg:transition-[width,box-shadow] lg:duration-200 lg:ease-out lg:hover:w-[19rem] lg:hover:overflow-y-auto lg:focus-within:w-[19rem] lg:focus-within:overflow-y-auto lg:hover:shadow-lg lg:focus-within:shadow-lg",
           isNotViableInfoOpen && "lg:w-[19rem] lg:overflow-y-auto lg:shadow-lg",
         )}
       >
@@ -82,7 +82,7 @@ export function MethodVariantSelector({
         <TabsList
           aria-label="Method variants"
           className={cn(
-            "flex h-auto w-full flex-col items-stretch gap-1 rounded-lg bg-transparent p-0 lg:items-center lg:group-hover/variant-selector:items-stretch lg:group-focus-within/variant-selector:items-stretch",
+            "flex h-auto w-full flex-col items-stretch gap-1 rounded-lg bg-transparent p-0 lg:items-center lg:gap-[10px] lg:group-hover/variant-selector:items-stretch lg:group-hover/variant-selector:gap-1 lg:group-focus-within/variant-selector:items-stretch lg:group-focus-within/variant-selector:gap-1",
             isNotViableInfoOpen && "lg:items-stretch",
           )}
         >
@@ -103,7 +103,7 @@ export function MethodVariantSelector({
                     />
                     <div
                       className={cn(
-                        "lg:hidden",
+                        "min-w-0",
                         expandingPanelClassName,
                         "grid-rows-[1fr] opacity-100",
                         "lg:group-hover/variant-selector:grid-rows-[1fr] lg:group-hover/variant-selector:opacity-100",
@@ -113,7 +113,7 @@ export function MethodVariantSelector({
                       )}
                     >
                       <div className="overflow-hidden">
-                        <div className="flex items-center justify-center gap-3 py-2">
+                        <div className="flex min-w-0 flex-nowrap items-center justify-center gap-3 py-2">
                           <Separator className="min-w-0 flex-1 bg-border/80" />
                           <div className="flex shrink-0 items-center gap-2">
                             <p className="whitespace-nowrap text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">

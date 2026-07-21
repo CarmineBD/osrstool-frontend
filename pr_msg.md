@@ -1,8 +1,8 @@
 ## Summary
 
-- add a filters switch on the methods search page to let users enable or ignore username-based stat filtering
-- keep the new switch enabled by default when a username is present and disable it with concise guidance when no username is available
-- extend critical coverage for the new filter behavior, including disabled and toggle-on/off states
+- switch shared tooltips to semantic popover surfaces so secondary helper copy keeps proper contrast
+- restore the desktop "Not viable" divider in the collapsed variant selector and prevent horizontal overflow
+- add extra collapsed spacing between variant items without changing the expanded selector layout
 
 ## How to test
 
@@ -12,4 +12,4 @@
 
 ## Notes
 
-- This change updates methods list filtering behavior when a username is present.
+- No business logic changes.
