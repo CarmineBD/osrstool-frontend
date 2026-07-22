@@ -12,4 +12,4 @@
 
 ## Notes
 
-- No business logic changes.
+- Lint still reports the existing `react-refresh/only-export-components` warnings in unrelated files.
