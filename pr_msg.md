@@ -1,8 +1,8 @@
 ## Summary
 
-- switch shared tooltips to semantic popover surfaces so secondary helper copy keeps proper contrast
-- restore the desktop "Not viable" divider in the collapsed variant selector and prevent horizontal overflow
-- add extra collapsed spacing between variant items without changing the expanded selector layout
+- add reusable variant sort metrics for profit, xp, and afk ordering
+- cover the new variant ordering rules with targeted unit tests
+- add sort controls to the method detail variant selector and show the active metric in each tab
 
 ## How to test
 
@@ -12,4 +12,4 @@
 
 ## Notes
 
-- No business logic changes.
+- Lint still reports the existing `react-refresh/only-export-components` warnings in unrelated files.
