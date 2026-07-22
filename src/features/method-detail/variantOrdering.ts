@@ -78,10 +78,11 @@ export function getOrderedVariants(
         return left.isNotViable ? 1 : -1;
       }
 
-      const highProfitDifference =
-        getSortableHighProfit(right.variant) - getSortableHighProfit(left.variant);
-      if (highProfitDifference !== 0) {
-        return highProfitDifference;
+      const metricDifference =
+        getSortableMetricValue(right.variant, sortMode) -
+        getSortableMetricValue(left.variant, sortMode);
+      if (metricDifference !== 0) {
+        return metricDifference;
       }
 
       return left.originalIndex - right.originalIndex;
