@@ -1,4 +1,4 @@
-import { AnimatedProfitValue } from "@/components/AnimatedProfitValue";
+import type { ReactNode } from "react";
 import { PixelArtIcon } from "@/components/method-editor/MethodEditorPrimitives";
 import { cn } from "@/lib/utils";
 
@@ -6,29 +6,21 @@ interface VariantTabLabelProps {
   label: string;
   iconUrl?: string;
   iconAlt?: string;
-  showProfitSummary?: boolean;
-  highProfit?: number;
-  lowProfit?: number;
+  summary?: ReactNode;
   className?: string;
   labelClassName?: string;
-  profitClassName?: string;
+  summaryClassName?: string;
 }
 
 export function VariantTabLabel({
   label,
   iconUrl,
   iconAlt = "",
-  showProfitSummary = false,
-  highProfit,
-  lowProfit,
+  summary,
   className,
   labelClassName,
-  profitClassName,
+  summaryClassName,
 }: VariantTabLabelProps) {
-  const highProfitIsNegative =
-    typeof highProfit === "number" && Number.isFinite(highProfit) && highProfit < 0;
-  const lowProfitIsNegative =
-    typeof lowProfit === "number" && Number.isFinite(lowProfit) && lowProfit < 0;
   return (
     <span className={cn("flex min-w-0 items-center gap-2", className)}>
       <span className="flex min-w-0 flex-1 items-center gap-2">
@@ -37,31 +29,14 @@ export function VariantTabLabel({
           {label}
         </span>
       </span>
-      {showProfitSummary ? (
+      {summary ? (
         <span
           className={cn(
-            "flex w-[5.5rem] shrink-0 flex-col text-right leading-tight",
-            profitClassName,
+            "flex w-[6.75rem] shrink-0 justify-end overflow-hidden text-right leading-tight",
+            summaryClassName,
           )}
         >
-          <span
-            className={cn(
-              "truncate text-sm font-medium",
-              highProfitIsNegative ? "text-destructive" : "text-foreground",
-            )}
-          >
-            <AnimatedProfitValue value={highProfit} />
-          </span>
-          <span
-            className={cn(
-              "truncate text-xs",
-              lowProfitIsNegative
-                ? "text-danger-foreground"
-                : "text-muted-foreground",
-            )}
-          >
-            <AnimatedProfitValue value={lowProfit} />
-          </span>
+          {summary}
         </span>
       ) : null}
     </span>

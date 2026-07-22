@@ -1,12 +1,23 @@
 import { Fragment, useState } from "react";
-import { IconInfoCircle } from "@tabler/icons-react";
+import { IconArrowsSort, IconInfoCircle } from "@tabler/icons-react";
+import { AnimatedProfitValue } from "@/components/AnimatedProfitValue";
 import { VariantTabLabel } from "@/components/VariantTabLabel";
 import {
   EDITOR_PAGE_EYEBROW_CLASS,
   EDITOR_SECTION_TITLE_CLASS,
   EDITOR_BODY_TEXT_CLASS,
+  EDITOR_META_TEXT_CLASS,
 } from "@/components/method-editor/MethodEditorPrimitives";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -14,26 +25,77 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
+import {
+  VARIANT_SORT_OPTIONS,
+  type VariantSortMode,
+} from "@/features/method-detail/variantOrdering";
+import { cn, formatNumber } from "@/lib/utils";
 
 interface MethodVariantSelectorItem {
   value: string;
   label: string;
   iconUrl?: string;
-  highProfit?: number;
-  lowProfit?: number;
+  sortMetricValue?: number;
   isNotViable: boolean;
 }
 
 interface MethodVariantSelectorProps {
   items: MethodVariantSelectorItem[];
   variantCount: number;
+  sortMode: VariantSortMode;
+  onSortModeChange: (value: VariantSortMode) => void;
   className?: string;
+}
+
+function renderSortMetric(
+  sortMode: VariantSortMode,
+  metricValue: number | undefined,
+) {
+  if (sortMode === "profit") {
+    const isNegative = typeof metricValue === "number" && metricValue < 0;
+    return (
+      <AnimatedProfitValue
+        value={metricValue}
+        fallback="N/A"
+        suffix=" gp/hr"
+        className={cn(
+          "justify-end text-sm font-medium",
+          isNegative ? "text-destructive" : "text-foreground",
+        )}
+      />
+    );
+  }
+
+  if (sortMode === "xp") {
+    return (
+      <span
+        className={cn(
+          "truncate text-sm font-medium",
+          metricValue !== undefined ? "text-foreground" : "text-muted-foreground",
+        )}
+      >
+        {metricValue !== undefined ? `${formatNumber(metricValue)} xp/hr` : "N/A"}
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className={cn(
+        "truncate text-sm font-medium",
+        metricValue !== undefined ? "text-foreground" : "text-muted-foreground",
+      )}
+    >
+      {metricValue !== undefined ? `${metricValue}%` : "N/A"}
+    </span>
+  );
 }
 
 export function MethodVariantSelector({
   items,
   variantCount,
+  sortMode,
+  onSortModeChange,
   className,
 }: MethodVariantSelectorProps) {
   const [isNotViableInfoOpen, setIsNotViableInfoOpen] = useState(false);
@@ -65,13 +127,52 @@ export function MethodVariantSelector({
           </p>
           <div className="flex items-center justify-between gap-2 lg:flex-nowrap">
             <h2 className={EDITOR_SECTION_TITLE_CLASS}>Variants</h2>
-            <Badge
-              variant="outline"
-              size="sm"
-              className="inline-flex lg:hidden lg:group-hover/variant-selector:inline-flex lg:group-focus-within/variant-selector:inline-flex"
-            >
-              {variantCount} variants
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge
+                variant="outline"
+                size="sm"
+                className="inline-flex lg:hidden lg:group-hover/variant-selector:inline-flex lg:group-focus-within/variant-selector:inline-flex"
+              >
+                {variantCount} variants
+              </Badge>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0 rounded-md text-muted-foreground hover:text-foreground"
+                    aria-label="Sort variants"
+                    title="Sort variants"
+                  >
+                    <IconArrowsSort className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48 rounded-lg">
+                  <DropdownMenuLabel className="pb-1">
+                    Sort variants
+                  </DropdownMenuLabel>
+                  <p className={cn("px-2 pb-2", EDITOR_META_TEXT_CLASS)}>
+                    Highest to lowest
+                  </p>
+                  <DropdownMenuRadioGroup
+                    value={sortMode}
+                    onValueChange={(value) =>
+                      onSortModeChange(value as VariantSortMode)
+                    }
+                  >
+                    {VARIANT_SORT_OPTIONS.map((option) => (
+                      <DropdownMenuRadioItem
+                        key={option.value}
+                        value={option.value}
+                      >
+                        {option.label}
+                      </DropdownMenuRadioItem>
+                    ))}
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
           <p className={cn(EDITOR_BODY_TEXT_CLASS, "block lg:hidden")}>
             Select a variant to compare requirements, loot, metrics, and history
@@ -157,6 +258,9 @@ export function MethodVariantSelector({
                       "lg:h-14 lg:w-full lg:justify-start lg:px-3 lg:py-2",
                     item.isNotViable &&
                       "opacity-55 [&_img]:saturate-50 data-[state=active]:opacity-100",
+                    "transition-[background-color,border-color,box-shadow,opacity]",
+                    "hover:border-border/60 hover:bg-background/60 hover:shadow-sm",
+                    "focus-visible:border-border/70 focus-visible:bg-background/60 focus-visible:shadow-sm",
                     "data-[state=active]:border-border/70 data-[state=active]:bg-background",
                   )}
                 >
@@ -172,11 +276,9 @@ export function MethodVariantSelector({
                       "inline lg:hidden lg:group-hover/variant-selector:inline lg:group-focus-within/variant-selector:inline",
                       isNotViableInfoOpen && "lg:inline",
                     )}
-                    showProfitSummary
-                    highProfit={item.highProfit}
-                    lowProfit={item.lowProfit}
-                    profitClassName={cn(
-                      "hidden lg:group-hover/variant-selector:flex lg:group-focus-within/variant-selector:flex",
+                    summary={renderSortMetric(sortMode, item.sortMetricValue)}
+                    summaryClassName={cn(
+                      "flex lg:hidden lg:group-hover/variant-selector:flex lg:group-focus-within/variant-selector:flex",
                       isNotViableInfoOpen && "lg:flex",
                     )}
                   />

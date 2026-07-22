@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   EDITOR_PAGE_EYEBROW_CLASS,
@@ -12,7 +13,12 @@ import {
   MethodVariantMetricsPanel,
 } from "@/features/method-detail/MethodVariantContent";
 import { MethodVariantSelector } from "@/features/method-detail/MethodVariantSelector";
-import { getOrderedVariants } from "@/features/method-detail/variantOrdering";
+import {
+  DEFAULT_VARIANT_SORT_MODE,
+  getOrderedVariants,
+  getVariantSortMetricValue,
+  type VariantSortMode,
+} from "@/features/method-detail/variantOrdering";
 import { useMethodDetail } from "@/features/method-detail/useMethodDetail";
 import type { Variant } from "@/lib/api";
 
@@ -28,6 +34,8 @@ export function MethodDetail(_props: Props) {
   const navigate = useNavigate();
   const { username } = useUsername();
   const state = useMethodDetail();
+  const [variantSortMode, setVariantSortMode] =
+    useState<VariantSortMode>(DEFAULT_VARIANT_SORT_MODE);
 
   if (state.isLoading) return <MethodDetailSkeleton />;
 
@@ -59,18 +67,18 @@ export function MethodDetail(_props: Props) {
   const activeValue = activeVariant
     ? getVariantTabValue(activeVariant, resolvedVariantIndex)
     : "";
-  const variantSelectorItems = getOrderedVariants(state.method.variants).map(
-    ({ variant, originalIndex, isNotViable }) => ({
-      value: getVariantTabValue(variant, originalIndex),
-      label: variant.label,
-      iconUrl: variant.icon_id
-        ? state.itemsMap[variant.icon_id]?.iconUrl
-        : undefined,
-      highProfit: variant.highProfit,
-      lowProfit: variant.lowProfit,
-      isNotViable,
-    }),
-  );
+  const variantSelectorItems = getOrderedVariants(
+    state.method.variants,
+    variantSortMode,
+  ).map(({ variant, originalIndex, isNotViable }) => ({
+    value: getVariantTabValue(variant, originalIndex),
+    label: variant.label,
+    iconUrl: variant.icon_id
+      ? state.itemsMap[variant.icon_id]?.iconUrl
+      : undefined,
+    sortMetricValue: getVariantSortMetricValue(variant, variantSortMode),
+    isNotViable,
+  }));
 
   return (
     <div className="min-h-screen bg-surface-page">
@@ -110,6 +118,8 @@ export function MethodDetail(_props: Props) {
                 <MethodVariantSelector
                   items={variantSelectorItems}
                   variantCount={state.method.variants.length}
+                  sortMode={variantSortMode}
+                  onSortModeChange={setVariantSortMode}
                 />
               ) : null}
 
