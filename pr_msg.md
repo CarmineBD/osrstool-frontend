@@ -1,7 +1,7 @@
 ## Summary
 
-- remove the custom `manualChunks` function from the Vite build configuration
-- fall back to Vite and Rollup default chunking behavior for production builds
+- add a Vercel route that forwards `/api/*` requests to the Railway backend
+- keep the filesystem and SPA fallback routes in place after the API proxy rule
 
 ## How to test
 
