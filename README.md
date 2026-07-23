@@ -38,7 +38,15 @@ Frontend de OSRSTool para explorar metodos de money making de Old School RuneSca
 npm install
 ```
 
-### 2) Crear `.env` desde `.env.example`
+### 2) Elegir plantilla de entorno
+
+Plantillas disponibles:
+
+- `.env.example`: frontend local contra backend local.
+- `.env.remote-tst.example`: frontend local contra backend TST remoto.
+- `.env.remote-prod.example`: frontend local contra backend PRO remoto.
+
+Ejemplo para local puro:
 
 ```bash
 cp .env.example .env
@@ -50,19 +58,81 @@ En PowerShell:
 Copy-Item .env.example .env
 ```
 
+Ejemplo para probar local contra TST remoto:
+
+```powershell
+Copy-Item .env.remote-tst.example .env
+```
+
+Ejemplo para probar local contra PRO remoto:
+
+```powershell
+Copy-Item .env.remote-prod.example .env
+```
+
 ### 3) Configurar variables de entorno
 
 | Variable | Requerida | Descripcion |
 | --- | --- | --- |
-| `VITE_SUPABASE_URL` | Si | URL del proyecto Supabase. |
+| `VITE_SUPABASE_URL` | Si | URL del proyecto Supabase usado por el frontend para auth. |
 | `VITE_SUPABASE_ANON_KEY` | Si | Anon key de Supabase para auth en cliente. |
-| `VITE_API_URL` | Si | Base URL del backend. En dev puede ser `/api` con proxy. |
-| `VITE_API_PROXY_TARGET` | No | Target del proxy de Vite (ej. `http://localhost:3000`). |
-| `VITE_API_USE_PROXY` | No | `true` por defecto en dev. En `false` llama directo a `VITE_API_URL`. |
+| `VITE_API_URL` | Si | Base URL del backend. En local normalmente `/api` para usar el proxy de Vite. En Vercel puede ser `/api` o una URL absoluta del backend segun la estrategia elegida. |
+| `VITE_API_PROXY_TARGET` | No | Target del proxy de Vite cuando `VITE_API_USE_PROXY=true` (ej. `http://localhost:3000` o una URL Railway). |
+| `VITE_API_USE_PROXY` | No | `true` hace que el frontend local llame a `/api` y Vite reenvie la request. `false` hace que el navegador llame directo a `VITE_API_URL`. |
 | `VITE_QUERY_REFETCH_INTERVAL_MS` | No | Intervalo de refetch para React Query (default `60000`). |
 | `VITE_QUERY_STALE_TIME_MS` | No | Ventana de frescura de cache para queries dinamicas. Si no se define, usa un margen automatico (20% del intervalo, maximo 5000ms). |
 
-### 4) Levantar app
+### 4) Recetas de entorno
+
+#### Frontend local contra backend local
+
+- Plantilla: `.env.example`
+- Valores clave:
+  - `VITE_API_URL=/api`
+  - `VITE_API_PROXY_TARGET=http://localhost:3000`
+  - `VITE_API_USE_PROXY=true`
+
+#### Frontend local contra backend TST remoto
+
+- Plantilla: `.env.remote-tst.example`
+- Valores clave:
+  - `VITE_API_URL=/api`
+  - `VITE_API_PROXY_TARGET=https://osrstool-backend-tst.up.railway.app`
+  - `VITE_API_USE_PROXY=true`
+
+#### Frontend local contra backend PRO remoto
+
+- Plantilla: `.env.remote-prod.example`
+- Valores clave:
+  - `VITE_API_URL=/api`
+  - `VITE_API_PROXY_TARGET=https://osrstool-backend-production.up.railway.app`
+  - `VITE_API_USE_PROXY=true`
+
+#### Proyecto Vercel PRO
+
+- Rama principal: `main`
+- Variables recomendadas:
+
+```env
+VITE_SUPABASE_URL=https://YOUR_PROJECT_ID.supabase.co
+VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+VITE_API_URL=https://osrstool-backend-production.up.railway.app
+VITE_API_USE_PROXY=false
+```
+
+#### Proyecto Vercel TST
+
+- Rama principal: `develop`
+- Variables recomendadas:
+
+```env
+VITE_SUPABASE_URL=https://YOUR_PROJECT_ID.supabase.co
+VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+VITE_API_URL=https://osrstool-backend-tst.up.railway.app
+VITE_API_USE_PROXY=false
+```
+
+### 5) Levantar app
 
 ```bash
 npm run dev
