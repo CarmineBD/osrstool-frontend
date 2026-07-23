@@ -1,15 +1,14 @@
 ## Summary
 
-- add reusable variant sort metrics for profit, xp, and afk ordering
-- cover the new variant ordering rules with targeted unit tests
-- add sort controls to the method detail variant selector and show the active metric in each tab
+- add a `vercel.json` configuration that preserves filesystem handling first and rewrites unmatched routes to `index.html`
+- ensure client-side routes resolve correctly when the frontend is deployed on Vercel as a single-page application
 
 ## How to test
 
 - `npm run lint`
-- `$env:CI='true'; npm test`
+- `CI=true npm test`
 - `npm run build`
 
 ## Notes
 
-- Lint still reports the existing `react-refresh/only-export-components` warnings in unrelated files.
+- No business logic changes.
