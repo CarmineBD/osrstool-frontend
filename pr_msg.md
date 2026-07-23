@@ -1,13 +1,15 @@
 ## Summary
 
-- add a Vercel route that forwards `/api/*` requests to the Railway backend
-- keep the filesystem and SPA fallback routes in place after the API proxy rule
+- add dedicated `.env.remote-tst.example` and `.env.remote-prod.example` templates for local frontend runs against deployed backends
+- clarify the local proxy defaults and optional query settings in `.env.example`
+- expand the README with environment selection steps, variable guidance, and Vercel TST/PRO setup recipes
 
 ## How to test
 
 - `npm run lint`
-- `CI=true npm test`
+- `npm test`
 - `npm run build`
+- Copy any of the provided `.env*.example` files to `.env` and verify the expected backend target before running `npm run dev`
 
 ## Notes
 
