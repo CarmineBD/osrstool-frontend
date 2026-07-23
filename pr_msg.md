@@ -1,7 +1,7 @@
 ## Summary
 
-- add a `vercel.json` configuration that preserves filesystem handling first and rewrites unmatched routes to `index.html`
-- ensure client-side routes resolve correctly when the frontend is deployed on Vercel as a single-page application
+- remove the custom `manualChunks` function from the Vite build configuration
+- fall back to Vite and Rollup default chunking behavior for production builds
 
 ## How to test
 
