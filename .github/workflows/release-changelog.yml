@@ -1,0 +1,78 @@
+name: Release changelog
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review, edited]
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: release-changelog-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  generate:
+    name: generate changelog
+    if: >
+      github.event.pull_request.head.ref == 'develop' &&
+      github.event.pull_request.base.ref == 'main' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout develop
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate changelog
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_PR_CREATED_AT: ${{ github.event.pull_request.created_at }}
+          RELEASE_PR_NUMBER: ${{ github.event.pull_request.number }}
+          RELEASE_PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          git fetch origin main develop
+          release_date="${RELEASE_PR_CREATED_AT%%T*}"
+          node scripts/generate-release-changelog.mjs \
+            --base origin/main \
+            --head HEAD \
+            --date "$release_date" \
+            --release-pr "$RELEASE_PR_NUMBER" \
+            --release-title "$RELEASE_PR_TITLE"
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Commit changelog to develop
+        run: |
+          if git diff --quiet -- src/content/changelog; then
+            echo "No changelog changes to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/content/changelog
+          git commit -m "docs(changelog): update release notes"
+          git push origin HEAD:develop
