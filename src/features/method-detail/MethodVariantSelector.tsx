@@ -1,4 +1,4 @@
-import { Fragment, useState } from "react";
+import { Fragment, useLayoutEffect, useRef, useState } from "react";
 import { IconArrowsSort, IconInfoCircle } from "@tabler/icons-react";
 import { AnimatedProfitValue } from "@/components/AnimatedProfitValue";
 import { VariantTabLabel } from "@/components/VariantTabLabel";
@@ -45,6 +45,22 @@ interface MethodVariantSelectorProps {
   sortMode: VariantSortMode;
   onSortModeChange: (value: VariantSortMode) => void;
   className?: string;
+}
+
+type TriggerPositionSnapshot = {
+  left: number;
+  top: number;
+};
+
+const VARIANT_REORDER_ANIMATION_MS = 260;
+const VARIANT_REORDER_ANIMATION_EASING = "cubic-bezier(0.22, 1, 0.36, 1)";
+
+function prefersReducedMotion(): boolean {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return false;
+  }
+
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 function renderSortMetric(
@@ -98,15 +114,92 @@ export function MethodVariantSelector({
   onSortModeChange,
   className,
 }: MethodVariantSelectorProps) {
+  const [isRailHovered, setIsRailHovered] = useState(false);
   const [isNotViableInfoOpen, setIsNotViableInfoOpen] = useState(false);
+  const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
+  const triggerRefs = useRef(new Map<string, HTMLButtonElement>());
+  const previousTriggerPositionsRef = useRef(
+    new Map<string, TriggerPositionSnapshot>(),
+  );
+  const previousOrderSignatureRef = useRef<string | null>(null);
   const notViableDescription =
     "These methods have extreme market impact. Even in the best case, operating at this one-hour scale may require more than 1 day to fully buy and sell through the market.";
+  const isSelectorExpanded =
+    isRailHovered || isNotViableInfoOpen || isSortMenuOpen;
   const expandingPanelClassName =
     "grid transition-[grid-template-rows,opacity,margin] duration-200 ease-out";
   const expandedPanelStateClassName =
     "lg:grid-rows-[1fr] lg:opacity-100 lg:mt-0";
   const collapsedPanelStateClassName =
     "lg:grid-rows-[0fr] lg:opacity-0 lg:mt-0";
+  const orderSignature = items.map((item) => item.value).join("|");
+
+  useLayoutEffect(() => {
+    const nextTriggerPositions = new Map<string, TriggerPositionSnapshot>();
+
+    items.forEach((item) => {
+      const element = triggerRefs.current.get(item.value);
+      if (!element) return;
+
+      const rect = element.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return;
+
+      nextTriggerPositions.set(item.value, {
+        left: rect.left,
+        top: rect.top,
+      });
+    });
+
+    if (
+      previousOrderSignatureRef.current !== null &&
+      previousOrderSignatureRef.current !== orderSignature &&
+      !prefersReducedMotion()
+    ) {
+      items.forEach((item) => {
+        const element = triggerRefs.current.get(item.value);
+        const previousPosition = previousTriggerPositionsRef.current.get(
+          item.value,
+        );
+        const nextPosition = nextTriggerPositions.get(item.value);
+
+        if (
+          !element ||
+          !previousPosition ||
+          !nextPosition ||
+          typeof element.animate !== "function"
+        ) {
+          return;
+        }
+
+        const deltaX = previousPosition.left - nextPosition.left;
+        const deltaY = previousPosition.top - nextPosition.top;
+
+        if (Math.abs(deltaX) < 0.5 && Math.abs(deltaY) < 0.5) {
+          return;
+        }
+
+        element.animate(
+          [
+            {
+              transform: `translate(${deltaX}px, ${deltaY}px)`,
+              zIndex: "1",
+            },
+            {
+              transform: "translate(0px, 0px)",
+              zIndex: "1",
+            },
+          ],
+          {
+            duration: VARIANT_REORDER_ANIMATION_MS,
+            easing: VARIANT_REORDER_ANIMATION_EASING,
+          },
+        );
+      });
+    }
+
+    previousTriggerPositionsRef.current = nextTriggerPositions;
+    previousOrderSignatureRef.current = orderSignature;
+  }, [items, orderSignature]);
 
   return (
     <aside
@@ -116,9 +209,11 @@ export function MethodVariantSelector({
       )}
     >
       <div
+        onMouseEnter={() => setIsRailHovered(true)}
+        onMouseLeave={() => setIsRailHovered(false)}
         className={cn(
-          "group/variant-selector space-y-4 rounded-xl border border-border/70 bg-card p-6 shadow-sm lg:relative lg:z-50 lg:max-h-[calc(100vh-7rem)] lg:w-[7.5rem] lg:overflow-x-hidden lg:overflow-y-hidden lg:transition-[width,box-shadow] lg:duration-200 lg:ease-out lg:hover:w-[19rem] lg:hover:overflow-y-auto lg:focus-within:w-[19rem] lg:focus-within:overflow-y-auto lg:hover:shadow-lg lg:focus-within:shadow-lg",
-          isNotViableInfoOpen && "lg:w-[19rem] lg:overflow-y-auto lg:shadow-lg",
+          "space-y-4 rounded-xl border border-border/70 bg-card p-6 shadow-sm lg:relative lg:z-50 lg:max-h-[calc(100vh-7rem)] lg:w-[7.5rem] lg:overflow-x-hidden lg:overflow-y-hidden lg:transition-[width,box-shadow] lg:duration-200 lg:ease-out",
+          isSelectorExpanded && "lg:w-[19rem] lg:overflow-y-auto lg:shadow-lg",
         )}
       >
         <div className="space-y-3">
@@ -131,17 +226,26 @@ export function MethodVariantSelector({
               <Badge
                 variant="outline"
                 size="sm"
-                className="inline-flex lg:hidden lg:group-hover/variant-selector:inline-flex lg:group-focus-within/variant-selector:inline-flex"
+                className={cn(
+                  "inline-flex lg:hidden",
+                  isSelectorExpanded && "lg:inline-flex",
+                )}
               >
                 {variantCount} variants
               </Badge>
-              <DropdownMenu>
+              <DropdownMenu
+                open={isSortMenuOpen}
+                onOpenChange={setIsSortMenuOpen}
+              >
                 <DropdownMenuTrigger asChild>
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 shrink-0 rounded-md text-muted-foreground hover:text-foreground"
+                    className={cn(
+                      "h-8 w-8 shrink-0 rounded-md text-muted-foreground hover:text-foreground lg:hidden",
+                      isSelectorExpanded && "lg:inline-flex",
+                    )}
                     aria-label="Sort variants"
                     title="Sort variants"
                   >
@@ -183,8 +287,8 @@ export function MethodVariantSelector({
         <TabsList
           aria-label="Method variants"
           className={cn(
-            "flex h-auto w-full flex-col items-stretch gap-1 rounded-lg bg-transparent p-0 lg:items-center lg:gap-[10px] lg:group-hover/variant-selector:items-stretch lg:group-hover/variant-selector:gap-1 lg:group-focus-within/variant-selector:items-stretch lg:group-focus-within/variant-selector:gap-1",
-            isNotViableInfoOpen && "lg:items-stretch",
+            "flex h-auto w-full flex-col items-stretch gap-1 rounded-lg bg-transparent p-0 lg:items-center lg:gap-[10px]",
+            isSelectorExpanded && "lg:items-stretch lg:gap-1",
           )}
         >
           {items.map((item, index) => {
@@ -197,8 +301,8 @@ export function MethodVariantSelector({
                   <>
                     <Separator
                       className={cn(
-                        "my-2 hidden bg-border/80 lg:block lg:group-hover/variant-selector:hidden lg:group-focus-within/variant-selector:hidden",
-                        isNotViableInfoOpen && "lg:hidden",
+                        "my-2 hidden bg-border/80",
+                        !isSelectorExpanded && "lg:block",
                       )}
                       aria-hidden="true"
                     />
@@ -207,10 +311,8 @@ export function MethodVariantSelector({
                         "min-w-0",
                         expandingPanelClassName,
                         "grid-rows-[1fr] opacity-100",
-                        "lg:group-hover/variant-selector:grid-rows-[1fr] lg:group-hover/variant-selector:opacity-100",
-                        "lg:group-focus-within/variant-selector:grid-rows-[1fr] lg:group-focus-within/variant-selector:opacity-100",
                         collapsedPanelStateClassName,
-                        isNotViableInfoOpen && expandedPanelStateClassName,
+                        isSelectorExpanded && expandedPanelStateClassName,
                       )}
                     >
                       <div className="overflow-hidden">
@@ -248,13 +350,19 @@ export function MethodVariantSelector({
                   </>
                 ) : null}
                 <TabsTrigger
+                  ref={(node) => {
+                    if (node) {
+                      triggerRefs.current.set(item.value, node);
+                      return;
+                    }
+
+                    triggerRefs.current.delete(item.value);
+                  }}
                   value={item.value}
                   className={cn(
                     "h-14 w-full justify-start px-3 py-2 text-left",
                     "lg:h-[58px] lg:w-[4.5rem] lg:self-center lg:justify-center lg:px-3 lg:py-2",
-                    "lg:group-hover/variant-selector:h-14 lg:group-hover/variant-selector:w-full lg:group-hover/variant-selector:justify-start lg:group-hover/variant-selector:px-3 lg:group-hover/variant-selector:py-2",
-                    "lg:group-focus-within/variant-selector:h-14 lg:group-focus-within/variant-selector:w-full lg:group-focus-within/variant-selector:justify-start lg:group-focus-within/variant-selector:px-3 lg:group-focus-within/variant-selector:py-2",
-                    isNotViableInfoOpen &&
+                    isSelectorExpanded &&
                       "lg:h-14 lg:w-full lg:justify-start lg:px-3 lg:py-2",
                     item.isNotViable &&
                       "opacity-55 [&_img]:saturate-50 data-[state=active]:opacity-100",
@@ -269,17 +377,17 @@ export function MethodVariantSelector({
                     iconUrl={item.iconUrl}
                     iconAlt={`${item.label} icon`}
                     className={cn(
-                      "lg:w-auto lg:justify-center lg:group-hover/variant-selector:w-full lg:group-hover/variant-selector:justify-between lg:group-focus-within/variant-selector:w-full lg:group-focus-within/variant-selector:justify-between",
-                      isNotViableInfoOpen && "lg:w-full lg:justify-between",
+                      "w-full justify-between lg:w-auto lg:justify-center",
+                      isSelectorExpanded && "lg:w-full lg:justify-between",
                     )}
                     labelClassName={cn(
-                      "inline lg:hidden lg:group-hover/variant-selector:inline lg:group-focus-within/variant-selector:inline",
-                      isNotViableInfoOpen && "lg:inline",
+                      "inline lg:hidden",
+                      isSelectorExpanded && "lg:inline",
                     )}
                     summary={renderSortMetric(sortMode, item.sortMetricValue)}
                     summaryClassName={cn(
-                      "flex lg:hidden lg:group-hover/variant-selector:flex lg:group-focus-within/variant-selector:flex",
-                      isNotViableInfoOpen && "lg:flex",
+                      "flex lg:hidden",
+                      isSelectorExpanded && "lg:flex",
                     )}
                   />
                 </TabsTrigger>
@@ -292,9 +400,7 @@ export function MethodVariantSelector({
           className={cn(
             expandingPanelClassName,
             "grid-rows-[1fr] opacity-100 lg:grid-rows-[0fr] lg:opacity-0",
-            "lg:group-hover/variant-selector:grid-rows-[1fr] lg:group-hover/variant-selector:opacity-100",
-            "lg:group-focus-within/variant-selector:grid-rows-[1fr] lg:group-focus-within/variant-selector:opacity-100",
-            isNotViableInfoOpen && expandedPanelStateClassName,
+            isSelectorExpanded && expandedPanelStateClassName,
           )}
         >
           <div className="overflow-hidden">
