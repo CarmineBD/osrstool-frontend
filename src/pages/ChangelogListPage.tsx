@@ -11,9 +11,9 @@ import {
 import { changelogEntries, formatChangelogDate } from "@/content/changelog";
 import { useSeo } from "@/hooks/useSeo";
 
-const SEO_TITLE = "Novedades de OSRSTool";
+const SEO_TITLE = "OSRSTool Updates";
 const SEO_DESCRIPTION =
-  "Listado completo de novedades y cambios de producto en OSRSTool.";
+  "Complete release history and product updates for OSRSTool.";
 const ENTRIES_PER_PAGE = 5;
 
 function parsePage(value: string | null): number {
@@ -59,13 +59,13 @@ export function ChangelogListPage() {
       <div className={`${PUBLIC_PANEL_CLASS} p-8`}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className={PUBLIC_TITLE_CLASS}>Todas las novedades</h1>
+            <h1 className={PUBLIC_TITLE_CLASS}>All updates</h1>
             <p className={`mt-2 ${PUBLIC_BODY_CLASS}`}>
-              Historial de cambios y lanzamientos de OSRSTool.
+              Release history and product updates for OSRSTool.
             </p>
           </div>
           <Button asChild variant="outline">
-            <Link to="/">Volver a la landing</Link>
+            <Link to="/">Back to home</Link>
           </Button>
         </div>
 
@@ -84,7 +84,7 @@ export function ChangelogListPage() {
                 to={`/changelog/${entry.slug}`}
                 className={`mt-4 inline-block text-sm ${PUBLIC_LINK_CLASS}`}
               >
-                Ver detalle de la novedad
+                Read update details
               </Link>
             </article>
           ))}

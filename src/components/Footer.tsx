@@ -8,21 +8,21 @@ const navigationLinks = [
 ] as const;
 
 const resourceLinks = [
-  { label: "Roadmap [TODO]", href: "https://example.com/roadmap" },
-  { label: "Status [TODO]", href: "https://status.example.com" },
-  { label: "API Docs [TODO]", href: "https://docs.example.com" },
+  { label: "Roadmap", href: "https://example.com/roadmap" },
+  { label: "Status", href: "https://status.example.com" },
+  { label: "API docs", href: "https://docs.example.com" },
 ] as const;
 
 const communityLinks = [
-  { label: "Discord [TODO]", href: "https://discord.gg/TODO" },
-  { label: "X / Twitter [TODO]", href: "https://x.com/TODO" },
-  { label: "Reddit [TODO]", href: "https://reddit.com/r/TODO" },
+  { label: "Discord", href: "https://discord.gg/TODO" },
+  { label: "X / Twitter", href: "https://x.com/TODO" },
+  { label: "Reddit", href: "https://reddit.com/r/TODO" },
 ] as const;
 
 const legalLinks = [
-  { label: "Privacy Policy [TODO]", href: "https://example.com/privacy" },
-  { label: "Terms of Service [TODO]", href: "https://example.com/terms" },
-  { label: "Cookie Policy [TODO]", href: "https://example.com/cookies" },
+  { label: "Privacy policy", href: "https://example.com/privacy" },
+  { label: "Terms of service", href: "https://example.com/terms" },
+  { label: "Cookie policy", href: "https://example.com/cookies" },
 ] as const;
 
 export function Footer() {
@@ -43,15 +43,15 @@ export function Footer() {
             </Link>
             <p className="mt-3 max-w-md text-sm text-muted-foreground">
               Practical OSRS tools for money making, skilling, and community
-              knowledge. Replace placeholders marked with [TODO] before launch.
+              knowledge.
             </p>
             <p className="mt-4 text-xs text-muted-foreground">
               Contact:{" "}
               <a
-                href="mailto:contacto@tudominio.com"
+                href="mailto:contact@example.com"
                 className="underline-offset-4 hover:underline"
               >
-                contacto@tudominio.com [TODO]
+                contact@example.com
               </a>
             </p>
           </section>

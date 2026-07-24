@@ -1,18 +1,23 @@
 ## Summary
 
-- animate the method variant rail so reordered entries transition smoothly and the expanded state stays open while the rail, sort menu, or info panel is active
-- show the current runtime environment in the main navigation for local and TST deployments
-- add automated coverage for runtime environment label detection
+- Translate historical changelog entries, metadata, and changelog screens to English.
+- Update landing, account, skilling, footer, and SEO copy so user-facing text is consistently English.
+- Translate wiki categories and explanations to English while preserving legacy Spanish wiki category slugs.
+- Refresh critical route tests to match the updated English copy.
+
+## User-facing changelog
+
+- The landing page, changelog, wiki, account screens, and skilling views now use consistent English copy.
+- Older wiki links that used Spanish category slugs still open the correct content.
 
 ## How to test
 
 - `npm run lint`
 - `npm test`
 - `npm run build`
-- Open a method detail page, change the variant sort mode, and verify the variant buttons animate into their new positions
-- Hover the desktop variant rail, open the sort menu, and open the not viable info popover to confirm the rail remains expanded while each control is active
-- Run the app locally and confirm the header shows `(LOCAL)`; deploy or simulate a TST hostname and confirm the header shows `(TST)`
+- Open `/`, `/changelog`, `/changelog/2026-02-22-v0.3.0`, `/account`, and `/skilling` and verify the visible copy is in English.
+- Open `/wiki/metrics` and `/wiki/usage`, then confirm `/wiki/metricas` and `/wiki/uso` still resolve to the same categories.
 
 ## Notes
 
-- The PR targets `develop` and is intended for the TST deployment flow.
+- No business logic changes beyond preserving legacy wiki category aliases.

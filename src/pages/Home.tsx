@@ -556,9 +556,9 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
             </h1>
             {showAllMethodsIntro ? (
               <p className="max-w-3xl text-sm leading-5 text-muted-foreground">
-                View every currently available in-game method with real data. If
-                a method has variants, this list always shows the one with the
-                best gp/hr result.
+                Browse every currently available in-game method with live data.
+                When a method has variants, this list shows the one with the
+                best GP/hr result.
               </p>
             ) : null}
           </div>
@@ -1013,7 +1013,7 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
                     </Field>
                     <div className="flex items-center gap-2">
                       <Field className="flex items-center gap-2">
-                        <FieldLabel>Profitables</FieldLabel>
+                        <FieldLabel>Profitable only</FieldLabel>
                         <div>
                           <Switch
                             checked={showProfitables ?? false}
@@ -1024,7 +1024,7 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
                           <FieldDescription>
                             {showProfitables
                               ? "Show only profitable methods"
-                              : "Show all"}
+                              : "Include unprofitable methods"}
                           </FieldDescription>
                         </div>
                       </Field>
@@ -1068,7 +1068,7 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
                         checked={enabled}
                         onCheckedChange={(checked) => setEnabled(checked)}
                       />
-                      <span className="text-sm">Enabled</span>
+                      <span className="text-sm">Enabled methods</span>
                     </div>
                   )}
                 </div>

@@ -460,7 +460,7 @@ describe("critical flow: skilling routes", () => {
     renderApp();
 
     const user = userEvent.setup();
-    expect(await screen.findByText("enabled")).toBeInTheDocument();
+    expect(await screen.findByText("Enabled only")).toBeInTheDocument();
     await waitFor(() => {
       expect(seenEnabledValues).toContain("false");
     });
@@ -517,6 +517,6 @@ describe("critical flow: skilling routes", () => {
     ).toBeInTheDocument();
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: /show filters/i }));
-    expect(await screen.findByText("Enabled")).toBeInTheDocument();
+    expect(await screen.findByText("Enabled methods")).toBeInTheDocument();
   });
 });

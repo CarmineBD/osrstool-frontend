@@ -84,12 +84,12 @@ import {
   normalizeBoundedText,
 } from "@/lib/validation";
 
-const numberFormatter = new Intl.NumberFormat("es-ES");
-const dateFormatter = new Intl.DateTimeFormat("es-ES", {
+const numberFormatter = new Intl.NumberFormat("en-US");
+const dateFormatter = new Intl.DateTimeFormat("en-US", {
   dateStyle: "medium",
   timeStyle: "short",
 });
-const dateOnlyFormatter = new Intl.DateTimeFormat("es-ES", {
+const dateOnlyFormatter = new Intl.DateTimeFormat("en-US", {
   dateStyle: "medium",
 });
 

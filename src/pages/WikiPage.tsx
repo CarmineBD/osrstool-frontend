@@ -25,7 +25,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useSeo } from "@/hooks/useSeo";
 
-type WikiCategorySlug = "general" | "metricas" | "uso";
+type WikiCategorySlug = "general" | "metrics" | "usage";
 
 type WikiSection = {
   id: string;
@@ -48,166 +48,166 @@ type WikiDelayedNavigationState = {
   delayedScrollMs?: number;
 };
 
-const CATEGORY_ORDER: WikiCategorySlug[] = ["general", "metricas", "uso"];
-const WIKI_BODY_TEXT_CLASS = "space-y-3 text-sm leading-relaxed text-muted-foreground";
-const WIKI_BODY_STACK_CLASS = "space-y-4 text-sm leading-relaxed text-muted-foreground";
+const CATEGORY_ORDER: WikiCategorySlug[] = ["general", "metrics", "usage"];
+const WIKI_BODY_TEXT_CLASS =
+  "space-y-3 text-sm leading-relaxed text-muted-foreground";
+const WIKI_BODY_STACK_CLASS =
+  "space-y-4 text-sm leading-relaxed text-muted-foreground";
 const WIKI_FORMULA_BLOCK_CLASS =
   "rounded-md border border-border/70 bg-surface-panel-subtle px-3 py-3";
 
 const WIKI_CATEGORIES: Record<WikiCategorySlug, WikiCategory> = {
   general: {
     slug: "general",
-    title: "Vision general",
+    title: "Overview",
     shortDescription:
-      "Que hace la app, de donde sale la data, cada cuanto cambia y como leerla.",
+      "What the app does, where the data comes from, how often it changes, and how to read it.",
     intro:
-      "Esta categoria explica la base del producto en lenguaje simple: que ves, de donde sale y como interpretar cambios sin caer en decisiones por picos.",
+      "This category explains the product in plain language: what you are looking at, where it comes from, and how to interpret changes without overreacting to spikes.",
     sections: [
       {
         id: "overview",
-        label: "Que hace la app",
-        title: "Que hace OSRSTool",
-        description: "Objetivo del producto en lenguaje simple.",
+        label: "What the app does",
+        title: "What OSRSTool does",
+        description: "The product goal in plain language.",
         content: (
           <div className={WIKI_BODY_TEXT_CLASS}>
             <p>
-              OSRSTool te ayuda a elegir metodos para ganar GP o entrenar skills
-              con datos recientes y comparables.
+              OSRSTool helps you choose methods to earn GP or train skills with
+              recent, comparable data.
             </p>
             <p>
-              En vez de abrir muchas paginas, aqui tienes una unica vista con
-              rentabilidad, estabilidad de mercado, dificultad practica y
-              requisitos.
+              Instead of opening many pages, you get one view with profitability,
+              market stability, practical difficulty, and requirements.
             </p>
             <Separator />
             <p>
-              No muestra solo un numero final. Tambien muestra contexto para
-              responder: "esto paga bien, pero podre ejecutarlo de verdad
-              ahora?"
+              It does not show only a final number. It also shows context so you
+              can answer: &quot;This pays well, but can I actually run it right
+              now?&quot;
             </p>
           </div>
         ),
       },
       {
         id: "sources",
-        label: "De donde sale la data",
-        title: "Origen real de la informacion",
-        description: "Fuentes que usa backend para construir metricas.",
+        label: "Data sources",
+        title: "Where the data really comes from",
+        description: "The sources the backend uses to build metrics.",
         content: (
           <div className={WIKI_BODY_TEXT_CLASS}>
             <p>
-              El backend junta varias fuentes oficiales y luego unifica todo
-              para que sea legible:
+              The backend combines several official sources and then normalizes
+              them into a readable model:
             </p>
             <ul className="list-disc space-y-1 pl-5">
               <li>
-                Precios de tradeables: API oficial de precios de OSRS Wiki
+                Tradeable prices: the official OSRS Wiki price API
                 (`/api/v1/osrs/latest`).
               </li>
               <li>
-                Volumen horario por item: API de OSRS Wiki (`/api/v1/osrs/1h`).
+                Hourly item volume: the OSRS Wiki API (`/api/v1/osrs/1h`).
               </li>
               <li>
-                Catalogo de items base: OSRS Wiki mapping
+                Base item catalog: OSRS Wiki mapping
                 (`/api/v1/osrs/mapping`).
               </li>
               <li>
-                Perfil de cuenta (si pones username): sync.runescape.wiki
-                (levels, quests, diaries).
+                Account profile, if you enter a username:
+                `sync.runescape.wiki` (levels, quests, diaries).
               </li>
               <li>
-                Metodos/variantes/requisitos: base de datos propia (definida por
-                administradores).
+                Methods, variants, and requirements: the product&apos;s own
+                database maintained by admins.
               </li>
             </ul>
             <p>
-              Si una API externa se cae o retrasa, la app puede devolver estado
-              parcial y avisos.
+              If an external API is down or delayed, the app may return partial
+              state and warning messages.
             </p>
           </div>
         ),
       },
       {
         id: "refresh",
-        label: "Cada cuanto se actualiza",
-        title: "Frecuencia real de actualizacion",
-        description: "Porque los valores cambian incluso sin tocar filtros.",
+        label: "Refresh cadence",
+        title: "How often values really update",
+        description: "Why numbers can change even when you touch nothing.",
         content: (
           <div className={WIKI_BODY_TEXT_CLASS}>
             <ul className="list-disc space-y-1 pl-5">
-              <li>Precios de items: cada 1 minuto.</li>
-              <li>Profits de metodos (high/low): cada 1 minuto.</li>
-              <li>Captura de historial de profits: cada 5 minutos.</li>
+              <li>Item prices: every minute.</li>
+              <li>Method profits, both high and low: every minute.</li>
+              <li>Profit history snapshots: every 5 minutes.</li>
+              <li>24-hour aggregate volume: once per hour.</li>
               <li>
-                Volumen acumulado 24h: una vez por hora (pipeline horario).
-              </li>
-              <li>
-                Frontend: refresco automatico periodico (la frecuencia exacta
-                depende de tu cliente).
+                Frontend refresh: periodic automatic refresh, with exact timing
+                depending on the client.
               </li>
             </ul>
             <Separator />
             <p>
-              Nota avanzada: en tradeables se actualizan sobre todo items con
-              cambios recientes de precio. En untradeables se recalcula por
-              reglas para mantener consistencia.
+              Advanced note: tradeables mostly update when their prices move.
+              Untradeables are recalculated through rules so the data stays
+              internally consistent.
             </p>
           </div>
         ),
       },
       {
         id: "data-reading",
-        label: "Como leer cambios",
-        title: "Cuando un numero sube o baja, que significa",
-        description: "Guia rapida para no sobre reaccionar.",
+        label: "How to read changes",
+        title: "What a rise or drop actually means",
+        description: "A quick guide to avoid overreacting.",
         content: (
           <div className={WIKI_BODY_TEXT_CLASS}>
             <p>
-              Una subida puntual de `highProfit` no siempre significa "mejor
-              metodo del dia". Puede ser un pico corto por poco volumen.
+              A short-term jump in `highProfit` does not always mean
+              &quot;best method of the day.&quot; It can be a brief spike caused
+              by low market volume.
             </p>
             <ul className="list-disc space-y-1 pl-5">
-              <li>Valida `lowProfit` para escenario conservador.</li>
-              <li>Mira `marketImpact` para saber si el mercado te aguanta.</li>
-              <li>Usa historial para confirmar si es tendencia o ruido.</li>
+              <li>Check `lowProfit` for a conservative scenario.</li>
+              <li>Check `marketImpact` to see whether the market can absorb you.</li>
+              <li>Use history to confirm whether it is a trend or just noise.</li>
             </ul>
           </div>
         ),
       },
     ],
   },
-  metricas: {
-    slug: "metricas",
-    title: "Como se calculan metricas",
+  metrics: {
+    slug: "metrics",
+    title: "How metrics work",
     shortDescription:
-      "Formulas reales para untradeables, GP/hr, market move, trend y score.",
+      "Real formulas for untradeables, GP/hr, market impact, trends, and scores.",
     intro:
-      "Aqui tienes una explicacion matematica, pero en lenguaje humano, de como se calculan los campos mas importantes en backend.",
+      "This category explains the math in human terms so you can understand how the backend calculates the most important fields.",
     sections: [
       {
         id: "untradeables",
         label: "Untradeables",
-        title: "Como se valora un item sin precio directo",
+        title: "How an item is valued without a direct price",
         description:
-          "Reglas que transforman items no tradeables en valor util.",
+          "Rules that convert non-tradeable items into usable value.",
         content: (
           <div className={WIKI_BODY_STACK_CLASS}>
             <p>
-              Si un item no tiene precio de mercado directo, backend aplica
-              reglas para poder incluirlo en el calculo de profit.
+              If an item has no direct market price, the backend applies rules
+              so it can still participate in profit calculations.
             </p>
             <div className={`space-y-3 ${WIKI_FORMULA_BLOCK_CLASS}`}>
               <div>
                 <p className="text-sm font-semibold text-foreground">FIXED</p>
                 <p className="text-sm">
-                  Precio fijo manual: `low = L`, `high = H`.
+                  Manual fixed price: `low = L`, `high = H`.
                 </p>
               </div>
               <div>
                 <p className="text-sm font-semibold text-foreground">RECIPE</p>
                 <p className="text-sm">
-                  Se suma el coste de componentes: `low = SUM(cantidad_i *
-                  low_i)` y `high = SUM(cantidad_i * high_i)`.
+                  Sum the component cost: `low = SUM(quantity_i * low_i)` and
+                  `high = SUM(quantity_i * high_i)`.
                 </p>
               </div>
               <div>
@@ -215,27 +215,27 @@ const WIKI_CATEGORIES: Record<WikiCategorySlug, WikiCategory> = {
                   BEST_RECIPE
                 </p>
                 <p className="text-sm">
-                  Si hay varias recetas validas, se usa la mas barata para cada
-                  banda: `bestLow = MIN(low_receta)` y `bestHigh =
-                  MIN(high_receta)`.
+                  If multiple valid recipes exist, the cheapest one is chosen
+                  for each band: `bestLow = MIN(recipeLow)` and `bestHigh =
+                  MIN(recipeHigh)`.
                 </p>
               </div>
             </div>
             <p>
-              Resultado: los untradeables entran en el mismo pipeline que el
-              resto de items.
+              Result: untradeables enter the same downstream pipeline as every
+              other item.
             </p>
           </div>
         ),
       },
       {
         id: "profit",
-        label: "GP/hr alto y bajo",
-        title: "Formula exacta de High Profit y Low Profit",
-        description: "No es un solo numero: son 2 escenarios.",
+        label: "High and low GP/hr",
+        title: "The exact High Profit and Low Profit formulas",
+        description: "It is not one number. It is two execution scenarios.",
         content: (
           <div className={WIKI_BODY_TEXT_CLASS}>
-            <p>Para cada variante, backend calcula dos bandas:</p>
+            <p>For each variant, the backend calculates two bands:</p>
             <div className={WIKI_FORMULA_BLOCK_CLASS}>
               <p>`outputsLow = SUM(output.qty * output.lowPrice)`</p>
               <p>`outputsHigh = SUM(output.qty * output.highPrice)`</p>
@@ -247,38 +247,38 @@ const WIKI_CATEGORIES: Record<WikiCategorySlug, WikiCategory> = {
             </div>
             <ul className="list-disc space-y-1 pl-5">
               <li>
-                `High Profit` es optimista (vendes caro y compras barato).
+                `High Profit` is optimistic: you sell high and buy low.
               </li>
               <li>
-                `Low Profit` es conservador (vendes barato y compras caro).
+                `Low Profit` is conservative: you sell low and buy high.
               </li>
             </ul>
             <p>
-              Importante: el profit sale de `inputs/outputs` y precios. El campo
-              `actionsPerHour` existe como metadata del metodo, pero este
-              calculo no lo multiplica aparte.
+              Important: profit comes from `inputs`, `outputs`, and prices. The
+              `actionsPerHour` field is metadata about the method and is not
+              multiplied in separately here.
             </p>
           </div>
         ),
       },
       {
         id: "gp-per-xp",
-        label: "GP por XP",
-        title: "Como se calcula GP/XP",
-        description: "Solo se calcula cuando eliges una skill concreta.",
+        label: "GP per XP",
+        title: "How GP/XP is calculated",
+        description: "This exists only when you choose a specific skill.",
         content: (
           <div className={WIKI_BODY_TEXT_CLASS}>
             <p>
-              Si filtras por skill, backend toma la XP/h de esa skill dentro de
-              `xpHour` y calcula:
+              If you filter by skill, the backend reads that skill&apos;s XP/hr
+              from `xpHour` and calculates:
             </p>
             <div className={WIKI_FORMULA_BLOCK_CLASS}>
-              <p>`gpPerXpHigh = highProfit / xpHour(skillSeleccionada)`</p>
-              <p>`gpPerXpLow = lowProfit / xpHour(skillSeleccionada)`</p>
+              <p>`gpPerXpHigh = highProfit / xpHour(selectedSkill)`</p>
+              <p>`gpPerXpLow = lowProfit / xpHour(selectedSkill)`</p>
             </div>
             <p>
-              Si la variante no da XP para esa skill, no entra en ese
-              filtro/ordenacion.
+              If the variant does not grant XP for that skill, it is excluded
+              from that filter and sort mode.
             </p>
           </div>
         ),
@@ -286,14 +286,14 @@ const WIKI_CATEGORIES: Record<WikiCategorySlug, WikiCategory> = {
       {
         id: "market-move",
         label: "% market move",
-        title: "Formula real de market impact (instant y slow)",
+        title: "The real market impact formula, instant and slow",
         description:
-          "Mide cuanto pesa tu metodo contra el volumen real del mercado.",
+          "It measures how heavy your method is relative to real market volume.",
         content: (
           <div className={WIKI_BODY_TEXT_CLASS}>
             <p>
-              Para cada item se estima su "share" de mercado por hora y luego se
-              pondera por valor economico del item.
+              For each item, the backend estimates its per-hour market share and
+              then weights that share by the item&apos;s economic value.
             </p>
             <div className={`${WIKI_FORMULA_BLOCK_CLASS} text-xs sm:text-sm`}>
               <p>`volumePerHour = max(epsilon, volume24h / 24)`</p>
@@ -313,103 +313,103 @@ const WIKI_CATEGORIES: Record<WikiCategorySlug, WikiCategory> = {
               </p>
             </div>
             <ul className="list-disc space-y-1 pl-5">
-              <li>Por defecto: `alpha = 0.5` y `epsilon = 1`.</li>
+              <li>Defaults: `alpha = 0.5` and `epsilon = 1`.</li>
               <li>
-                `instant`: para inputs usa precio/volumen high; para outputs usa
-                low (escenario de ejecucion rapida).
+                `instant`: inputs use high price and high-volume assumptions;
+                outputs use low price assumptions.
               </li>
               <li>
-                `slow`: para inputs usa low; para outputs usa high (escenario
-                paciente).
+                `slow`: inputs use low assumptions; outputs use high assumptions.
               </li>
               <li>
-                Si falta volumen de un item, ese item se trata como impacto
-                maximo local.
+                If an item is missing volume data, that item is treated as local
+                maximum impact.
               </li>
-              <li>El valor puede superar 1.0 (no esta capado por arriba).</li>
+              <li>The value can exceed 1.0. It is not capped.</li>
             </ul>
           </div>
         ),
       },
       {
         id: "trends",
-        label: "Tendencias",
-        title: "Como se calcula trend 1h, 24h, semana y mes",
-        description: "Cambio porcentual respecto a snapshots pasados.",
+        label: "Trends",
+        title: "How 1h, 24h, week, and month trends are calculated",
+        description: "Percentage change versus older snapshots.",
         content: (
           <div className={WIKI_BODY_TEXT_CLASS}>
             <p>
-              El backend compara el `highProfit` actual con el ultimo valor
-              historico disponible antes de cada ventana de tiempo.
+              The backend compares the current `highProfit` with the latest
+              available historical value before each time window.
             </p>
             <div className={WIKI_FORMULA_BLOCK_CLASS}>
-              <p>`trend% = ((highActual - highPasado) / highPasado) * 100`</p>
+              <p>`trend% = ((highCurrent - highPast) / highPast) * 100`</p>
             </div>
             <p>
-              Si no hay dato pasado valido para esa ventana, la tendencia queda
-              en `null`.
+              If there is no valid older point for that window, the trend stays
+              `null`.
             </p>
           </div>
         ),
       },
       {
         id: "scores",
-        label: "AFKiness y clicks",
-        title: "AFKiness, Click Intensity y Risk Level",
-        description: "Como interpretar estos campos sin confundirse.",
+        label: "AFK and clicks",
+        title: "AFKiness, Click Intensity, and Risk Level",
+        description: "How to interpret these fields without overreading them.",
         content: (
           <div className={WIKI_BODY_TEXT_CLASS}>
             <ul className="list-disc space-y-1 pl-5">
               <li>
-                <strong>AFKiness:</strong> cuanto margen de atencion tienes en
-                ese metodo.
+                <strong>AFKiness:</strong> how much attention margin the method
+                gives you.
               </li>
               <li>
-                <strong>Click Intensity:</strong> demanda de interaccion (mas
-                alto = mas activo).
+                <strong>Click Intensity:</strong> how interactive the method is.
+                Higher means more active.
               </li>
               <li>
-                <strong>Risk level:</strong> riesgo estimado por la
-                configuracion del metodo.
+                <strong>Risk level:</strong> estimated risk based on the
+                method&apos;s setup.
               </li>
             </ul>
             <p>
-              Estos campos vienen del diseño de variantes (no de telemetria
-              automatica en tiempo real). Sirven para adaptar resultados a tu
-              estilo de juego.
+              These fields come from variant design, not automatic real-time
+              telemetry. They exist to adapt results to your playstyle.
             </p>
           </div>
         ),
       },
     ],
   },
-  uso: {
-    slug: "uso",
-    title: "Como usar mejor la app",
+  usage: {
+    slug: "usage",
+    title: "Using the app",
     shortDescription:
-      "Filtros, historial, username, variantes, likes y lectura avanzada.",
+      "Filters, history, username mode, variants, likes, and advanced reading tips.",
     intro:
-      "Esta categoria te ayuda a tomar decisiones mas robustas: no solo ver tablas, sino entender por que un metodo aparece arriba o abajo.",
+      "This category helps you make more robust decisions, not just read tables. It explains why a method surfaces higher or lower and how to use that information well.",
     sections: [
       {
         id: "filters",
-        label: "Filtros y ordenamiento",
-        title: "Como filtrar y ordenar sin sesgo",
-        description: "Atajos para llegar a metodos ejecutables de verdad.",
+        label: "Filters and sorting",
+        title: "How to filter and sort without bias",
+        description: "Shortcuts to real, executable methods.",
         content: (
           <div className={WIKI_BODY_TEXT_CLASS}>
             <p>
-              Puedes filtrar por skill, categoria, AFK minimo, click intensity
-              maxima, nivel de riesgo, si da XP y si es rentable.
+              You can filter by skill, category, minimum AFK, maximum click
+              intensity, risk level, whether a method gives XP, and whether it
+              is profitable.
             </p>
             <p>
-              Puedes ordenar por `highProfit`, `xpHour`, `gpPerXp`, `likes`,
-              `afkiness` o `clickIntensity`.
+              You can sort by `highProfit`, `xpHour`, `gpPerXp`, `likes`,
+              `afkiness`, or `clickIntensity`.
             </p>
             <Separator />
             <p>
-              Regla practica: para estabilidad prioriza `lowProfit +
-              marketImpact + trend`, no solo `highProfit`.
+              Practical rule: if you care about stability, prioritize the
+              combination of `lowProfit + marketImpact + trend`, not just
+              `highProfit`.
             </p>
           </div>
         ),
@@ -417,84 +417,86 @@ const WIKI_CATEGORIES: Record<WikiCategorySlug, WikiCategory> = {
       {
         id: "variants-mode",
         label: "best vs all",
-        title: "Diferencia entre variantes best y all",
-        description: "Por que a veces ves una sola variante por metodo.",
+        title: "The difference between best and all variants",
+        description: "Why you sometimes see only one variant per method.",
         content: (
           <div className={WIKI_BODY_TEXT_CLASS}>
             <ul className="list-disc space-y-1 pl-5">
               <li>
-                <strong>best:</strong> muestra solo la variante con mayor
-                `highProfit` de cada metodo.
+                <strong>best:</strong> shows only the highest-`highProfit`
+                variant for each method.
               </li>
               <li>
-                <strong>all:</strong> muestra una fila por variante para
-                comparacion fina.
+                <strong>all:</strong> shows one row per variant for finer
+                comparison.
               </li>
             </ul>
             <p>
-              Si estas explorando rapido, usa `best`. Si vas a optimizar
-              detalle, usa `all`.
+              Use `best` for quick exploration. Use `all` when you need to
+              optimize details.
             </p>
           </div>
         ),
       },
       {
         id: "history",
-        label: "Historial y tendencias",
-        title: "No decidir solo por el valor actual",
-        description: "Usa agregacion temporal para separar ruido de tendencia.",
+        label: "History and trends",
+        title: "Do not decide from the current value alone",
+        description: "Use time aggregation to separate noise from trend.",
         content: (
           <div className={WIKI_BODY_TEXT_CLASS}>
             <p>
-              El historico soporta distintos rangos (`24h`, `1m`, `1y`, `all`) y
-              agregaciones:
+              The history view supports multiple ranges (`24h`, `1m`, `1y`,
+              `all`) and aggregations:
             </p>
             <ul className="list-disc space-y-1 pl-5">
               <li>
-                <strong>avg:</strong> promedio por bucket temporal.
+                <strong>avg:</strong> average per time bucket.
               </li>
               <li>
-                <strong>close:</strong> ultimo valor del bucket.
+                <strong>close:</strong> last value in the bucket.
               </li>
               <li>
-                <strong>ohlc:</strong> open/high/low/close para lectura tipo
-                velas.
+                <strong>ohlc:</strong> open, high, low, close for candle-style
+                reading.
               </li>
             </ul>
             <p>
-              El backend ajusta granularidad automaticamente para no devolverte
-              miles de puntos inutiles.
+              The backend adjusts granularity automatically so you do not get
+              thousands of useless points.
             </p>
           </div>
         ),
       },
       {
         id: "user-context",
-        label: "Modo con username",
-        title: "Personalizacion real con tu cuenta",
-        description: "Filtra metodos segun niveles, quests y diaries.",
+        label: "Username mode",
+        title: "Real personalization with your account",
+        description: "Filter methods by levels, quests, and diaries.",
         content: (
           <div className={WIKI_BODY_TEXT_CLASS}>
             <p>
-              Al poner username, backend cruza tus stats con los requisitos de
-              cada variante: levels, quests y achievement diaries.
+              When you enter a username, the backend compares your stats
+              against each variant&apos;s requirements: levels, quests, and
+              achievement diaries.
             </p>
             <p>
-              Ademas devuelve `missingRequirements` para mostrarte exactamente
-              que te falta desbloquear.
+              It also returns `missingRequirements` so the UI can show exactly
+              what you still need to unlock.
             </p>
             <Separator />
-            <p>Reglas clave:</p>
+            <p>Key rules:</p>
             <ul className="list-disc space-y-1 pl-5">
               <li>
-                Si un requisito pide `Combat`, se valida contra `Attack`,
-                `Strength` y `Defence`.
+                If a requirement asks for `Combat`, it is validated against
+                `Attack`, `Strength`, and `Defence`.
               </li>
               <li>
-                En quests, tu stage debe ser mayor o igual al stage requerido.
+                For quests, your stage must be greater than or equal to the
+                required stage.
               </li>
               <li>
-                En diaries, el tier pedido debe estar marcado como completo.
+                For diaries, the requested tier must be marked complete.
               </li>
             </ul>
           </div>
@@ -502,44 +504,44 @@ const WIKI_CATEGORIES: Record<WikiCategorySlug, WikiCategory> = {
       },
       {
         id: "likes",
-        label: "Likes y favoritos",
-        title: "Como usar likes para priorizar",
-        description: "Senal social util, pero no absoluta.",
+        label: "Likes and favorites",
+        title: "How to use likes to prioritize",
+        description: "Useful social signal, but never absolute.",
         content: (
           <div className={WIKI_BODY_TEXT_CLASS}>
             <p>
-              Puedes marcar metodos con like y luego filtrar por `likedByMe`
-              para tu lista personal.
+              You can like methods and later filter by `likedByMe` to build a
+              personal shortlist.
             </p>
             <p>
-              Los likes ayudan a descubrir metodos populares, pero no sustituyen
-              tus filtros de rentabilidad y estabilidad.
+              Likes help surface popular methods, but they should not replace
+              your profitability and stability filters.
             </p>
           </div>
         ),
       },
       {
         id: "frontend",
-        label: "Como leer pantallas",
-        title: "Flujo recomendado para decidir mejor",
-        description: "Secuencia simple para elegir con menos errores.",
+        label: "How to read the UI",
+        title: "Recommended decision flow",
+        description: "A simple sequence that reduces mistakes.",
         content: (
           <div className={WIKI_BODY_TEXT_CLASS}>
             <p>
-              <strong>1) Tabla principal:</strong> filtra por tu objetivo
-              (profit, xp o comodidad).
+              <strong>1) Main table:</strong> filter by your goal, whether that
+              is profit, XP, or comfort.
             </p>
             <p>
-              <strong>2) Detalle de variante:</strong> valida inputs/outputs,
-              requisitos, trend e impacto de mercado.
+              <strong>2) Variant detail:</strong> validate inputs, outputs,
+              requirements, trends, and market impact.
             </p>
             <p>
-              <strong>3) Historial:</strong> confirma que no sea un pico
-              aislado.
+              <strong>3) History:</strong> confirm the current value is not just
+              an isolated spike.
             </p>
             <p>
-              <strong>4) Ejecucion:</strong> empieza por escenario conservador
-              (`lowProfit`) y ajusta segun mercado real.
+              <strong>4) Execution:</strong> start from the conservative
+              scenario (`lowProfit`) and then adjust to the real market.
             </p>
           </div>
         ),
@@ -548,10 +550,22 @@ const WIKI_CATEGORIES: Record<WikiCategorySlug, WikiCategory> = {
   },
 };
 
-function isWikiCategorySlug(
+function normalizeWikiCategorySlug(
   value: string | undefined,
-): value is WikiCategorySlug {
-  return value === "general" || value === "metricas" || value === "uso";
+): WikiCategorySlug | null {
+  if (value === "general" || value === "metrics" || value === "usage") {
+    return value;
+  }
+
+  if (value === "metricas") {
+    return "metrics";
+  }
+
+  if (value === "uso") {
+    return "usage";
+  }
+
+  return null;
 }
 
 function categoryPath(slug: WikiCategorySlug) {
@@ -573,7 +587,7 @@ function SectionCard({
     <section
       id={section.id}
       className={cn(
-        "scroll-mt-24 space-y-3 rounded-md px-2 py-5 -mx-2 transition-all duration-700",
+        "scroll-mt-24 space-y-3 rounded-md -mx-2 px-2 py-5 transition-all duration-700",
         isHighlighted && PUBLIC_HIGHLIGHT_CLASS,
       )}
     >
@@ -599,9 +613,7 @@ function WikiContent({
   const categorySlug =
     requestedCategory === undefined
       ? "general"
-      : isWikiCategorySlug(requestedCategory)
-        ? requestedCategory
-        : null;
+      : normalizeWikiCategorySlug(requestedCategory);
   const category = categorySlug ? WIKI_CATEGORIES[categorySlug] : null;
   const [activeSection, setActiveSection] = useState<string>("");
   const [highlightedSection, setHighlightedSection] = useState<string | null>(
@@ -618,11 +630,11 @@ function WikiContent({
 
   useSeo({
     title: category
-      ? `${category.title} | Wiki OSRSTool`
-      : "Categoria no encontrada | Wiki OSRSTool",
+      ? `${category.title} | OSRSTool Wiki`
+      : "Category not found | OSRSTool Wiki",
     description: category
       ? `${category.title}: ${category.shortDescription}`
-      : "La categoria solicitada no existe en la wiki.",
+      : "The requested category does not exist in the wiki.",
     path: category ? categoryPath(category.slug) : "/wiki",
     keywords: "osrstool wiki, osrs guide",
   });
@@ -789,14 +801,14 @@ function WikiContent({
       <div className="mx-auto max-w-4xl p-8">
         <Card className={PUBLIC_ELEVATED_PANEL_CLASS}>
           <CardHeader>
-            <CardTitle>Categoria no encontrada</CardTitle>
+            <CardTitle>Category not found</CardTitle>
             <CardDescription>
-              La ruta solicitada no existe dentro de la wiki.
+              The requested path does not exist inside the wiki.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Link to="/wiki" className={PUBLIC_LINK_CLASS}>
-              Volver a Vision general
+              Back to Overview
             </Link>
           </CardContent>
         </Card>
@@ -812,10 +824,7 @@ function WikiContent({
             <Card className={`h-full ${PUBLIC_ELEVATED_PANEL_CLASS}`}>
               <CardContent className="px-0 pb-0 pt-0">
                 <ScrollArea className="h-[50vh] px-4 pb-3 pt-1 lg:h-[calc(100vh-15rem)]">
-                  <nav
-                    className="space-y-4"
-                    aria-label="Menu de categorias de wiki"
-                  >
+                  <nav className="space-y-4" aria-label="Wiki category menu">
                     {CATEGORY_ORDER.map((slug) => {
                       const menuCategory = WIKI_CATEGORIES[slug];
                       const isActiveCategory = category.slug === slug;
@@ -845,7 +854,7 @@ function WikiContent({
                                   className={cn(
                                     "block rounded-md px-3 py-1.5 text-sm transition-colors",
                                     isActiveSection
-                                      ? "bg-accent text-accent-foreground font-medium"
+                                      ? "bg-accent font-medium text-accent-foreground"
                                       : "text-muted-foreground hover:bg-muted hover:text-foreground",
                                   )}
                                 >
@@ -866,13 +875,11 @@ function WikiContent({
           <article className="space-y-0 pt-2">
             <section
               className={cn(
-                "space-y-3 rounded-md px-2 pb-5 -mx-2 mt-5 transition-all duration-700",
+                "mt-5 space-y-3 rounded-md -mx-2 px-2 pb-5 transition-all duration-700",
                 isHeaderHighlighted && PUBLIC_HIGHLIGHT_CLASS,
               )}
             >
-              <p className={PUBLIC_SECTION_EYEBROW_CLASS}>
-                OSRSTool Wiki
-              </p>
+              <p className={PUBLIC_SECTION_EYEBROW_CLASS}>OSRSTool Wiki</p>
               <h1 className="text-3xl font-black tracking-tight text-foreground sm:text-4xl">
                 {category.title}
               </h1>

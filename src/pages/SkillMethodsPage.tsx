@@ -19,11 +19,10 @@ export function SkillMethodsPage() {
       pageTitle={`Methods for ${skillName}`}
       seo={{
         title: `${skillName} Methods | OSRSTool`,
-        description: `Listado de metodos de OSRS filtrado por la skill ${skillName}, con los mismos filtros de /allMethods excepto skill.`,
+        description: `OSRS methods filtered by the ${skillName} skill, with the same filters as /allMethods except for the skill selector.`,
         path: `/skilling/${normalizedSkill}`,
         keywords: `osrs ${normalizedSkill} methods, ${normalizedSkill} money making osrs`,
       }}
     />
   );
 }
-
