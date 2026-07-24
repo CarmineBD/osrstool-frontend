@@ -188,6 +188,36 @@ Para marcarlo como required status check en GitHub:
 3. Activar `Require status checks to pass before merging`.
 4. Seleccionar el check `CI / quality`.
 
+## Product changelog
+
+The public changelog is stored in `src/content/changelog`.
+
+Every PR into `develop` should include this section:
+
+```markdown
+## User-facing changelog
+
+- Plain-English change that matters to users.
+```
+
+If a PR has no user-visible changes, keep:
+
+```markdown
+## User-facing changelog
+
+No user-facing changes.
+```
+
+When a PR from `develop` into `main` is opened or updated, `.github/workflows/release-changelog.yml` automatically:
+
+1. Finds merged PRs that are in `develop` and not yet in `main`.
+2. Reads their `User-facing changelog` sections.
+3. Generates a Markdown entry in `src/content/changelog`.
+4. Updates `src/content/changelog/index.ts`.
+5. Commits the generated changelog back to `develop`.
+
+This keeps the production release and the public changelog in the same `develop -> main` promotion.
+
 ## Links
 
 - Frontend repo: [github.com/CarmineBD/osrstool-frontend](https://github.com/CarmineBD/osrstool-frontend)
