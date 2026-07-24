@@ -42,11 +42,11 @@ import {
 } from "@/lib/queryRefresh";
 import { cn, formatPercent } from "@/lib/utils";
 
-const SEO_TITLE = "OSRSTool | Metodos de Money Making para OSRS";
+const SEO_TITLE = "OSRSTool | OSRS Money Making Methods";
 const SEO_DESCRIPTION =
-  "OSRSTool te ayuda a encontrar metodos de money making en Old School RuneScape con filtros claros, comparacion rapida y novedades del producto.";
+  "Find OSRS money making methods with clear filters, fast comparisons, and live product updates.";
 const SEO_KEYWORDS =
-  "osrs tool, money making osrs, old school runescape gp, metodos osrs, osrs moneymaking";
+  "osrs tool, osrs money making, old school runescape gp, osrs methods, osrs moneymaking";
 const TRENDING_METHODS_LIMIT = 6;
 const TRENDING_PROFIT_QUERY_KEY = [
   "methods",
@@ -56,29 +56,29 @@ const TRENDING_PROFIT_QUERY_KEY = [
 
 const FEATURE_ITEMS = [
   {
-    title: "Filtros avanzados",
+    title: "Advanced filters",
     description:
-      "Filtra por categoria, intensidad de clicks, nivel de riesgo y skills para encontrar metodos alineados a tu estilo.",
+      "Filter by category, click intensity, risk level, and skills to find methods that match your playstyle.",
   },
   {
-    title: "Track de métodos",
+    title: "Method history",
     description:
-      "Conoce el historial de profit/hr que ha tenido cada método para identificar tendencias y estabilidad en el mercado.",
+      "Review profit-per-hour history to spot trends and market stability before committing.",
   },
   {
-    title: "Adaptados a tu usuario",
+    title: "Tailored to your account",
     description:
-      "Filtra métodos por skills de tu usuario para conocer los mejores métodos que tienes disponible actualmente",
+      "Use your account skills to surface the best methods you can do right now.",
   },
   {
-    title: "Datos reales",
+    title: "Live data",
     description:
-      "Todos los precios y profit de metodos se actualizan cada 60 segundos para tener la información más fresca y real actualmente",
+      "Prices and profit values refresh every 60 seconds so you can act on current market conditions.",
   },
   {
-    title: "Fidelidad",
+    title: "Real-world viability",
     description:
-      "Conoce la factibilidad real de hacer un método con métricas avanzadas de impacto en el mercado.",
+      "Check advanced market impact metrics to estimate whether a method is practical at scale.",
   },
 ];
 
@@ -287,12 +287,16 @@ function TrendingMethodsCarousel() {
           </div>
         </div>
       ) : error ? (
-        <div className={`${PUBLIC_ELEVATED_PANEL_CLASS} p-5 text-sm text-muted-foreground`}>
-          No se pudieron cargar las tendencias ahora mismo.
+        <div
+          className={`${PUBLIC_ELEVATED_PANEL_CLASS} p-5 text-sm text-muted-foreground`}
+        >
+          Trending methods are unavailable right now.
         </div>
       ) : methods.length === 0 ? (
-        <div className={`${PUBLIC_ELEVATED_PANEL_CLASS} p-5 text-sm text-muted-foreground`}>
-          No hay metodos trending disponibles.
+        <div
+          className={`${PUBLIC_ELEVATED_PANEL_CLASS} p-5 text-sm text-muted-foreground`}
+        >
+          No trending methods are available yet.
         </div>
       ) : (
         <Carousel
@@ -345,9 +349,8 @@ export function LandingPage() {
             Make money and train efficiently with real-time data.
           </h1>
           <p className="mt-6 max-w-3xl text-lg leading-relaxed text-muted-foreground sm:text-2xl">
-            OSRSTool es una herramienta avanzada de tiempo real para explorar
-            métodos de training / money making adaptadas al las stats de cada
-            usuario.
+            OSRSTool is a real-time decision tool for exploring money making and
+            training methods that fit each account&apos;s stats.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Button
@@ -358,7 +361,7 @@ export function LandingPage() {
               <Link to="/allMethods">Explore money making methods</Link>
             </Button>
             <Button asChild size="lg" variant="outline">
-              <a href="#">Explore training methods</a>
+              <Link to="/skilling">Explore skilling methods</Link>
             </Button>
           </div>
         </div>
@@ -368,27 +371,14 @@ export function LandingPage() {
       </header>
 
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 pb-16 sm:px-10">
-        {/* <section
-          id="que-es-osrstool"
-          className={`${PUBLIC_PANEL_CLASS} p-8`}
-        >
-          <h2 className="text-2xl font-bold text-slate-900">Que es OSRSTool</h2>
-          <p className="mt-3 text-slate-700">
-            OSRSTool centraliza métodos de money making y training en un solo sitio para responder una pregunta simple: “¿Qué me conviene hacer ahora?” Filtras por tu perfil, comparas variantes y eliges con información actualizada y accionable.
-          </p>
-        </section> */}
-
-        <section
-          id="para-quien"
-          className={`${PUBLIC_PANEL_CLASS} p-8`}
-        >
+        <section id="who-it-is-for" className={`${PUBLIC_PANEL_CLASS} p-8`}>
           <h2 className="text-2xl font-bold text-foreground">Who it is for</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <article className={`${PUBLIC_SUBPANEL_CLASS} p-5`}>
               <h3 className="font-semibold text-foreground">New players</h3>
               <p className={`mt-2 ${PUBLIC_BODY_CLASS}`}>
-                Find the best viable methods without losing hours jumping
-                between guides, videos, and spreadsheets.
+                Find practical methods without spending hours jumping between
+                guides, videos, and spreadsheets.
               </p>
             </article>
             <article className={`${PUBLIC_SUBPANEL_CLASS} p-5`}>
@@ -397,14 +387,16 @@ export function LandingPage() {
               </h3>
               <p className={`mt-2 ${PUBLIC_BODY_CLASS}`}>
                 Optimize your time with the best method you can currently do
-                based on GP/h, XP/h, % AFK, and market stability.
+                based on GP/hr, XP/hr, % AFK, and market stability.
               </p>
             </article>
             <article className={`${PUBLIC_SUBPANEL_CLASS} p-5`}>
-              <h3 className="font-semibold text-foreground">Lazy players</h3>
+              <h3 className="font-semibold text-foreground">
+                Low-attention players
+              </h3>
               <p className={`mt-2 ${PUBLIC_BODY_CLASS}`}>
-                Find methods with low attention requirements to make money or
-                train.
+                Surface methods that demand less attention while still helping
+                you profit or train.
               </p>
             </article>
             <article className={`${PUBLIC_SUBPANEL_CLASS} p-5`}>
@@ -412,9 +404,8 @@ export function LandingPage() {
                 Players focused on GP
               </h3>
               <p className={`mt-2 ${PUBLIC_BODY_CLASS}`}>
-                Haz solo aquellos métodos que actualmente sauqen mejor
-                rendimiento por hora con data fresca y confiable, sin perder
-                tiempo investigando cada precio.
+                Spend time only on methods that currently deliver the best
+                hourly returns, backed by fresh and reliable data.
               </p>
             </article>
             <article className={`${PUBLIC_SUBPANEL_CLASS} p-5`}>
@@ -422,17 +413,14 @@ export function LandingPage() {
                 Players focused on XP
               </h3>
               <p className={`mt-2 ${PUBLIC_BODY_CLASS}`}>
-                Sube de nivel de manera eficiente y realista con métodos que se
-                ajusten a tu nivel actual.
+                Level efficiently with realistic methods that fit your current
+                account progression.
               </p>
             </article>
           </div>
         </section>
 
-        <section
-          id="features"
-          className={`${PUBLIC_PANEL_CLASS} p-8`}
-        >
+        <section id="features" className={`${PUBLIC_PANEL_CLASS} p-8`}>
           <h2 className="text-2xl font-bold text-foreground">Features</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
             {FEATURE_ITEMS.map((item) => (
@@ -449,42 +437,35 @@ export function LandingPage() {
           </div>
         </section>
 
-        <section
-          id="como-funciona"
-          className={`${PUBLIC_PANEL_CLASS} p-8`}
-        >
-          <h2 className="text-2xl font-bold text-foreground">Como funciona</h2>
+        <section id="how-it-works" className={`${PUBLIC_PANEL_CLASS} p-8`}>
+          <h2 className="text-2xl font-bold text-foreground">How it works</h2>
           <ol className={`mt-4 grid gap-3 ${PUBLIC_BODY_CLASS} sm:grid-cols-2`}>
             <li className={`${PUBLIC_SUBPANEL_CLASS} p-4`}>
-              1. Entra a{" "}
+              1. Open{" "}
               <Link to="/allMethods" className={PUBLIC_LINK_CLASS}>
                 /allMethods
               </Link>
               .
             </li>
             <li className={`${PUBLIC_SUBPANEL_CLASS} p-4`}>
-              2. Aplica filtros por categoria, skill y nivel de riesgo.
+              2. Apply filters for category, skill, and risk level.
             </li>
             <li className={`${PUBLIC_SUBPANEL_CLASS} p-4`}>
-              3. Compara metodos y abre el detalle para revisar requisitos y
-              variantes.
+              3. Compare methods and open the detail view to review
+              requirements and variants.
             </li>
             <li className={`${PUBLIC_SUBPANEL_CLASS} p-4`}>
-              4. Consulta el changelog para conocer mejoras recientes del
-              producto.
+              4. Check the changelog to see recent product improvements.
             </li>
           </ol>
         </section>
 
-        <section
-          id="changelog"
-          className={`${PUBLIC_PANEL_CLASS} p-8`}
-        >
+        <section id="changelog" className={`${PUBLIC_PANEL_CLASS} p-8`}>
           <h2 className="text-2xl font-bold text-foreground">
-            Changelog de novedades
+            Latest changelog entries
           </h2>
           <p className={`mt-2 ${PUBLIC_BODY_CLASS}`}>
-            Ultimas 3 novedades publicadas.
+            The three most recent product updates.
           </p>
 
           <div className="mt-5 grid gap-3">
@@ -504,7 +485,7 @@ export function LandingPage() {
                   to={`/changelog/${entry.slug}`}
                   className={`mt-3 inline-block text-sm ${PUBLIC_LINK_CLASS}`}
                 >
-                  Leer articulo completo
+                  Read the full article
                 </Link>
               </article>
             ))}
@@ -513,7 +494,7 @@ export function LandingPage() {
             to="/changelog"
             className={`mt-6 inline-block text-sm ${PUBLIC_LINK_CLASS}`}
           >
-            Ver todas las novedades
+            View all updates
           </Link>
         </section>
       </main>
