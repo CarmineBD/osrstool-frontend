@@ -27,6 +27,7 @@ import { cn, getUrlByType } from "@/lib/utils";
 import { OPEN_NAV_USERNAME_EVENT } from "@/lib/events";
 import { fetchMe } from "@/lib/me";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
+import { getRuntimeEnvironmentLabel } from "@/lib/runtimeEnv";
 import {
   normalizeBoundedText,
   USERNAME_MAX_LENGTH,
@@ -84,6 +85,10 @@ export function Nav({ hideInput }: Props) {
       : undefined;
   const avatarFallback =
     (session?.user?.email ?? "A").trim().charAt(0).toUpperCase() || "A";
+  const runtimeEnvironmentLabel = getRuntimeEnvironmentLabel(
+    window.location.hostname,
+    import.meta.env.DEV,
+  );
 
   useEffect(() => {
     setInput(username);
@@ -155,13 +160,20 @@ export function Nav({ hideInput }: Props) {
   return (
     <nav className="sticky top-0 z-50 border-b border-border/60 bg-surface-panel-elevated p-4 shadow-sm backdrop-blur">
       <div className="flex items-center justify-between gap-4">
-        <Link to="/" className="flex items-center space-x-2">
+        <Link to="/" aria-label="LogoGP Now" className="flex items-center space-x-2">
           <img
             src="https://oldschool.runescape.wiki/images/thumb/Coins_detail.png/120px-Coins_detail.png?404bc"
             alt="Logo"
             className="h-8 w-auto"
           />
-          <span className="text-xl font-bold">GP Now</span>
+          <span className="flex items-baseline gap-2">
+            <span className="text-xl font-bold">GP Now</span>
+            {runtimeEnvironmentLabel ? (
+              <span className="text-sm font-semibold text-muted-foreground">
+                ({runtimeEnvironmentLabel})
+              </span>
+            ) : null}
+          </span>
         </Link>
 
         <NavigationMenu viewport={false} className="hidden lg:flex">
