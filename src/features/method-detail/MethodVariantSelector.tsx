@@ -115,6 +115,7 @@ export function MethodVariantSelector({
   className,
 }: MethodVariantSelectorProps) {
   const [isRailHovered, setIsRailHovered] = useState(false);
+  const [isRailFocused, setIsRailFocused] = useState(false);
   const [isNotViableInfoOpen, setIsNotViableInfoOpen] = useState(false);
   const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
   const triggerRefs = useRef(new Map<string, HTMLButtonElement>());
@@ -125,7 +126,7 @@ export function MethodVariantSelector({
   const notViableDescription =
     "These methods have extreme market impact. Even in the best case, operating at this one-hour scale may require more than 1 day to fully buy and sell through the market.";
   const isSelectorExpanded =
-    isRailHovered || isNotViableInfoOpen || isSortMenuOpen;
+    isRailHovered || isRailFocused || isNotViableInfoOpen || isSortMenuOpen;
   const expandingPanelClassName =
     "grid transition-[grid-template-rows,opacity,margin] duration-200 ease-out";
   const expandedPanelStateClassName =
@@ -211,6 +212,15 @@ export function MethodVariantSelector({
       <div
         onMouseEnter={() => setIsRailHovered(true)}
         onMouseLeave={() => setIsRailHovered(false)}
+        onFocusCapture={() => setIsRailFocused(true)}
+        onBlurCapture={(event) => {
+          const nextFocusedElement =
+            event.relatedTarget instanceof Node ? event.relatedTarget : null;
+
+          if (!event.currentTarget.contains(nextFocusedElement)) {
+            setIsRailFocused(false);
+          }
+        }}
         className={cn(
           "space-y-4 rounded-xl border border-border/70 bg-card p-6 shadow-sm lg:relative lg:z-50 lg:max-h-[calc(100vh-7rem)] lg:w-[7.5rem] lg:overflow-x-hidden lg:overflow-y-hidden lg:transition-[width,box-shadow] lg:duration-200 lg:ease-out",
           isSelectorExpanded && "lg:w-[19rem] lg:overflow-y-auto lg:shadow-lg",
