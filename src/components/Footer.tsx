@@ -8,22 +8,34 @@ const navigationLinks = [
 ] as const;
 
 const resourceLinks = [
-  { label: "Roadmap", href: "https://example.com/roadmap" },
-  { label: "Status", href: "https://status.example.com" },
-  { label: "API docs", href: "https://docs.example.com" },
+  { label: "Roadmap" },
+  { label: "Status" },
+  { label: "API docs" },
 ] as const;
 
 const communityLinks = [
-  { label: "Discord", href: "https://discord.gg/TODO" },
-  { label: "X / Twitter", href: "https://x.com/TODO" },
-  { label: "Reddit", href: "https://reddit.com/r/TODO" },
+  { label: "Discord" },
+  { label: "X / Twitter" },
+  { label: "Reddit" },
 ] as const;
 
 const legalLinks = [
-  { label: "Privacy policy", href: "https://example.com/privacy" },
-  { label: "Terms of service", href: "https://example.com/terms" },
-  { label: "Cookie policy", href: "https://example.com/cookies" },
+  { label: "Privacy policy" },
+  { label: "Terms of service" },
+  { label: "Cookie policy" },
 ] as const;
+
+function ComingSoonLink({ label }: { label: string }) {
+  return (
+    <span
+      aria-disabled="true"
+      className="cursor-not-allowed text-muted-foreground/70"
+      title="Coming soon"
+    >
+      {label} <span className="text-xs">(soon)</span>
+    </span>
+  );
+}
 
 export function Footer() {
   const year = new Date().getFullYear();
@@ -46,13 +58,7 @@ export function Footer() {
               knowledge.
             </p>
             <p className="mt-4 text-xs text-muted-foreground">
-              Contact:{" "}
-              <a
-                href="mailto:contact@example.com"
-                className="underline-offset-4 hover:underline"
-              >
-                contact@example.com
-              </a>
+              Contact options are coming soon.
             </p>
           </section>
 
@@ -77,15 +83,8 @@ export function Footer() {
             </h2>
             <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
               {resourceLinks.map((link) => (
-                <li key={link.href}>
-                  <a
-                    href={link.href}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="hover:text-foreground"
-                  >
-                    {link.label}
-                  </a>
+                <li key={link.label}>
+                  <ComingSoonLink label={link.label} />
                 </li>
               ))}
             </ul>
@@ -97,15 +96,8 @@ export function Footer() {
             </h2>
             <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
               {communityLinks.map((link) => (
-                <li key={link.href}>
-                  <a
-                    href={link.href}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="hover:text-foreground"
-                  >
-                    {link.label}
-                  </a>
+                <li key={link.label}>
+                  <ComingSoonLink label={link.label} />
                 </li>
               ))}
             </ul>
@@ -116,15 +108,7 @@ export function Footer() {
           <p>Copyright {year} GP Now. All rights reserved.</p>
           <div className="flex flex-wrap items-center gap-4">
             {legalLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                target="_blank"
-                rel="noreferrer"
-                className="hover:text-foreground"
-              >
-                {link.label}
-              </a>
+              <ComingSoonLink key={link.label} label={link.label} />
             ))}
           </div>
         </div>

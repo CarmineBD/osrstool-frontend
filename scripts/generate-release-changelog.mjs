@@ -133,7 +133,7 @@ function extractUserFacingItems(body) {
     .filter(Boolean);
 }
 
-function categoryForPr(pr) {
+function categoryForPr(pr, hasUserFacingItems) {
   const labels = pr.labels.map((label) => label.name);
 
   if (labels.includes("release:feature")) {
@@ -149,6 +149,10 @@ function categoryForPr(pr) {
   }
 
   const { type } = parseConventionalTitle(pr.title);
+  if (!type && hasUserFacingItems) {
+    return "Improved";
+  }
+
   if (!type || EXCLUDED_TYPES.has(type)) {
     return null;
   }
@@ -164,6 +168,14 @@ function shouldExcludePr(pr) {
 function fallbackItemFromTitle(title) {
   const { subject } = parseConventionalTitle(title);
   return subject.charAt(0).toUpperCase() + subject.slice(1);
+}
+
+function toTsString(value) {
+  return JSON.stringify(value);
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function markdownForEntry({ version, title, summary, groupedItems }) {
@@ -186,13 +198,13 @@ ${sections}
 
 function buildIndexEntry({ slug, date, version, title, summary, fileName }) {
   return `  {
-    slug: "${slug}",
-    date: "${date}",
-    version: "${version}",
-    title: "${title}",
+    slug: ${toTsString(slug)},
+    date: ${toTsString(date)},
+    version: ${toTsString(version)},
+    title: ${toTsString(title)},
     summary:
-      "${summary}",
-    fileName: "${fileName}",
+      ${toTsString(summary)},
+    fileName: ${toTsString(fileName)},
   },
 `;
 }
@@ -200,8 +212,9 @@ function buildIndexEntry({ slug, date, version, title, summary, fileName }) {
 function upsertIndexEntry(entry) {
   const current = readFileSync(CHANGELOG_INDEX, "utf8");
   const nextEntry = buildIndexEntry(entry);
+  const escapedSlugLiteral = escapeRegExp(toTsString(entry.slug));
   const existingEntry = new RegExp(
-    `  \\{\\n    slug: "${entry.slug}",[\\s\\S]*?\\n  \\},\\n`,
+    `  \\{\\n    slug: ${escapedSlugLiteral},[\\s\\S]*?\\n  \\},\\n`,
     "m"
   );
 
@@ -272,12 +285,12 @@ function main() {
       continue;
     }
 
-    const category = categoryForPr(pr);
+    const items = extractUserFacingItems(pr.body);
+    const category = categoryForPr(pr, items.length > 0);
     if (!category) {
       continue;
     }
 
-    const items = extractUserFacingItems(pr.body);
     const releaseItems = items.length > 0 ? items : [fallbackItemFromTitle(pr.title)];
 
     for (const item of releaseItems) {
