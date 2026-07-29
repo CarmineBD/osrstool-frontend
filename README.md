@@ -218,6 +218,8 @@ When a PR from `develop` into `main` is opened or updated, `.github/workflows/re
 
 This keeps the production release and the public changelog in the same `develop -> main` promotion.
 
+Because `develop` is protected, the workflow needs a repository secret named `RELEASE_CHANGELOG_TOKEN`. Use a fine-grained GitHub token from a user that has write access and is allowed to bypass the `develop` ruleset.
+
 ## Links
 
 - Frontend repo: [github.com/CarmineBD/osrstool-frontend](https://github.com/CarmineBD/osrstool-frontend)
