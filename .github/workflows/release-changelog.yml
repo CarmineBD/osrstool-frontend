@@ -28,6 +28,7 @@ jobs:
         with:
           ref: develop
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -65,14 +66,22 @@ jobs:
         run: npm run build
 
       - name: Commit changelog to develop
+        env:
+          RELEASE_CHANGELOG_TOKEN: ${{ secrets.RELEASE_CHANGELOG_TOKEN }}
         run: |
           if git diff --quiet -- src/content/changelog; then
             echo "No changelog changes to commit."
             exit 0
           fi
 
+          if [ -z "$RELEASE_CHANGELOG_TOKEN" ]; then
+            echo "::error::Missing RELEASE_CHANGELOG_TOKEN. Create a repository secret with a fine-grained token from a user that can bypass the develop ruleset."
+            exit 1
+          fi
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add src/content/changelog
           git commit -m "docs(changelog): update release notes"
+          git remote set-url origin "https://x-access-token:${RELEASE_CHANGELOG_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git push origin HEAD:develop

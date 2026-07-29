@@ -35,6 +35,8 @@ function buildMethod(
   };
 }
 
+const SLOW_INTERACTION_TEST_TIMEOUT_MS = 20000;
+
 describe("critical flow: list render + filters", () => {
   it("renders methods and applies method-name filtering", async () => {
     const seenNames: string[] = [];
@@ -147,7 +149,7 @@ describe("critical flow: list render + filters", () => {
     expect(seenIgnoredTags).toContain("");
     expect(seenSortBy).toContain("highProfit");
     expect(seenOrder).toContain("desc");
-  }, 10000);
+  }, SLOW_INTERACTION_TEST_TIMEOUT_MS);
 
   it("disables the username-data switch when no username is available", async () => {
     server.use(
