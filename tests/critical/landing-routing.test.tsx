@@ -32,7 +32,7 @@ describe("critical flow: landing + all methods routing", () => {
       screen.getByRole("link", { name: /explore money making methods/i })
     ).toHaveAttribute("href", "/allMethods");
     expect(
-      screen.getByRole("heading", { name: "Changelog de novedades" })
+      screen.getByRole("heading", { name: "Latest changelog entries" })
     ).toBeInTheDocument();
     expect(await screen.findByText("Blast Furnace")).toBeInTheDocument();
     expect(await screen.findByAltText("Steel bars icon")).toBeInTheDocument();
@@ -44,9 +44,11 @@ describe("critical flow: landing + all methods routing", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("1.2m")).toBeInTheDocument();
     expect(screen.getByText("+5.4%")).toBeInTheDocument();
-    expect(screen.getAllByRole("link", { name: /leer articulo completo/i })).toHaveLength(3);
     expect(
-      screen.getByRole("link", { name: /ver todas las novedades/i })
+      screen.getAllByRole("link", { name: /read the full article/i })
+    ).toHaveLength(3);
+    expect(
+      screen.getByRole("link", { name: /view all updates/i })
     ).toHaveAttribute("href", "/changelog");
   });
 
@@ -72,7 +74,7 @@ describe("critical flow: landing + all methods routing", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        /View every currently available in-game method with real data\./i
+        /Browse every currently available in-game method with live data\./i
       )
     ).toBeInTheDocument();
   });
@@ -85,8 +87,8 @@ describe("critical flow: landing + all methods routing", () => {
     expect(
       await screen.findByRole("heading", { name: "Landing SEO + Changelog" })
     ).toBeInTheDocument();
-    expect(await screen.findByText("Cambios principales")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /volver/i })).toBeInTheDocument();
+    expect(await screen.findByText("Main changes")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Back" })).toBeInTheDocument();
   });
 
   it("renders changelog list page with pagination", async () => {
@@ -95,10 +97,10 @@ describe("critical flow: landing + all methods routing", () => {
     renderApp();
 
     expect(
-      await screen.findByRole("heading", { name: "Todas las novedades" })
+      await screen.findByRole("heading", { name: "All updates" })
     ).toBeInTheDocument();
     expect(
-      screen.getAllByRole("link", { name: /ver detalle de la novedad/i })
+      screen.getAllByRole("link", { name: /read update details/i })
     ).toHaveLength(5);
     expect(
       screen.getByRole("button", { name: "Current page, page 1" })

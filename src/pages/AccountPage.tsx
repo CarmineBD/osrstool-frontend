@@ -82,8 +82,10 @@ export function AccountPage() {
     <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-10">
       <Card>
         <CardHeader>
-          <CardTitle>Mi cuenta</CardTitle>
-          <CardDescription>Gestiona tu sesion y tus metodos likeados.</CardDescription>
+          <CardTitle>My account</CardTitle>
+          <CardDescription>
+            Manage your session and your liked methods.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 text-sm">
           <div>
@@ -94,11 +96,11 @@ export function AccountPage() {
                   ? showEmail
                     ? user.email
                     : maskEmail(user.email)
-                  : "Sin email"}
+                  : "No email"}
               </p>
               {user?.email ? (
                 <Button
-                  aria-label={showEmail ? "Ocultar correo" : "Mostrar correo"}
+                  aria-label={showEmail ? "Hide email" : "Show email"}
                   onClick={() => setShowEmail((prev) => !prev)}
                   size="icon-xs"
                   type="button"
@@ -112,11 +114,13 @@ export function AccountPage() {
 
           <div>
             <p className="text-muted-foreground">User ID</p>
-            <p className="break-all font-mono text-xs">{user?.id ?? "Sin ID"}</p>
+            <p className="break-all font-mono text-xs">
+              {user?.id ?? "No ID"}
+            </p>
           </div>
 
           <div>
-            <p className="text-muted-foreground">Likes totales</p>
+            <p className="text-muted-foreground">Total likes</p>
             {isMeLoading ? (
               <Skeleton className="mt-1 h-8 w-16" />
             ) : (
@@ -126,20 +130,22 @@ export function AccountPage() {
 
           {meError ? (
             <p className="text-destructive">
-              {meError instanceof Error ? meError.message : "Error al cargar tu perfil"}
+              {meError instanceof Error
+                ? meError.message
+                : "Unable to load your profile."}
             </p>
           ) : null}
 
           <Button variant="outline" onClick={handleLogout} disabled={isLoggingOut}>
-            {isLoggingOut ? "Cerrando sesion..." : "Logout"}
+            {isLoggingOut ? "Signing out..." : "Sign out"}
           </Button>
         </CardContent>
       </Card>
 
       <Tabs defaultValue="likes" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="likes">Mis likes</TabsTrigger>
-          <TabsTrigger value="summary">Resumen</TabsTrigger>
+          <TabsTrigger value="likes">My likes</TabsTrigger>
+          <TabsTrigger value="summary">Summary</TabsTrigger>
         </TabsList>
 
         <TabsContent value="likes">
@@ -155,14 +161,14 @@ export function AccountPage() {
         <TabsContent value="summary">
           <Card>
             <CardHeader>
-              <CardTitle>Resumen de actividad</CardTitle>
+              <CardTitle>Activity summary</CardTitle>
               <CardDescription>
-                Tus likes se sincronizan automaticamente entre el listado y el detalle.
+                Your likes sync automatically between the list and detail view.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <p>
-                Metodos likeados:{" "}
+                Liked methods:{" "}
                 {isMeLoading ? (
                   <Skeleton className="inline-flex h-5 w-12 align-middle" />
                 ) : (

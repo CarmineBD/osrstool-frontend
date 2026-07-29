@@ -207,7 +207,7 @@ export function SkillingPage() {
   useSeo({
     title: "Skilling | OSRSTool",
     description:
-      "Browse every OSRS skill and review the best method for each one by profit/hr, xp/hr, and AFK.",
+      "Browse every OSRS skill and review the best method for each one by GP/hr, XP/hr, and AFK.",
     path: "/skilling",
     keywords: "osrs skilling methods, osrs skill guides, osrs best xp methods",
   });
@@ -239,7 +239,7 @@ export function SkillingPage() {
 
   const computedAt = useMemo(() => {
     if (!data?.meta?.computedAt) return null;
-    return new Intl.DateTimeFormat("es-ES", {
+    return new Intl.DateTimeFormat("en-US", {
       dateStyle: "medium",
       timeStyle: "short",
     }).format(new Date(data.meta.computedAt * 1000));
@@ -261,7 +261,7 @@ export function SkillingPage() {
                 checked={enabledFilter}
                 onCheckedChange={(checked) => setEnabledFilter(checked)}
               />
-              <span className="text-sm">enabled</span>
+              <span className="text-sm">Enabled only</span>
             </div>
           ) : null}
           {computedAt ? (

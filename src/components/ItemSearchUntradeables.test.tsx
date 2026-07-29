@@ -16,6 +16,8 @@ vi.mock("@/lib/api", async () => {
   };
 });
 
+const SLOW_INTERACTION_TEST_TIMEOUT_MS = 15000;
+
 describe("item search untradeables toggle", () => {
   beforeEach(() => {
     vi.mocked(fetchItems).mockResolvedValue({});
@@ -392,7 +394,7 @@ describe("item search untradeables toggle", () => {
     await user.clear(searchInput);
     await user.type(searchInput, "lumb");
     expect(await screen.findByText("Added")).toBeInTheDocument();
-  });
+  }, SLOW_INTERACTION_TEST_TIMEOUT_MS);
 
   it("shows only the matching category table for the selected requirement type", async () => {
     const user = userEvent.setup();

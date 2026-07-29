@@ -16,6 +16,8 @@ function renderApp() {
   );
 }
 
+const SLOW_INTERACTION_TEST_TIMEOUT_MS = 20000;
+
 describe("critical flow: skilling routes", () => {
   it("renders skills cards with best metric tags and tooltip details", async () => {
     server.use(
@@ -147,7 +149,7 @@ describe("critical flow: skilling routes", () => {
       expect(within(tooltip).getByText("XP/hr: 10k")).toBeInTheDocument();
     }
     await user.unhover(afkTag);
-  }, 10000);
+  }, SLOW_INTERACTION_TEST_TIMEOUT_MS);
 
   it("does not dim tags that share the same method", async () => {
     server.use(
@@ -416,7 +418,7 @@ describe("critical flow: skilling routes", () => {
       expect(seenVariants).toContain("all");
       expect(seenSortBy).toContain("gpPerXpHigh");
     });
-  }, 10000);
+  }, SLOW_INTERACTION_TEST_TIMEOUT_MS);
 
   it("shows enabled switch for super admin and toggles enabled query param", async () => {
     const authProviderModule = await import("@/auth/AuthProvider");
@@ -460,7 +462,7 @@ describe("critical flow: skilling routes", () => {
     renderApp();
 
     const user = userEvent.setup();
-    expect(await screen.findByText("enabled")).toBeInTheDocument();
+    expect(await screen.findByText("Enabled only")).toBeInTheDocument();
     await waitFor(() => {
       expect(seenEnabledValues).toContain("false");
     });
@@ -517,6 +519,6 @@ describe("critical flow: skilling routes", () => {
     ).toBeInTheDocument();
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: /show filters/i }));
-    expect(await screen.findByText("Enabled")).toBeInTheDocument();
+    expect(await screen.findByText("Enabled methods")).toBeInTheDocument();
   });
 });

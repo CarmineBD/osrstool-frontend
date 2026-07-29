@@ -37,10 +37,10 @@ export function ChangelogDetailPage() {
   useSeo({
     title: entry
       ? `${entry.version} | ${entry.title} | OSRSTool`
-      : "Changelog no encontrado | OSRSTool",
+      : "Changelog entry not found | OSRSTool",
     description: entry
       ? entry.summary
-      : "La entrada de changelog solicitada no existe en OSRSTool.",
+      : "The requested changelog entry does not exist in OSRSTool.",
     path: entry ? `/changelog/${entry.slug}` : "/changelog",
   });
 
@@ -82,16 +82,18 @@ export function ChangelogDetailPage() {
     return (
       <section className="mx-auto w-full max-w-3xl px-6 py-10">
         <div className={`${PUBLIC_SUBPANEL_CLASS} p-8 text-center shadow-sm`}>
-          <h1 className="text-2xl font-bold text-foreground">Novedad no encontrada</h1>
+          <h1 className="text-2xl font-bold text-foreground">
+            Update not found
+          </h1>
           <p className={`mt-2 ${PUBLIC_BODY_CLASS}`}>
-            El articulo solicitado no existe o fue movido.
+            The requested article does not exist or has moved.
           </p>
           <div className="mt-5 flex justify-center gap-3">
             <Button asChild variant="outline">
-              <Link to="/">Volver a landing</Link>
+              <Link to="/">Back to home</Link>
             </Button>
             <Button asChild>
-              <Link to="/allMethods">Ir a metodos</Link>
+              <Link to="/allMethods">Browse methods</Link>
             </Button>
           </div>
         </div>
@@ -120,7 +122,7 @@ export function ChangelogDetailPage() {
           </div>
         ) : content === null ? (
           <p className="mt-8 text-sm text-destructive">
-            No se pudo cargar el contenido de esta entrada.
+            Unable to load this entry.
           </p>
         ) : (
           <div className={`mt-8 ${PUBLIC_SUBPANEL_CLASS} p-6`}>
@@ -132,7 +134,7 @@ export function ChangelogDetailPage() {
 
         <div className="mt-8 flex flex-wrap gap-3">
           <Button type="button" variant="outline" onClick={handleGoBack}>
-            Volver
+            Back
           </Button>
         </div>
       </article>

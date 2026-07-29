@@ -14,57 +14,66 @@ const changelogLoaders = import.meta.glob("./*.md", {
 
 const entries: ChangelogEntry[] = [
   {
+    slug: "2026-07-24-v2026-07-24-pr107",
+    date: "2026-07-24",
+    version: "v2026.07.24-pr107",
+    title: "English translate and variants component fixes",
+    summary:
+      "Latest user-facing updates, improvements, and fixes in OSRSTool.",
+    fileName: "2026-07-24-v2026-07-24-pr107.md",
+  },
+  {
     slug: "2026-02-22-v0.3.0",
     date: "2026-02-22",
     version: "v0.3.0",
     title: "Landing SEO + Changelog",
     summary:
-      "Nueva landing para mejorar SEO, listado movido a /allMethods y changelog navegable por articulo.",
+      "New SEO-focused landing page, the methods list moved to /allMethods, and a browsable changelog.",
     fileName: "2026-02-22-v0.3.0.md",
   },
   {
     slug: "2026-02-20-v0.2.2",
     date: "2026-02-20",
     version: "v0.2.2",
-    title: "Mejoras de navegacion",
+    title: "Navigation improvements",
     summary:
-      "Ajustes de menu y legibilidad para reducir friccion entre exploracion y uso.",
+      "Menu and readability refinements to reduce friction between discovery and use.",
     fileName: "2026-02-20-v0.2.2.md",
   },
   {
     slug: "2026-02-18-v0.2.1",
     date: "2026-02-18",
     version: "v0.2.1",
-    title: "Optimizaciones de rendimiento",
+    title: "Performance improvements",
     summary:
-      "Menos renderizados redundantes y mejor respuesta inicial en vistas de alto trafico.",
+      "Fewer redundant renders and better initial responsiveness in high-traffic views.",
     fileName: "2026-02-18-v0.2.1.md",
   },
   {
     slug: "2026-02-14-v0.2.0",
     date: "2026-02-14",
     version: "v0.2.0",
-    title: "Filtros y busqueda avanzada",
+    title: "Advanced filters and search",
     summary:
-      "Nuevos filtros por categoria, skill y riesgo para acelerar el descubrimiento de metodos utiles.",
+      "New category, skill, and risk filters to speed up discovery of useful methods.",
     fileName: "2026-02-14-v0.2.0.md",
   },
   {
     slug: "2026-02-10-v0.1.1",
     date: "2026-02-10",
     version: "v0.1.1",
-    title: "Estabilidad general",
+    title: "Overall stability",
     summary:
-      "Correcciones de rutas protegidas y mejoras de resiliencia ante errores de carga.",
+      "Protected-route fixes and better resilience when data loading fails.",
     fileName: "2026-02-10-v0.1.1.md",
   },
   {
     slug: "2026-02-05-v0.1.0",
     date: "2026-02-05",
     version: "v0.1.0",
-    title: "Base del producto",
+    title: "Product foundation",
     summary:
-      "Release inicial con listado de metodos, vista de detalle y base de autenticacion.",
+      "Initial release with the methods list, detail view, and authentication groundwork.",
     fileName: "2026-02-05-v0.1.0.md",
   },
 ];
@@ -97,7 +106,7 @@ export async function getChangelogContentBySlug(
 
 export function formatChangelogDate(dateISO: string): string {
   const date = new Date(`${dateISO}T00:00:00Z`);
-  return new Intl.DateTimeFormat("es-ES", {
+  return new Intl.DateTimeFormat("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
