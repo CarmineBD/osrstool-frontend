@@ -30,8 +30,10 @@ dist-ssr
 .env.production.local
 .env.local
 
-# Other 
+# Local-only PR drafts
 pr_msg.md
+
+# Other 
 AGENTS.md
 .local/
 playwright-report/
