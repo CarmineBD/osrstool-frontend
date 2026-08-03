@@ -1,23 +1,23 @@
 ## Summary
 
-- Translate historical changelog entries, metadata, and changelog screens to English.
-- Update landing, account, skilling, footer, and SEO copy so user-facing text is consistently English.
-- Translate wiki categories and explanations to English while preserving legacy Spanish wiki category slugs.
-- Refresh critical route tests to match the updated English copy.
+- Add a Google OAuth sign-in entrypoint to the login page.
+- Preserve safe post-login redirects when the Google auth flow returns to `/login`.
+- Cover the Google auth provider integration and login page states with automated tests.
 
 ## User-facing changelog
 
-- The landing page, changelog, wiki, account screens, and skilling views now use consistent English copy.
-- Older wiki links that used Spanish category slugs still open the correct content.
+- You can now sign in from the login page with your Google account.
+- Login now returns you to the page you were trying to access after Google sign-in completes.
 
 ## How to test
 
 - `npm run lint`
 - `npm test`
 - `npm run build`
-- Open `/`, `/changelog`, `/changelog/2026-02-22-v0.3.0`, `/account`, and `/skilling` and verify the visible copy is in English.
-- Open `/wiki/metrics` and `/wiki/usage`, then confirm `/wiki/metricas` and `/wiki/uso` still resolve to the same categories.
+- Open `/login` and confirm the `Continue with Google` button appears above the email and password form.
+- Start from a protected route, continue with Google, and confirm the app returns you to the original page after authentication.
+- Simulate a Google OAuth startup failure and confirm the login page shows the error without leaving the screen.
 
 ## Notes
 
-- No business logic changes beyond preserving legacy wiki category aliases.
+- The PR targets `develop` and is intended for TST deployment.

@@ -22,6 +22,7 @@ type AuthState = {
     error: string | null;
   }>;
   signIn: (email: string, password: string) => Promise<string | null>;
+  signInWithGoogle: () => Promise<string | null>;
   signOut: () => Promise<string | null>;
   requestPasswordReset: (email: string, redirectTo?: string) => Promise<string | null>;
   updatePassword: (password: string) => Promise<string | null>;
@@ -34,6 +35,7 @@ const defaultAuthState: AuthState = {
   isRecoveryMode: false,
   signUp: async () => ({ needsEmailConfirmation: false, error: null }),
   signIn: async () => null,
+  signInWithGoogle: async () => null,
   signOut: async () => null,
   requestPasswordReset: async () => null,
   updatePassword: async () => null,
@@ -79,6 +81,10 @@ vi.mock("@/lib/supabaseClient", () => {
     })),
     signUp: vi.fn(async () => ({ data: { session: null, user: null }, error: null })),
     signInWithPassword: vi.fn(async () => ({ error: null })),
+    signInWithOAuth: vi.fn(async () => ({
+      data: { provider: "google", url: null },
+      error: null,
+    })),
     signOut: vi.fn(async () => ({ error: null })),
     resetPasswordForEmail: vi.fn(async () => ({ error: null })),
     updateUser: vi.fn(async () => ({ error: null })),
@@ -177,6 +183,7 @@ beforeAll(() => {
 afterEach(async () => {
   cleanup();
   server.resetHandlers();
+  window.sessionStorage.clear();
 
   const authProviderModule = await import("@/auth/AuthProvider");
   authProviderModule.__resetAuthMockState();

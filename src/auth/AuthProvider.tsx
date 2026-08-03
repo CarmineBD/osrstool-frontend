@@ -9,6 +9,7 @@ import {
 } from "react";
 import type { AuthChangeEvent, Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
+import { getGoogleAuthRedirectTo } from "@/lib/authRedirect";
 
 const RECOVERY_MODE_STORAGE_KEY = "gp-now-recovery-mode";
 
@@ -22,6 +23,7 @@ type AuthContextValue = {
     error: string | null;
   }>;
   signIn: (email: string, password: string) => Promise<string | null>;
+  signInWithGoogle: () => Promise<string | null>;
   signOut: () => Promise<string | null>;
   requestPasswordReset: (email: string, redirectTo?: string) => Promise<string | null>;
   updatePassword: (password: string) => Promise<string | null>;
@@ -136,6 +138,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return error ? error.message : null;
   }, []);
 
+  const signInWithGoogle = useCallback(async () => {
+    const redirectTo = getGoogleAuthRedirectTo();
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: redirectTo ? { redirectTo } : undefined,
+    });
+
+    return error ? error.message : null;
+  }, []);
+
   const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
     if (!error) {
@@ -179,6 +191,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       isRecoveryMode,
       signUp,
       signIn,
+      signInWithGoogle,
       signOut,
       requestPasswordReset,
       updatePassword,
@@ -189,6 +202,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       requestPasswordReset,
       session,
       signIn,
+      signInWithGoogle,
       signOut,
       signUp,
       updatePassword,
