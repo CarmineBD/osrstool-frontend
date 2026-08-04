@@ -245,6 +245,13 @@ function parseWarnings(value: unknown): ApiWarning[] | undefined {
   return Array.isArray(value) && value.every(isApiWarning) ? value : undefined;
 }
 
+function parseStringWarnings(value: unknown): string[] | undefined {
+  if (!value) return undefined;
+  return Array.isArray(value) && value.every((entry) => typeof entry === "string")
+    ? value
+    : undefined;
+}
+
 export interface MethodsResponse {
   methods: Method[];
   warnings?: ApiWarning[];
@@ -739,7 +746,7 @@ export interface RoadmapVariantRef {
   clickIntensity?: number | null;
   afkiness?: number | null;
   riskLevel?: string | null;
-  requirements?: unknown | null;
+  requirements?: Variant["requirements"] | null;
   wilderness?: boolean;
   members?: boolean;
   lowProfit: number;
@@ -771,6 +778,8 @@ export interface SkillRoadmap {
   averageAfkPercent: number;
   totalProfit: RoadmapProfitRange;
   ranges: RoadmapRange[];
+  totalInputs?: IoItem[] | null;
+  totalOutputs?: IoItem[] | null;
 }
 
 export interface SkillRoadmapResponse {
@@ -778,6 +787,7 @@ export interface SkillRoadmapResponse {
     roadmap: SkillRoadmap;
     user: PlayerInfo;
   };
+  warnings?: string[];
   meta: {
     username: string;
     skill: string;
@@ -1157,7 +1167,11 @@ export async function fetchSkillRoadmap(
   }
 
   const json: unknown = await res.json();
-  return json as SkillRoadmapResponse;
+  const warnings = parseStringWarnings(
+    (json as { warnings?: unknown } | null)?.warnings,
+  );
+  const response = json as SkillRoadmapResponse;
+  return warnings ? { ...response, warnings } : response;
 }
 
 export async function searchItems(
