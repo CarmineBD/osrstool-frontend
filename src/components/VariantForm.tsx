@@ -23,6 +23,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { RequiredMark } from "@/components/RequiredMark";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type {
   AchievementDiaryOption,
@@ -30,11 +38,13 @@ import type {
   SkillOption,
   Variant,
 } from "@/lib/api";
+import { VARIANT_ACTION_TYPE_OPTIONS } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import {
   clampInteger,
   DESCRIPTION_MAX_LENGTH,
   INPUTS_MAX_COUNT,
+  MAX_ACTIONS_PER_HOUR,
   MAX_AFKINESS,
   MAX_CLICK_INTENSITY,
   MAX_XP_HOUR_SKILLS,
@@ -90,7 +100,13 @@ export function VariantForm({
     variant.afkiness,
   );
   const [clickIntensity, setClickIntensity] = useState<number | undefined>(
-    variant.clickIntensity ?? variant.actionsPerHour,
+    variant.clickIntensity,
+  );
+  const [actionsPerHour, setActionsPerHour] = useState<number | undefined>(
+    variant.actionsPerHour,
+  );
+  const [actionType, setActionType] = useState<Variant["actionType"]>(
+    variant.actionType,
   );
   const [xpHour, setXpHour] = useState<NonNullable<Variant["xpHour"]>>(
     variant.xpHour ?? [],
@@ -107,7 +123,9 @@ export function VariantForm({
     setMembers(variant.members ?? false);
     setWilderness(variant.wilderness ?? false);
     setAfkiness(variant.afkiness);
-    setClickIntensity(variant.clickIntensity ?? variant.actionsPerHour);
+    setClickIntensity(variant.clickIntensity);
+    setActionsPerHour(variant.actionsPerHour);
+    setActionType(variant.actionType);
     setXpHour(variant.xpHour ?? []);
     setInputs(variant.inputs ?? []);
     setOutputs(variant.outputs ?? []);
@@ -115,6 +133,16 @@ export function VariantForm({
 
   const iconError =
     showValidationErrors && !iconId ? "Variant icon is required" : undefined;
+  const actionsPerHourError =
+    showValidationErrors &&
+    (actionsPerHour === undefined ||
+      !Number.isInteger(actionsPerHour) ||
+      actionsPerHour < 0 ||
+      actionsPerHour > MAX_ACTIONS_PER_HOUR)
+      ? `Actions/hr is required and must be between 0 and ${MAX_ACTIONS_PER_HOUR}.`
+      : undefined;
+  const actionTypeError =
+    showValidationErrors && !actionType ? "Action type is required." : undefined;
 
   return (
     <div className={cn("overflow-hidden", EDITOR_NESTED_SURFACE_CLASS)}>
@@ -247,7 +275,7 @@ export function VariantForm({
 
       <EditorSubsection
         title="Metrics"
-        contentClassName="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,7rem)_minmax(0,7rem)] lg:items-start"
+        contentClassName="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,7rem)_minmax(0,7rem)_minmax(0,8rem)_minmax(0,9rem)] lg:items-start"
       >
         <XpSkillsField
           label="XP per hour"
@@ -301,6 +329,81 @@ export function VariantForm({
               onChange?.({ ...variant, clickIntensity: numericValue });
             }}
           />
+        </div>
+
+        <div>
+          <label className={EDITOR_FIELD_LABEL_CLASS}>
+            Actions/hr
+            <RequiredMark />
+          </label>
+          <Input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={MAX_ACTIONS_PER_HOUR}
+            step={1}
+            className={cn(
+              "h-10 w-full max-w-[8rem] bg-background",
+              actionsPerHourError &&
+                "border-destructive focus-visible:ring-destructive",
+            )}
+            value={actionsPerHour !== undefined ? String(actionsPerHour) : ""}
+            onChange={(event) => {
+              const numericValue =
+                event.target.value === ""
+                  ? undefined
+                  : clampInteger(
+                      event.target.valueAsNumber,
+                      0,
+                      MAX_ACTIONS_PER_HOUR,
+                    );
+              setActionsPerHour(numericValue);
+              onChange?.({ ...variant, actionsPerHour: numericValue });
+            }}
+          />
+          {actionsPerHourError ? (
+            <p className={cn("mt-2", EDITOR_ERROR_TEXT_CLASS)}>
+              {actionsPerHourError}
+            </p>
+          ) : null}
+        </div>
+
+        <div>
+          <label className={EDITOR_FIELD_LABEL_CLASS}>
+            Action type
+            <RequiredMark />
+          </label>
+          <Select
+            value={actionType}
+            onValueChange={(next) => {
+              const normalizedValue = next as Variant["actionType"];
+              setActionType(normalizedValue);
+              onChange?.({ ...variant, actionType: normalizedValue });
+            }}
+          >
+            <SelectTrigger
+              className={cn(
+                "h-10 w-full min-w-0 bg-background",
+                actionTypeError &&
+                  "border-destructive focus-visible:ring-destructive",
+              )}
+              aria-invalid={Boolean(actionTypeError)}
+            >
+              <SelectValue placeholder="Select type" />
+            </SelectTrigger>
+            <SelectContent>
+              {VARIANT_ACTION_TYPE_OPTIONS.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {option.charAt(0).toUpperCase() + option.slice(1)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {actionTypeError ? (
+            <p className={cn("mt-2", EDITOR_ERROR_TEXT_CLASS)}>
+              {actionTypeError}
+            </p>
+          ) : null}
         </div>
       </EditorSubsection>
 

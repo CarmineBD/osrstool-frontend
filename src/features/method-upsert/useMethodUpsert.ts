@@ -19,6 +19,7 @@ import {
   fetchQuests,
   fetchSkills,
   F2P_VARIANT_CONTAINS_MEMBERS_ITEMS_CODE,
+  VARIANT_ACTION_TYPE_OPTIONS,
   type FreeToPlayVariantConflict,
   getVariantsSignature,
   updateMethodBasic,
@@ -33,6 +34,7 @@ import {
   DESCRIPTION_MAX_LENGTH,
   hasAtMostDecimalPlaces,
   INPUTS_MAX_COUNT,
+  MAX_ACTIONS_PER_HOUR,
   MAX_COMBAT_LEVEL,
   MAX_AFKINESS,
   MAX_CLICK_INTENSITY,
@@ -96,6 +98,8 @@ const createEmptyVariant = (label = "New variant"): Variant => ({
   label,
   members: false,
   description: "",
+  actionsPerHour: undefined,
+  actionType: undefined,
   xpHour: [],
   requirements: {},
   inputs: [],
@@ -161,6 +165,22 @@ function validateVariant(variant: Variant, index: number): string | null {
   }
   if (!normalizeIconId(variant.icon_id)) {
     return `${variantLabel}: icon is required.`;
+  }
+  if (variant.actionsPerHour === undefined) {
+    return `${variantLabel}: actions/hr is required.`;
+  }
+  if (
+    !Number.isInteger(variant.actionsPerHour) ||
+    variant.actionsPerHour < 0 ||
+    variant.actionsPerHour > MAX_ACTIONS_PER_HOUR
+  ) {
+    return `${variantLabel}: actions/hr must be an integer between 0 and ${MAX_ACTIONS_PER_HOUR}.`;
+  }
+  if (!variant.actionType) {
+    return `${variantLabel}: action type is required.`;
+  }
+  if (!VARIANT_ACTION_TYPE_OPTIONS.includes(variant.actionType)) {
+    return `${variantLabel}: action type must be one of ${VARIANT_ACTION_TYPE_OPTIONS.join(", ")}.`;
   }
   if (
     variant.clickIntensity !== undefined &&

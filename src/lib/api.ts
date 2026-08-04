@@ -140,6 +140,13 @@ export interface MethodVariantTagDefinition {
 }
 
 export const DEFAULT_IGNORED_METHOD_TAGS: MethodVariantTagKey[] = ["not_viable"];
+export const VARIANT_ACTION_TYPE_OPTIONS = [
+  "items",
+  "kills",
+  "rounds",
+  "chests",
+] as const;
+export type VariantActionType = (typeof VARIANT_ACTION_TYPE_OPTIONS)[number];
 
 export interface Variant {
   id?: string;
@@ -155,6 +162,7 @@ export interface Variant {
   riskLevel?: string;
   wilderness?: boolean;
   actionsPerHour?: number;
+  actionType?: VariantActionType;
   xpHour: { skill: string; experience: number }[];
   requirements: Requirement;
   recommendations?: Requirement;
