@@ -10,6 +10,7 @@ import {
   getVariantsSignature,
   searchItems,
   type Variant,
+  updateMethodWithVariants,
 } from "./api";
 
 describe("api update payload helpers", () => {
@@ -19,6 +20,8 @@ describe("api update payload helpers", () => {
       icon_id: 3145,
       members: true,
       description: "Primera linea\nSegunda linea\n\nTercera linea",
+      actionsPerHour: 321,
+      actionType: "kills",
       xpHour: [],
       requirements: {},
       inputs: [{ id: 1, quantity: 2, reason: "buy" }],
@@ -42,6 +45,8 @@ describe("api update payload helpers", () => {
     expect(payload.variants[0]?.outputs[0]?.type).toBe("output");
     expect(payload.variants[0]?.outputs[0]?.reason).toBeNull();
     expect(payload.variants[0]?.members).toBe(true);
+    expect(payload.variants[0]?.actionsPerHour).toBe(321);
+    expect(payload.variants[0]?.actionType).toBe("kills");
     expect(payload.variants[0]?.description).toBe(
       "Primera linea\nSegunda linea\n\nTercera linea"
     );
@@ -53,6 +58,8 @@ describe("api update payload helpers", () => {
         label: "A",
         icon_id: 100,
         members: false,
+        actionsPerHour: 0,
+        actionType: "items",
         xpHour: [],
         requirements: {},
         inputs: [{ id: 100, quantity: 1 }],
@@ -575,6 +582,8 @@ describe("api update payload helpers", () => {
             label: "Main",
             icon_id: 3145,
             members: false,
+            actionsPerHour: 55,
+            actionType: "items",
             xpHour: [],
             requirements: {},
             inputs: [],
@@ -598,6 +607,151 @@ describe("api update payload helpers", () => {
         },
       ],
     });
+
+    fetchSpy.mockRestore();
+  });
+
+  it("passes repeated actionsPerHour query params when creating methods", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          data: {
+            method: {
+              id: "method-1",
+              slug: "test-method",
+              name: "Test method",
+              category: "combat",
+              enabled: true,
+              variants: [],
+            },
+          },
+        }),
+        {
+          status: 201,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    await createMethodWithVariants(
+      {
+        name: "Test method",
+        category: "combat",
+        description: "desc",
+        enabled: true,
+        icon_id: 3145,
+      },
+      [
+        {
+          label: "Main",
+          icon_id: 3145,
+          members: false,
+          actionsPerHour: 0,
+          actionType: "items",
+          xpHour: [],
+          requirements: {},
+          inputs: [],
+          outputs: [],
+        },
+        {
+          label: "Alt",
+          icon_id: 4151,
+          members: true,
+          actionsPerHour: 99999,
+          actionType: "chests",
+          xpHour: [],
+          requirements: {},
+          inputs: [],
+          outputs: [],
+        },
+      ],
+    );
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const requestInput = fetchSpy.mock.calls[0]?.[0];
+    const requestUrl =
+      typeof requestInput === "string"
+        ? requestInput
+        : requestInput instanceof URL
+          ? requestInput.toString()
+          : requestInput.url;
+    const url = new URL(requestUrl, window.location.origin);
+
+    expect(url.searchParams.getAll("actionsPerHour")).toEqual(["0", "99999"]);
+    expect(url.searchParams.getAll("actionType")).toEqual(["items", "chests"]);
+
+    fetchSpy.mockRestore();
+  });
+
+  it("passes repeated actionsPerHour query params when updating methods", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          data: {
+            method: {
+              id: "method-1",
+              slug: "test-method",
+              name: "Test method",
+              category: "combat",
+              enabled: true,
+              variants: [],
+            },
+          },
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    await updateMethodWithVariants(
+      "method-1",
+      {
+        name: "Test method",
+        category: "combat",
+        description: "desc",
+        enabled: true,
+        icon_id: 3145,
+      },
+      [
+        {
+          label: "Main",
+          icon_id: 3145,
+          members: false,
+          actionsPerHour: 12,
+          actionType: "kills",
+          xpHour: [],
+          requirements: {},
+          inputs: [],
+          outputs: [],
+        },
+        {
+          label: "Alt",
+          icon_id: 4151,
+          members: true,
+          actionsPerHour: 34,
+          actionType: "rounds",
+          xpHour: [],
+          requirements: {},
+          inputs: [],
+          outputs: [],
+        },
+      ],
+    );
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const requestInput = fetchSpy.mock.calls[0]?.[0];
+    const requestUrl =
+      typeof requestInput === "string"
+        ? requestInput
+        : requestInput instanceof URL
+          ? requestInput.toString()
+          : requestInput.url;
+    const url = new URL(requestUrl, window.location.origin);
+
+    expect(url.searchParams.getAll("actionsPerHour")).toEqual(["12", "34"]);
+    expect(url.searchParams.getAll("actionType")).toEqual(["kills", "rounds"]);
 
     fetchSpy.mockRestore();
   });
