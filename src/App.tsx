@@ -15,6 +15,7 @@ import { ChangelogDetailPage } from "./pages/ChangelogDetailPage";
 import { ChangelogListPage } from "./pages/ChangelogListPage";
 import { SkillingPage } from "./pages/SkillingPage";
 import { SkillMethodsPage } from "./pages/SkillMethodsPage";
+import { RoadmapsPage } from "./pages/RoadmapsPage";
 import { WikiCategoryPage, WikiPage } from "./pages/WikiPage";
 import { MethodDetailSkeleton } from "./features/method-detail/MethodDetailSkeleton";
 import { MethodUpsertSkeleton } from "./features/method-upsert/MethodUpsertSkeleton";
@@ -52,6 +53,7 @@ function App() {
                   element={<ProtectedRoute />}
                 >
                   <Route path="/account" element={<AccountPage />} />
+                  <Route path="/roadmaps" element={<RoadmapsPage />} />
                 </Route>
                 <Route element={<ProtectedRoute requiredRole="super_admin" />}>
                   <Route

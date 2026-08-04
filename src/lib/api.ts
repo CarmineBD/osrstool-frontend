@@ -1,8 +1,10 @@
 // src/lib/api.ts
 import { authFetch as apiFetch } from "./http";
 import {
+  MAX_SKILL_LEVEL,
   SEARCH_QUERY_MAX_LENGTH,
   USERNAME_MAX_LENGTH,
+  clampInteger,
   normalizeBoundedText,
 } from "@/lib/validation";
 
@@ -678,6 +680,107 @@ export interface MethodsSkillsSummaryResponse {
   };
 }
 
+export type RoadmapStrategy = "fastest" | "profitable" | "most_afk";
+
+export interface SkillRoadmapQuery {
+  username: string;
+  skill: string;
+  strategy: RoadmapStrategy;
+  targetLevel?: number;
+  showOnlyFreeToPlay?: boolean;
+  ignoredTags?: MethodVariantTagKey[];
+  enabled?: boolean;
+}
+
+export interface PlayerInfo {
+  levels: Record<string, number>;
+  quests: Record<string, number>;
+  achievement_diaries: Record<
+    string,
+    {
+      Easy: { complete: boolean; tasks: boolean[] };
+      Medium: { complete: boolean; tasks: boolean[] };
+      Hard: { complete: boolean; tasks: boolean[] };
+      Elite: { complete: boolean; tasks: boolean[] };
+    }
+  >;
+}
+
+export interface RoadmapProfitRange {
+  low: number;
+  high: number;
+}
+
+export interface RoadmapMethodRef {
+  id: string;
+  name: string;
+  slug: string;
+  icon_id?: number | null;
+  category?: string;
+  enabled: boolean;
+}
+
+export interface RoadmapVariantRef {
+  id: string;
+  slug: string;
+  icon_id?: number | null;
+  label?: string;
+  description?: string | null;
+  xpPerHour: number;
+  clickIntensity?: number | null;
+  afkiness?: number | null;
+  riskLevel?: string | null;
+  requirements?: unknown | null;
+  wilderness?: boolean;
+  members?: boolean;
+  lowProfit: number;
+  highProfit: number;
+  tags: VariantTag[];
+}
+
+export interface RoadmapRange {
+  levelStart: number;
+  levelEnd: number;
+  experienceStart: number;
+  experienceEnd: number;
+  experienceNeeded: number;
+  hours: number;
+  afkPercent: number;
+  profit: RoadmapProfitRange;
+  method: RoadmapMethodRef;
+  variant: RoadmapVariantRef;
+}
+
+export interface SkillRoadmap {
+  skill: string;
+  strategy: RoadmapStrategy;
+  currentLevel: number;
+  currentExperience: number;
+  targetLevel: number;
+  targetExperience: number;
+  totalHours: number;
+  averageAfkPercent: number;
+  totalProfit: RoadmapProfitRange;
+  ranges: RoadmapRange[];
+}
+
+export interface SkillRoadmapResponse {
+  data: {
+    roadmap: SkillRoadmap;
+    user: PlayerInfo;
+  };
+  meta: {
+    username: string;
+    skill: string;
+    strategy: RoadmapStrategy;
+    enabled: boolean;
+    show_only_free_to_play: boolean;
+    ignoredTags: MethodVariantTagKey[];
+    computedAt: number;
+    usesExactSkillExperience: boolean;
+  };
+}
+
 export async function fetchItems(ids: number[]): Promise<Record<number, Item>> {
   const url = toApiUrl("/items");
   url.searchParams.set("ids", ids.join(","));
@@ -999,6 +1102,53 @@ export async function fetchMethodsSkillsSummary(
       : undefined;
 
   return { data, meta };
+}
+
+export async function fetchSkillRoadmap(
+  query: SkillRoadmapQuery,
+): Promise<SkillRoadmapResponse> {
+  const url = toApiUrl("/methods/skills/roadmap");
+  const targetLevel = clampInteger(query.targetLevel, 2, MAX_SKILL_LEVEL) ?? 99;
+  url.searchParams.set(
+    "username",
+    normalizeBoundedText(query.username.trim(), USERNAME_MAX_LENGTH),
+  );
+  url.searchParams.set("skill", query.skill);
+  url.searchParams.set("strategy", query.strategy);
+  url.searchParams.set("target_level", String(targetLevel));
+
+  if (query.showOnlyFreeToPlay !== undefined) {
+    url.searchParams.set(
+      "show_only_free_to_play",
+      String(query.showOnlyFreeToPlay),
+    );
+  }
+
+  if (query.enabled !== undefined) {
+    url.searchParams.set("enabled", String(query.enabled));
+  }
+
+  if (query.ignoredTags?.length) {
+    const uniqueIgnoredTags = Array.from(
+      new Set(
+        query.ignoredTags
+          .map((tag) => tag.trim())
+          .filter((tag) => tag.length > 0),
+      ),
+    );
+    uniqueIgnoredTags.forEach((tag) => url.searchParams.append("ignoredTags", tag));
+  }
+
+  const res = await apiFetch(url.toString());
+  if (!res.ok) {
+    throw await buildApiRequestError(
+      res,
+      `HTTP ${res.status} - Error fetching skill roadmap`,
+    );
+  }
+
+  const json: unknown = await res.json();
+  return json as SkillRoadmapResponse;
 }
 
 export async function searchItems(

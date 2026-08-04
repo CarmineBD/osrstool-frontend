@@ -4,6 +4,7 @@ import {
   createMethodWithVariants,
   fetchMethodTags,
   fetchMethods,
+  fetchSkillRoadmap,
   fetchTrendingProfitMethods,
   fetchItems,
   getVariantsSignature,
@@ -375,6 +376,81 @@ describe("api update payload helpers", () => {
         description: "This method stayed above break-even over the last 24 hours.",
       },
     ]);
+
+    fetchSpy.mockRestore();
+  });
+
+  it("calls the roadmap endpoint with the backend-compatible query params", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          data: {
+            roadmap: {
+              skill: "herblore",
+              strategy: "profitable",
+              currentLevel: 1,
+              currentExperience: 0,
+              targetLevel: 99,
+              targetExperience: 13034431,
+              totalHours: 10,
+              averageAfkPercent: 50,
+              totalProfit: { low: -1000, high: 5000 },
+              ranges: [],
+            },
+            user: {
+              levels: { Herblore: 1 },
+              quests: {},
+              achievement_diaries: {},
+            },
+          },
+          meta: {
+            username: "abcdefghijkl",
+            skill: "herblore",
+            strategy: "profitable",
+            enabled: true,
+            show_only_free_to_play: true,
+            ignoredTags: ["safe", "not_viable"],
+            computedAt: 1771459200,
+            usesExactSkillExperience: true,
+          },
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    const response = await fetchSkillRoadmap({
+      username: "abcdefghijklmnop",
+      skill: "herblore",
+      strategy: "profitable",
+      targetLevel: 77,
+      showOnlyFreeToPlay: true,
+      ignoredTags: ["safe", "not_viable"],
+    });
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const requestInput = fetchSpy.mock.calls[0]?.[0];
+    const requestUrl =
+      typeof requestInput === "string"
+        ? requestInput
+        : requestInput instanceof URL
+          ? requestInput.toString()
+          : requestInput.url;
+    const url = new URL(requestUrl, window.location.origin);
+
+    expect(url.pathname.endsWith("/methods/skills/roadmap")).toBe(true);
+    expect(url.searchParams.get("username")).toBe("abcdefghijkl");
+      expect(url.searchParams.get("skill")).toBe("herblore");
+      expect(url.searchParams.get("strategy")).toBe("profitable");
+      expect(url.searchParams.get("target_level")).toBe("77");
+      expect(url.searchParams.get("show_only_free_to_play")).toBe("true");
+    expect(url.searchParams.getAll("ignoredTags")).toEqual([
+      "safe",
+      "not_viable",
+    ]);
+    expect(response.meta.strategy).toBe("profitable");
 
     fetchSpy.mockRestore();
   });

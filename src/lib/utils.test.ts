@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatElapsedTimeFromUnix } from "./utils";
+import { formatElapsedTimeFromUnix, formatNumber } from "./utils";
 
 const NOW_MS = Date.UTC(2026, 2, 1, 12, 0, 0);
 
@@ -52,5 +52,18 @@ describe("formatElapsedTimeFromUnix", () => {
     expect(formatElapsedTimeFromUnix(unixMilliseconds, NOW_MS)).toBe(
       "2h 15m ago"
     );
+  });
+});
+
+describe("formatNumber", () => {
+  it("rounds non-abbreviated values to whole numbers", () => {
+    expect(formatNumber(12.4)).toBe("12");
+    expect(formatNumber(12.6)).toBe("13");
+    expect(formatNumber(-98.6)).toBe("-99");
+  });
+
+  it("keeps abbreviations for larger values", () => {
+    expect(formatNumber(1_250)).toBe("1.25k");
+    expect(formatNumber(2_500_000)).toBe("2.5m");
   });
 });
