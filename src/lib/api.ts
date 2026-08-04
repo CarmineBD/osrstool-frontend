@@ -1,6 +1,7 @@
 // src/lib/api.ts
 import { authFetch as apiFetch } from "./http";
 import {
+  MAX_ACTIONS_PER_HOUR,
   MAX_SKILL_LEVEL,
   SEARCH_QUERY_MAX_LENGTH,
   USERNAME_MAX_LENGTH,
@@ -140,6 +141,13 @@ export interface MethodVariantTagDefinition {
 }
 
 export const DEFAULT_IGNORED_METHOD_TAGS: MethodVariantTagKey[] = ["not_viable"];
+export const VARIANT_ACTION_TYPE_OPTIONS = [
+  "items",
+  "kills",
+  "rounds",
+  "chests",
+] as const;
+export type VariantActionType = (typeof VARIANT_ACTION_TYPE_OPTIONS)[number];
 
 export interface Variant {
   id?: string;
@@ -155,6 +163,7 @@ export interface Variant {
   riskLevel?: string;
   wilderness?: boolean;
   actionsPerHour?: number;
+  actionType?: VariantActionType;
   xpHour: { skill: string; experience: number }[];
   requirements: Requirement;
   recommendations?: Requirement;
@@ -1331,7 +1340,8 @@ export interface UpdateVariantDto {
   clickIntensity?: number;
   riskLevel?: string;
   wilderness?: boolean;
-  actionsPerHour?: number;
+  actionsPerHour: number;
+  actionType: VariantActionType;
   xpHour?: { skill: string; experience: number }[];
   requirements?: Requirement;
   recommendations?: Requirement;
@@ -1625,6 +1635,8 @@ function buildVariantSignaturePayload(variant: Variant) {
     afkiness: variant.afkiness,
     riskLevel: variant.riskLevel,
     wilderness: variant.wilderness,
+    actionsPerHour: variant.actionsPerHour,
+    actionType: variant.actionType,
     xpHour: variant.xpHour,
     requirements: variant.requirements ?? {},
     recommendations: variant.recommendations,
@@ -1638,11 +1650,42 @@ function buildVariantUpdatePayload(variant: Variant): UpdateVariantDto {
   if (!icon_id) {
     throw new Error("Variant icon_id is required");
   }
+  const actionsPerHour = variant.actionsPerHour;
+  const actionType = variant.actionType;
+  if (
+    typeof actionsPerHour !== "number" ||
+    !Number.isInteger(actionsPerHour) ||
+    actionsPerHour < 0 ||
+    actionsPerHour > MAX_ACTIONS_PER_HOUR
+  ) {
+    throw new Error(
+      `Variant actionsPerHour must be an integer between 0 and ${MAX_ACTIONS_PER_HOUR}`,
+    );
+  }
+  if (!actionType || !VARIANT_ACTION_TYPE_OPTIONS.includes(actionType)) {
+    throw new Error(
+      `Variant actionType must be one of: ${VARIANT_ACTION_TYPE_OPTIONS.join(", ")}`,
+    );
+  }
 
   return {
     ...buildVariantSignaturePayload(variant),
     icon_id,
+    actionsPerHour,
+    actionType,
   };
+}
+
+function buildMethodWithVariantsUrl(
+  path: string,
+  variants: UpdateVariantDto[],
+): URL {
+  const url = toApiUrl(path);
+  variants.forEach((variant) => {
+    url.searchParams.append("actionsPerHour", String(variant.actionsPerHour));
+    url.searchParams.append("actionType", variant.actionType);
+  });
+  return url;
 }
 
 export function buildMethodUpdatePayload(
@@ -1697,7 +1740,8 @@ export async function updateMethodWithVariants(
   variants: Variant[],
 ): Promise<Method> {
   const dto = buildMethodUpdatePayload(values, variants);
-  const res = await apiFetch(`${API_URL}/methods/${id}`, {
+  const url = buildMethodWithVariantsUrl(`/methods/${id}`, dto.variants);
+  const res = await apiFetch(url.toString(), {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(dto),
@@ -1724,7 +1768,8 @@ export async function createMethodWithVariants(
   variants: Variant[],
 ): Promise<Method> {
   const dto = buildMethodUpdatePayload(values, variants);
-  const res = await apiFetch(`${API_URL}/methods`, {
+  const url = buildMethodWithVariantsUrl("/methods", dto.variants);
+  const res = await apiFetch(url.toString(), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(dto),

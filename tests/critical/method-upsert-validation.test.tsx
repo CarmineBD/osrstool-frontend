@@ -113,6 +113,8 @@ describe("critical flow: create/edit form validations", () => {
 
     expect(await screen.findByText("Method icon is required")).toBeInTheDocument();
     expect(await screen.findByText("Variant icon is required")).toBeInTheDocument();
+    expect(await screen.findByText("Actions/hr is required and must be between 0 and 99999.")).toBeInTheDocument();
+    expect(await screen.findByText("Action type is required.")).toBeInTheDocument();
     expect(createRequests).toBe(0);
   });
 
@@ -140,6 +142,8 @@ describe("critical flow: create/edit form validations", () => {
                   label: "Main",
                   icon_id: 11284,
                   members: false,
+                  actionsPerHour: 42,
+                  actionType: "kills",
                   description: "",
                   xpHour: [],
                   requirements: {},
@@ -197,6 +201,8 @@ describe("critical flow: create/edit form validations", () => {
                   label: "Main",
                   icon_id: 11284,
                   members: true,
+                  actionsPerHour: 42,
+                  actionType: "kills",
                   description: "Updated variant note",
                   xpHour: [],
                   requirements: {},
