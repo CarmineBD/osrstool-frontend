@@ -7,6 +7,7 @@ export const server = setupServer(
       data: {
         id: "user-1",
         email: "test@example.com",
+        username: "account_user",
         role: "user",
       },
     })
@@ -16,6 +17,7 @@ export const server = setupServer(
       data: {
         id: "user-1",
         email: "test@example.com",
+        username: "account_user",
         role: "user",
       },
     })

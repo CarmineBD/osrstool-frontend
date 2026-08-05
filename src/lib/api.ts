@@ -1,6 +1,10 @@
 // src/lib/api.ts
 import { authFetch as apiFetch } from "./http";
 import {
+  isAccountUsernameRequiredErrorCode,
+  notifyAccountUsernameRequired,
+} from "@/lib/accountUsernameRequirement";
+import {
   MAX_ACTIONS_PER_HOUR,
   MAX_SKILL_LEVEL,
   SEARCH_QUERY_MAX_LENGTH,
@@ -426,7 +430,10 @@ export async function fetchMethods(
 
   const res = await apiFetch(url.toString());
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} – Error fetching methods`);
+    throw await buildApiRequestError(
+      res,
+      `HTTP ${res.status} - Error fetching methods`, 
+    );
   }
   const json: unknown = await res.json();
   const root =
@@ -556,9 +563,11 @@ export async function fetchTrendingProfitMethods(): Promise<Method[]> {
 
   const res = await apiFetch(url.toString());
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} - Error fetching trending methods`);
+    throw await buildApiRequestError(
+      res,
+      `HTTP ${res.status} - Error fetching trending methods`,
+    );
   }
-
   const json: unknown = await res.json();
   return normalizeMethods(parseMethodsFromResponse(json));
 }
@@ -1101,7 +1110,8 @@ export async function fetchMethodsSkillsSummary(
 
   const res = await apiFetch(url.toString());
   if (!res.ok) {
-    throw new Error(
+    throw await buildApiRequestError(
+      res,
       `HTTP ${res.status} - Error fetching methods skills summary`,
     );
   }
@@ -1202,7 +1212,7 @@ export async function searchItems(
     requestSignal ? { signal: requestSignal } : undefined,
   );
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} – Error searching items`);
+    throw new Error(`HTTP ${res.status} - Error searching items`);
   }
   const json: unknown = await res.json();
   return parseItemSearchResponse(json, limit);
@@ -1234,15 +1244,10 @@ export async function fetchVariantHistory(
   url.searchParams.set("granularity", granularity);
   const res = await apiFetch(url.toString());
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} – Error fetching variant history`);
+    throw new Error(`HTTP ${res.status} - Error fetching variant history`);
   }
   const json = await res.json();
   return json;
-}
-
-export interface MethodDetailResponse {
-  method: Method;
-  warnings?: ApiWarning[];
 }
 
 export async function fetchMethodDetail(
@@ -1258,7 +1263,10 @@ export async function fetchMethodDetail(
   }
   const res = await apiFetch(url.toString());
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} – Error fetching method`);
+    throw await buildApiRequestError(
+      res,
+      `HTTP ${res.status} - Error fetching method`,
+    );
   }
   const json: unknown = await res.json();
   const method =
@@ -1292,7 +1300,10 @@ export async function fetchMethodDetailBySlug(
     if (res.status === 404) {
       throw new Error("Method not found");
     }
-    throw new Error(`HTTP ${res.status} – Error fetching method`);
+    throw await buildApiRequestError(
+      res,
+      `HTTP ${res.status} - Error fetching method`,
+    );
   }
   const json: unknown = await res.json();
   const method =
@@ -1311,7 +1322,10 @@ export async function likeVariant(variantId: string): Promise<void> {
     method: "POST",
   });
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} - Error liking variant`);
+    throw await buildApiRequestError(
+      res,
+      `HTTP ${res.status} - Error liking variant`,
+    );
   }
 }
 
@@ -1320,7 +1334,10 @@ export async function unlikeVariant(variantId: string): Promise<void> {
     method: "DELETE",
   });
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} - Error unliking variant`);
+    throw await buildApiRequestError(
+      res,
+      `HTTP ${res.status} - Error unliking variant`,
+    );
   }
 }
 
@@ -1329,7 +1346,10 @@ export async function deleteMethod(methodId: string): Promise<void> {
     method: "DELETE",
   });
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} - Error deleting method`);
+    throw await buildApiRequestError(
+      res,
+      `HTTP ${res.status} - Error deleting method`,
+    );
   }
 }
 
@@ -1625,14 +1645,20 @@ async function buildApiRequestError(
         ? (root.data as Record<string, unknown>)
         : undefined;
 
-    return new ApiRequestError(parseApiErrorMessage(json) ?? fallback, {
+    const message = parseApiErrorMessage(json) ?? fallback;
+    const code =
+      parseNonEmptyString(root?.code) ??
+      parseNonEmptyString(nestedError?.code) ??
+      parseNonEmptyString(data?.code);
+    const error = new ApiRequestError(message, {
       status: res.status,
-      code:
-        parseNonEmptyString(root?.code) ??
-        parseNonEmptyString(nestedError?.code) ??
-        parseNonEmptyString(data?.code),
+      code,
       freeToPlayVariantConflicts: parseFreeToPlayVariantConflicts(json),
     });
+    if (isAccountUsernameRequiredErrorCode(code)) {
+      notifyAccountUsernameRequired({ message });
+    }
+    return error;
   } catch {
     return new ApiRequestError(fallback, { status: res.status });
   }
@@ -1804,3 +1830,5 @@ export async function createMethodWithVariants(
   }
   return normalizeMethod(method);
 }
+
+
