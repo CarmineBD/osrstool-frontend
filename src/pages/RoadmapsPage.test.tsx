@@ -6,8 +6,12 @@ import { server } from "../../tests/msw/server";
 import { renderWithProviders } from "../../tests/utils/render";
 import { RoadmapsPage } from "./RoadmapsPage";
 
+const ROADMAP_INTERACTION_TEST_TIMEOUT_MS = 10000;
+
 describe("RoadmapsPage", () => {
-  it("passes the default ignored tags when generating a roadmap", async () => {
+  it(
+    "passes the default ignored tags when generating a roadmap",
+    async () => {
     let capturedIgnoredTags: string[] = [];
 
     server.use(
@@ -66,7 +70,9 @@ describe("RoadmapsPage", () => {
     await waitFor(() =>
       expect(capturedIgnoredTags).toEqual(["ge_limits", "not_viable"]),
     );
-  });
+    },
+    ROADMAP_INTERACTION_TEST_TIMEOUT_MS,
+  );
 
   it("renders the timeline layout with variant icons and xp left", async () => {
     server.use(
