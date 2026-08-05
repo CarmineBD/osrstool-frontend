@@ -76,7 +76,9 @@ export function useMethodDetail(): UseMethodDetailResult {
 
   useEffect(() => {
     if (!error) return;
-    setUserError("Failed to fetch user");
+    setUserError(
+      error instanceof Error ? error.message : "Unable to load method details.",
+    );
   }, [error, setUserError]);
 
   const method = data?.method;
