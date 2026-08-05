@@ -1,8 +1,8 @@
 import { useMemo, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/auth/AuthProvider";
 import { useUsername } from "@/contexts/UsernameContext";
-import { fetchMe } from "@/lib/me";
+import { useMe } from "@/hooks/useMe";
 import type { MethodsFilters } from "@/lib/api";
 import { MethodsList } from "@/features/methods/MethodsList";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,7 +16,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Eye, EyeOff } from "lucide-react";
-import { QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
 
 function maskEmail(email: string) {
   const atIndex = email.indexOf("@");
@@ -47,12 +46,7 @@ export function AccountPage() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const isLoggingOutRef = useRef(false);
 
-  const { data: meData, error: meError, isLoading: isMeLoading } = useQuery({
-    queryKey: ["me"],
-    queryFn: fetchMe,
-    staleTime: QUERY_STALE_TIME_MS,
-    retry: false,
-  });
+  const { data: meData, error: meError, isLoading: isMeLoading } = useMe();
 
   const handleLogout = async () => {
     if (isLoggingOutRef.current) return;
@@ -69,6 +63,7 @@ export function AccountPage() {
   };
 
   const likesCount = meData?.data?.likesCount ?? meData?.data?.likes ?? 0;
+  const accountUsername = meData?.data?.username ?? null;
   const likesFilters = useMemo<MethodsFilters>(
     () => ({
       likedByMe: true,
@@ -113,6 +108,13 @@ export function AccountPage() {
           </div>
 
           <div>
+            <p className="text-muted-foreground">Account username</p>
+            <p className="font-medium">
+              {accountUsername ?? "Not set yet"}
+            </p>
+          </div>
+
+          <div>
             <p className="text-muted-foreground">User ID</p>
             <p className="break-all font-mono text-xs">
               {user?.id ?? "No ID"}
@@ -142,43 +144,62 @@ export function AccountPage() {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="likes" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="likes">My likes</TabsTrigger>
-          <TabsTrigger value="summary">Summary</TabsTrigger>
-        </TabsList>
+      {!accountUsername ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Complete your profile</CardTitle>
+            <CardDescription>
+              Choose your account username to unlock likes, roadmaps, and other account-only features.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Your OSRS character username stays separate and still works as before. This step only sets the username for your OSRS Tool account.
+            </p>
+            <Button asChild>
+              <Link to="/account/onboarding">Choose account username</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <Tabs defaultValue="likes" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="likes">My likes</TabsTrigger>
+            <TabsTrigger value="summary">Summary</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="likes">
-          <MethodsList
-            username={username}
-            filters={likesFilters}
-            sortBy={sortConfig.sortBy}
-            order={sortConfig.order}
-            onSortChange={(sortBy, order) => setSortConfig({ sortBy, order })}
-          />
-        </TabsContent>
+          <TabsContent value="likes">
+            <MethodsList
+              username={username}
+              filters={likesFilters}
+              sortBy={sortConfig.sortBy}
+              order={sortConfig.order}
+              onSortChange={(sortBy, order) => setSortConfig({ sortBy, order })}
+            />
+          </TabsContent>
 
-        <TabsContent value="summary">
-          <Card>
-            <CardHeader>
-              <CardTitle>Activity summary</CardTitle>
-              <CardDescription>
-                Your likes sync automatically between the list and detail view.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>
-                Liked methods:{" "}
-                {isMeLoading ? (
-                  <Skeleton className="inline-flex h-5 w-12 align-middle" />
-                ) : (
-                  <span className="font-semibold">{likesCount}</span>
-                )}
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="summary">
+            <Card>
+              <CardHeader>
+                <CardTitle>Activity summary</CardTitle>
+                <CardDescription>
+                  Your likes sync automatically between the list and detail view.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p>
+                  Liked methods:{" "}
+                  {isMeLoading ? (
+                    <Skeleton className="inline-flex h-5 w-12 align-middle" />
+                  ) : (
+                    <span className="font-semibold">{likesCount}</span>
+                  )}
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      )}
     </div>
   );
 }
