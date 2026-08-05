@@ -267,6 +267,11 @@ export interface MethodsResponse {
   pageCount?: number;
 }
 
+export interface MethodDetailResponse {
+  method: Method;
+  warnings?: ApiWarning[];
+}
+
 function parseMethodsFromResponse(value: unknown): Method[] {
   const root =
     value && typeof value === "object"
@@ -1645,7 +1650,8 @@ async function buildApiRequestError(
         ? (root.data as Record<string, unknown>)
         : undefined;
 
-    const message = parseApiErrorMessage(json) ?? fallback;
+    const apiMessage = parseApiErrorMessage(json);
+    const message = apiMessage ? `${fallback}: ${apiMessage}` : fallback;
     const code =
       parseNonEmptyString(root?.code) ??
       parseNonEmptyString(nestedError?.code) ??
@@ -1656,7 +1662,9 @@ async function buildApiRequestError(
       freeToPlayVariantConflicts: parseFreeToPlayVariantConflicts(json),
     });
     if (isAccountUsernameRequiredErrorCode(code)) {
-      notifyAccountUsernameRequired({ message });
+      notifyAccountUsernameRequired({
+        message: apiMessage ?? fallback,
+      });
     }
     return error;
   } catch {

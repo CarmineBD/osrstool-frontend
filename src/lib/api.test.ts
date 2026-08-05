@@ -35,7 +35,9 @@ describe("api account username requirement handling", () => {
 
     await expect(fetchMethodsSkillsSummary("zezima")).rejects.toMatchObject({
       code: ACCOUNT_USERNAME_REQUIRED_ERROR_CODE,
-      message: "You must set an account username before using this service.",
+      message: expect.stringContaining(
+        "You must set an account username before using this service.",
+      ),
     });
 
     expect(listener).toHaveBeenCalledWith({
