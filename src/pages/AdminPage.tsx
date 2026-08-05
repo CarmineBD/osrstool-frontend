@@ -73,6 +73,7 @@ import {
   runAdminItemsSync,
 } from "@/lib/admin";
 import { fetchMe } from "@/lib/me";
+import { fetchPresenceOnline } from "@/lib/presence";
 import { formatSkillName, OSRS_SKILLS } from "@/lib/skills";
 import { getUrlByType } from "@/lib/utils";
 import {
@@ -512,11 +513,19 @@ export function AdminPage() {
     refetchInterval: QUERY_REFETCH_INTERVAL_MS,
     retry: false,
   });
+  const presenceOnlineQuery = useQuery({
+    queryKey: ["presence", "online"],
+    queryFn: fetchPresenceOnline,
+    staleTime: QUERY_STALE_TIME_MS,
+    refetchInterval: QUERY_REFETCH_INTERVAL_MS,
+    retry: false,
+  });
 
   const refreshAdminQueries = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["admin", "overview"] }),
       queryClient.invalidateQueries({ queryKey: ["admin", "jobs"] }),
+      queryClient.invalidateQueries({ queryKey: ["presence", "online"] }),
     ]);
   };
 
@@ -550,6 +559,7 @@ export function AdminPage() {
 
   const counts = overviewQuery.data?.counts;
   const latestCatalog = overviewQuery.data?.latestCatalog;
+  const activeSessionsOnline = presenceOnlineQuery.data?.online;
   const latestExecutions = useMemo(
     () => overviewQuery.data?.latestExecutions ?? [],
     [overviewQuery.data?.latestExecutions],
@@ -639,7 +649,11 @@ export function AdminPage() {
                     type="button"
                     variant="outline"
                     onClick={() => void refreshAdminQueries()}
-                    disabled={overviewQuery.isFetching || jobsQuery.isFetching}
+                    disabled={
+                      overviewQuery.isFetching ||
+                      jobsQuery.isFetching ||
+                      presenceOnlineQuery.isFetching
+                    }
                   >
                     <RefreshCw className="size-4" />
                     Refresh
@@ -675,6 +689,12 @@ export function AdminPage() {
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {counts ? (
                     <>
+                      <StatCard
+                        label="Active sessions"
+                        value={activeSessionsOnline ?? 0}
+                        helper="Estimated browser sessions with a heartbeat in the recent activity window."
+                        detail="Anonymous visitors and authenticated users share the same live presence pool."
+                      />
                       <StatCard
                         label="Registered users"
                         value={counts.usersRegistered}
@@ -747,7 +767,7 @@ export function AdminPage() {
                       />
                     </>
                   ) : (
-                    Array.from({ length: 5 }, (_, index) => (
+                    Array.from({ length: 6 }, (_, index) => (
                       <Skeleton key={index} className="h-36 rounded-xl" />
                     ))
                   )}

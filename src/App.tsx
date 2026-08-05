@@ -9,6 +9,7 @@ import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { AccountPage } from "./pages/AccountPage";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
+import { PresenceHeartbeat } from "./components/PresenceHeartbeat";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { LandingPage } from "./pages/LandingPage";
 import { ChangelogDetailPage } from "./pages/ChangelogDetailPage";
@@ -34,6 +35,7 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
+        <PresenceHeartbeat />
         <BrowserRouter>
           <UsernameProvider>
             <Routes>
