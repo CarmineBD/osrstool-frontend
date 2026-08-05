@@ -74,6 +74,7 @@ export type AdminOverviewCounts = {
   usersRegistered: number;
   items: number;
   quests: number;
+  activeSessions: number | null;
   methods: {
     total: number;
       enabled: number;
@@ -112,6 +113,21 @@ export type AdminOverviewData = {
   counts: AdminOverviewCounts;
   latestExecutions: AdminScriptExecution[];
   latestCatalog: AdminLatestCatalog;
+};
+
+export type AdminPresenceHistoryRange = "72h" | "30d" | "1y";
+
+export type AdminPresenceHistoryPoint = {
+  bucketStart: string;
+  peakOnline: number;
+  provisional: boolean;
+};
+
+export type AdminPresenceHistoryData = {
+  range: AdminPresenceHistoryRange;
+  granularity: "hour" | "day";
+  timezone: "UTC";
+  points: AdminPresenceHistoryPoint[];
 };
 
 export type AdminJobsResponse = {
@@ -276,11 +292,15 @@ function normalizeLatestCatalog(value: unknown): AdminLatestCatalog {
 
 function normalizeAdminOverviewData(value: AdminOverviewData): AdminOverviewData {
   const rawOverview = value as AdminOverviewData & Record<string, unknown>;
+  const activeSessions = rawOverview.counts
+    ? toFiniteNumber((rawOverview.counts as Record<string, unknown>).activeSessions) ?? null
+    : null;
 
   return {
     ...value,
     counts: {
       ...value.counts,
+      activeSessions,
       enabledMethodVariantsBySkill: normalizeEnabledMethodVariantsBySkill(
         rawOverview.counts?.enabledMethodVariantsBySkill,
       ),
@@ -304,6 +324,61 @@ export async function fetchAdminOverview(): Promise<AdminOverviewData> {
   }
 
   return normalizeAdminOverviewData(json.data);
+}
+
+function normalizePresenceHistoryPoints(
+  value: unknown,
+): AdminPresenceHistoryPoint[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.reduce<AdminPresenceHistoryPoint[]>((accumulator, entry) => {
+    if (!entry || typeof entry !== "object") {
+      return accumulator;
+    }
+
+    const bucketStart = (entry as { bucketStart?: unknown }).bucketStart;
+    const peakOnline = toFiniteNumber(
+      (entry as { peakOnline?: unknown }).peakOnline,
+    );
+    const provisional = (entry as { provisional?: unknown }).provisional;
+
+    if (
+      typeof bucketStart !== "string" ||
+      !bucketStart.trim() ||
+      peakOnline === undefined ||
+      typeof provisional !== "boolean"
+    ) {
+      return accumulator;
+    }
+
+    accumulator.push({
+      bucketStart,
+      peakOnline,
+      provisional,
+    });
+    return accumulator;
+  }, []);
+}
+
+function normalizePresenceHistoryData(
+  value: AdminPresenceHistoryData,
+): AdminPresenceHistoryData {
+  const raw = value as AdminPresenceHistoryData & Record<string, unknown>;
+  const range =
+    raw.range === "72h" || raw.range === "30d" || raw.range === "1y"
+      ? raw.range
+      : "72h";
+  const granularity = raw.granularity === "day" ? "day" : "hour";
+  const timezone = raw.timezone === "UTC" ? "UTC" : "UTC";
+
+  return {
+    range,
+    granularity,
+    timezone,
+    points: normalizePresenceHistoryPoints(raw.points),
+  };
 }
 
 export async function fetchAdminJobs(
@@ -342,6 +417,28 @@ export async function fetchAdminJobs(
           : normalizedScriptName ?? null,
     },
   };
+}
+
+export async function fetchAdminPresenceHistory(
+  range: AdminPresenceHistoryRange,
+): Promise<AdminPresenceHistoryData> {
+  const url = toApiUrl("/admin/presence/history");
+  url.searchParams.set("range", range);
+
+  const response = await authFetch(url, {
+    method: "GET",
+    cache: "no-store",
+  });
+  const json = await parseJsonResponse<{ data?: AdminPresenceHistoryData }>(
+    response,
+    `HTTP ${response.status} - Error fetching /admin/presence/history`,
+  );
+
+  if (!json.data) {
+    throw new Error("Admin presence history response is missing data");
+  }
+
+  return normalizePresenceHistoryData(json.data);
 }
 
 export async function runAdminItemsSync(

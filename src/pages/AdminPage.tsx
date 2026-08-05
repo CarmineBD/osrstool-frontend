@@ -1,6 +1,7 @@
 import { useDeferredValue, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DatabaseZap, RefreshCw, ShieldCheck } from "lucide-react";
+import { AdminPresenceHistoryCard } from "@/components/AdminPresenceHistoryCard";
 import {
   formatOsrsItemQuantity,
   OsrsItemSprite,
@@ -64,16 +65,17 @@ import type {
   AdminLatestCatalogQuest,
   AdminExecutionStatus,
   AdminItemsSyncInput,
+  AdminPresenceHistoryRange,
   AdminScriptExecution,
 } from "@/lib/admin";
 import {
   fetchAdminJobs,
   fetchAdminOverview,
+  fetchAdminPresenceHistory,
   refreshAdminMethodProfits,
   runAdminItemsSync,
 } from "@/lib/admin";
 import { fetchMe } from "@/lib/me";
-import { fetchPresenceOnline } from "@/lib/presence";
 import { formatSkillName, OSRS_SKILLS } from "@/lib/skills";
 import { getUrlByType } from "@/lib/utils";
 import {
@@ -250,7 +252,7 @@ function buildLastExecutionMessage(
 
 type StatCardProps = {
   label: string;
-  value: number;
+  value: number | string;
   helper: string;
   detail?: string;
   action?: React.ReactNode;
@@ -262,7 +264,7 @@ function StatCard({ label, value, helper, detail, action }: StatCardProps) {
       <div className="space-y-3">
         <p className="text-sm font-medium leading-5 text-foreground">{label}</p>
         <p className="text-3xl font-semibold leading-9 tracking-tight text-foreground">
-          {formatCount(value)}
+          {typeof value === "number" ? formatCount(value) : value}
         </p>
         <p className={EDITOR_BODY_TEXT_CLASS}>{helper}</p>
         {detail ? <p className={EDITOR_META_TEXT_CLASS}>{detail}</p> : null}
@@ -484,6 +486,8 @@ export function AdminPage() {
   const [jobsLimit, setJobsLimit] = useState<number>(20);
   const [scriptNameInput, setScriptNameInput] = useState("");
   const [actionNotice, setActionNotice] = useState<string | null>(null);
+  const [presenceHistoryRange, setPresenceHistoryRange] =
+    useState<AdminPresenceHistoryRange>("72h");
   const deferredScriptName = useDeferredValue(scriptNameInput.trim());
 
   const { data: meData } = useQuery({
@@ -513,9 +517,9 @@ export function AdminPage() {
     refetchInterval: QUERY_REFETCH_INTERVAL_MS,
     retry: false,
   });
-  const presenceOnlineQuery = useQuery({
-    queryKey: ["presence", "online"],
-    queryFn: fetchPresenceOnline,
+  const presenceHistoryQuery = useQuery({
+    queryKey: ["admin", "presenceHistory", presenceHistoryRange],
+    queryFn: () => fetchAdminPresenceHistory(presenceHistoryRange),
     staleTime: QUERY_STALE_TIME_MS,
     refetchInterval: QUERY_REFETCH_INTERVAL_MS,
     retry: false,
@@ -525,7 +529,7 @@ export function AdminPage() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["admin", "overview"] }),
       queryClient.invalidateQueries({ queryKey: ["admin", "jobs"] }),
-      queryClient.invalidateQueries({ queryKey: ["presence", "online"] }),
+      queryClient.invalidateQueries({ queryKey: ["admin", "presenceHistory"] }),
     ]);
   };
 
@@ -559,7 +563,6 @@ export function AdminPage() {
 
   const counts = overviewQuery.data?.counts;
   const latestCatalog = overviewQuery.data?.latestCatalog;
-  const activeSessionsOnline = presenceOnlineQuery.data?.online;
   const latestExecutions = useMemo(
     () => overviewQuery.data?.latestExecutions ?? [],
     [overviewQuery.data?.latestExecutions],
@@ -652,7 +655,7 @@ export function AdminPage() {
                     disabled={
                       overviewQuery.isFetching ||
                       jobsQuery.isFetching ||
-                      presenceOnlineQuery.isFetching
+                      presenceHistoryQuery.isFetching
                     }
                   >
                     <RefreshCw className="size-4" />
@@ -689,12 +692,6 @@ export function AdminPage() {
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {counts ? (
                     <>
-                      <StatCard
-                        label="Active sessions"
-                        value={activeSessionsOnline ?? 0}
-                        helper="Estimated browser sessions with a heartbeat in the recent activity window."
-                        detail="Anonymous visitors and authenticated users share the same live presence pool."
-                      />
                       <StatCard
                         label="Registered users"
                         value={counts.usersRegistered}
@@ -738,6 +735,16 @@ export function AdminPage() {
                         }
                       />
                       <StatCard
+                        label="Active sessions"
+                        value={counts.activeSessions ?? "Unavailable"}
+                        helper="Current live session count from the active presence window."
+                        detail={
+                          counts.activeSessions === null
+                            ? "Redis presence is temporarily unavailable."
+                            : "Sourced from the current online presence set."
+                        }
+                      />
+                      <StatCard
                         label="Methods"
                         value={counts.methods.total}
                         helper={`${formatCount(counts.methods.enabled)} enabled / ${formatCount(counts.methods.disabled)} disabled.`}
@@ -773,6 +780,18 @@ export function AdminPage() {
                   )}
                 </div>
               </section>
+
+              <AdminPresenceHistoryCard
+                data={presenceHistoryQuery.data}
+                error={
+                  presenceHistoryQuery.error instanceof Error
+                    ? presenceHistoryQuery.error
+                    : null
+                }
+                isLoading={presenceHistoryQuery.isLoading && !presenceHistoryQuery.data}
+                range={presenceHistoryRange}
+                onRangeChange={setPresenceHistoryRange}
+              />
 
               <section className="space-y-4">
                 <SectionHeader
