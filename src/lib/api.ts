@@ -1,8 +1,15 @@
 // src/lib/api.ts
 import { authFetch as apiFetch } from "./http";
 import {
+  isAccountUsernameRequiredErrorCode,
+  notifyAccountUsernameRequired,
+} from "@/lib/accountUsernameRequirement";
+import {
+  MAX_ACTIONS_PER_HOUR,
+  MAX_SKILL_LEVEL,
   SEARCH_QUERY_MAX_LENGTH,
   USERNAME_MAX_LENGTH,
+  clampInteger,
   normalizeBoundedText,
 } from "@/lib/validation";
 
@@ -138,6 +145,13 @@ export interface MethodVariantTagDefinition {
 }
 
 export const DEFAULT_IGNORED_METHOD_TAGS: MethodVariantTagKey[] = ["not_viable"];
+export const VARIANT_ACTION_TYPE_OPTIONS = [
+  "items",
+  "kills",
+  "rounds",
+  "chests",
+] as const;
+export type VariantActionType = (typeof VARIANT_ACTION_TYPE_OPTIONS)[number];
 
 export interface Variant {
   id?: string;
@@ -153,6 +167,7 @@ export interface Variant {
   riskLevel?: string;
   wilderness?: boolean;
   actionsPerHour?: number;
+  actionType?: VariantActionType;
   xpHour: { skill: string; experience: number }[];
   requirements: Requirement;
   recommendations?: Requirement;
@@ -234,6 +249,13 @@ function parseWarnings(value: unknown): ApiWarning[] | undefined {
   return Array.isArray(value) && value.every(isApiWarning) ? value : undefined;
 }
 
+function parseStringWarnings(value: unknown): string[] | undefined {
+  if (!value) return undefined;
+  return Array.isArray(value) && value.every((entry) => typeof entry === "string")
+    ? value
+    : undefined;
+}
+
 export interface MethodsResponse {
   methods: Method[];
   warnings?: ApiWarning[];
@@ -243,6 +265,11 @@ export interface MethodsResponse {
   hasNext?: boolean;
   nextCursor?: string;
   pageCount?: number;
+}
+
+export interface MethodDetailResponse {
+  method: Method;
+  warnings?: ApiWarning[];
 }
 
 function parseMethodsFromResponse(value: unknown): Method[] {
@@ -408,7 +435,10 @@ export async function fetchMethods(
 
   const res = await apiFetch(url.toString());
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} – Error fetching methods`);
+    throw await buildApiRequestError(
+      res,
+      `HTTP ${res.status} - Error fetching methods`, 
+    );
   }
   const json: unknown = await res.json();
   const root =
@@ -538,9 +568,11 @@ export async function fetchTrendingProfitMethods(): Promise<Method[]> {
 
   const res = await apiFetch(url.toString());
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} - Error fetching trending methods`);
+    throw await buildApiRequestError(
+      res,
+      `HTTP ${res.status} - Error fetching trending methods`,
+    );
   }
-
   const json: unknown = await res.json();
   return normalizeMethods(parseMethodsFromResponse(json));
 }
@@ -675,6 +707,110 @@ export interface MethodsSkillsSummaryResponse {
   meta?: {
     username?: string;
     computedAt?: number;
+  };
+}
+
+export type RoadmapStrategy = "fastest" | "profitable" | "most_afk";
+
+export interface SkillRoadmapQuery {
+  username: string;
+  skill: string;
+  strategy: RoadmapStrategy;
+  targetLevel?: number;
+  showOnlyFreeToPlay?: boolean;
+  ignoredTags?: MethodVariantTagKey[];
+  enabled?: boolean;
+}
+
+export interface PlayerInfo {
+  levels: Record<string, number>;
+  quests: Record<string, number>;
+  achievement_diaries: Record<
+    string,
+    {
+      Easy: { complete: boolean; tasks: boolean[] };
+      Medium: { complete: boolean; tasks: boolean[] };
+      Hard: { complete: boolean; tasks: boolean[] };
+      Elite: { complete: boolean; tasks: boolean[] };
+    }
+  >;
+}
+
+export interface RoadmapProfitRange {
+  low: number;
+  high: number;
+}
+
+export interface RoadmapMethodRef {
+  id: string;
+  name: string;
+  slug: string;
+  icon_id?: number | null;
+  category?: string;
+  enabled: boolean;
+}
+
+export interface RoadmapVariantRef {
+  id: string;
+  slug: string;
+  icon_id?: number | null;
+  label?: string;
+  description?: string | null;
+  xpPerHour: number;
+  clickIntensity?: number | null;
+  afkiness?: number | null;
+  riskLevel?: string | null;
+  requirements?: Variant["requirements"] | null;
+  wilderness?: boolean;
+  members?: boolean;
+  lowProfit: number;
+  highProfit: number;
+  tags: VariantTag[];
+}
+
+export interface RoadmapRange {
+  levelStart: number;
+  levelEnd: number;
+  experienceStart: number;
+  experienceEnd: number;
+  experienceNeeded: number;
+  hours: number;
+  afkPercent: number;
+  profit: RoadmapProfitRange;
+  method: RoadmapMethodRef;
+  variant: RoadmapVariantRef;
+}
+
+export interface SkillRoadmap {
+  skill: string;
+  strategy: RoadmapStrategy;
+  currentLevel: number;
+  currentExperience: number;
+  targetLevel: number;
+  targetExperience: number;
+  totalHours: number;
+  averageAfkPercent: number;
+  totalProfit: RoadmapProfitRange;
+  ranges: RoadmapRange[];
+  totalInputs?: IoItem[] | null;
+  totalOutputs?: IoItem[] | null;
+}
+
+export interface SkillRoadmapResponse {
+  data: {
+    roadmap: SkillRoadmap;
+    user: PlayerInfo;
+  };
+  warnings?: string[];
+  meta: {
+    username: string;
+    skill: string;
+    strategy: RoadmapStrategy;
+    enabled: boolean;
+    show_only_free_to_play: boolean;
+    ignoredTags: MethodVariantTagKey[];
+    computedAt: number;
+    usesExactSkillExperience: boolean;
   };
 }
 
@@ -979,7 +1115,8 @@ export async function fetchMethodsSkillsSummary(
 
   const res = await apiFetch(url.toString());
   if (!res.ok) {
-    throw new Error(
+    throw await buildApiRequestError(
+      res,
       `HTTP ${res.status} - Error fetching methods skills summary`,
     );
   }
@@ -999,6 +1136,57 @@ export async function fetchMethodsSkillsSummary(
       : undefined;
 
   return { data, meta };
+}
+
+export async function fetchSkillRoadmap(
+  query: SkillRoadmapQuery,
+): Promise<SkillRoadmapResponse> {
+  const url = toApiUrl("/methods/skills/roadmap");
+  const targetLevel = clampInteger(query.targetLevel, 2, MAX_SKILL_LEVEL) ?? 99;
+  url.searchParams.set(
+    "username",
+    normalizeBoundedText(query.username.trim(), USERNAME_MAX_LENGTH),
+  );
+  url.searchParams.set("skill", query.skill);
+  url.searchParams.set("strategy", query.strategy);
+  url.searchParams.set("target_level", String(targetLevel));
+
+  if (query.showOnlyFreeToPlay !== undefined) {
+    url.searchParams.set(
+      "show_only_free_to_play",
+      String(query.showOnlyFreeToPlay),
+    );
+  }
+
+  if (query.enabled !== undefined) {
+    url.searchParams.set("enabled", String(query.enabled));
+  }
+
+  if (query.ignoredTags?.length) {
+    const uniqueIgnoredTags = Array.from(
+      new Set(
+        query.ignoredTags
+          .map((tag) => tag.trim())
+          .filter((tag) => tag.length > 0),
+      ),
+    );
+    uniqueIgnoredTags.forEach((tag) => url.searchParams.append("ignoredTags", tag));
+  }
+
+  const res = await apiFetch(url.toString());
+  if (!res.ok) {
+    throw await buildApiRequestError(
+      res,
+      `HTTP ${res.status} - Error fetching skill roadmap`,
+    );
+  }
+
+  const json: unknown = await res.json();
+  const warnings = parseStringWarnings(
+    (json as { warnings?: unknown } | null)?.warnings,
+  );
+  const response = json as SkillRoadmapResponse;
+  return warnings ? { ...response, warnings } : response;
 }
 
 export async function searchItems(
@@ -1029,7 +1217,7 @@ export async function searchItems(
     requestSignal ? { signal: requestSignal } : undefined,
   );
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} – Error searching items`);
+    throw new Error(`HTTP ${res.status} - Error searching items`);
   }
   const json: unknown = await res.json();
   return parseItemSearchResponse(json, limit);
@@ -1061,15 +1249,10 @@ export async function fetchVariantHistory(
   url.searchParams.set("granularity", granularity);
   const res = await apiFetch(url.toString());
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} – Error fetching variant history`);
+    throw new Error(`HTTP ${res.status} - Error fetching variant history`);
   }
   const json = await res.json();
   return json;
-}
-
-export interface MethodDetailResponse {
-  method: Method;
-  warnings?: ApiWarning[];
 }
 
 export async function fetchMethodDetail(
@@ -1085,7 +1268,10 @@ export async function fetchMethodDetail(
   }
   const res = await apiFetch(url.toString());
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} – Error fetching method`);
+    throw await buildApiRequestError(
+      res,
+      `HTTP ${res.status} - Error fetching method`,
+    );
   }
   const json: unknown = await res.json();
   const method =
@@ -1119,7 +1305,10 @@ export async function fetchMethodDetailBySlug(
     if (res.status === 404) {
       throw new Error("Method not found");
     }
-    throw new Error(`HTTP ${res.status} – Error fetching method`);
+    throw await buildApiRequestError(
+      res,
+      `HTTP ${res.status} - Error fetching method`,
+    );
   }
   const json: unknown = await res.json();
   const method =
@@ -1138,7 +1327,10 @@ export async function likeVariant(variantId: string): Promise<void> {
     method: "POST",
   });
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} - Error liking variant`);
+    throw await buildApiRequestError(
+      res,
+      `HTTP ${res.status} - Error liking variant`,
+    );
   }
 }
 
@@ -1147,7 +1339,10 @@ export async function unlikeVariant(variantId: string): Promise<void> {
     method: "DELETE",
   });
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} - Error unliking variant`);
+    throw await buildApiRequestError(
+      res,
+      `HTTP ${res.status} - Error unliking variant`,
+    );
   }
 }
 
@@ -1156,7 +1351,10 @@ export async function deleteMethod(methodId: string): Promise<void> {
     method: "DELETE",
   });
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} - Error deleting method`);
+    throw await buildApiRequestError(
+      res,
+      `HTTP ${res.status} - Error deleting method`,
+    );
   }
 }
 
@@ -1181,7 +1379,8 @@ export interface UpdateVariantDto {
   clickIntensity?: number;
   riskLevel?: string;
   wilderness?: boolean;
-  actionsPerHour?: number;
+  actionsPerHour: number;
+  actionType: VariantActionType;
   xpHour?: { skill: string; experience: number }[];
   requirements?: Requirement;
   recommendations?: Requirement;
@@ -1451,14 +1650,23 @@ async function buildApiRequestError(
         ? (root.data as Record<string, unknown>)
         : undefined;
 
-    return new ApiRequestError(parseApiErrorMessage(json) ?? fallback, {
+    const apiMessage = parseApiErrorMessage(json);
+    const message = apiMessage ? `${fallback}: ${apiMessage}` : fallback;
+    const code =
+      parseNonEmptyString(root?.code) ??
+      parseNonEmptyString(nestedError?.code) ??
+      parseNonEmptyString(data?.code);
+    const error = new ApiRequestError(message, {
       status: res.status,
-      code:
-        parseNonEmptyString(root?.code) ??
-        parseNonEmptyString(nestedError?.code) ??
-        parseNonEmptyString(data?.code),
+      code,
       freeToPlayVariantConflicts: parseFreeToPlayVariantConflicts(json),
     });
+    if (isAccountUsernameRequiredErrorCode(code)) {
+      notifyAccountUsernameRequired({
+        message: apiMessage ?? fallback,
+      });
+    }
+    return error;
   } catch {
     return new ApiRequestError(fallback, { status: res.status });
   }
@@ -1475,6 +1683,8 @@ function buildVariantSignaturePayload(variant: Variant) {
     afkiness: variant.afkiness,
     riskLevel: variant.riskLevel,
     wilderness: variant.wilderness,
+    actionsPerHour: variant.actionsPerHour,
+    actionType: variant.actionType,
     xpHour: variant.xpHour,
     requirements: variant.requirements ?? {},
     recommendations: variant.recommendations,
@@ -1488,11 +1698,42 @@ function buildVariantUpdatePayload(variant: Variant): UpdateVariantDto {
   if (!icon_id) {
     throw new Error("Variant icon_id is required");
   }
+  const actionsPerHour = variant.actionsPerHour;
+  const actionType = variant.actionType;
+  if (
+    typeof actionsPerHour !== "number" ||
+    !Number.isInteger(actionsPerHour) ||
+    actionsPerHour < 0 ||
+    actionsPerHour > MAX_ACTIONS_PER_HOUR
+  ) {
+    throw new Error(
+      `Variant actionsPerHour must be an integer between 0 and ${MAX_ACTIONS_PER_HOUR}`,
+    );
+  }
+  if (!actionType || !VARIANT_ACTION_TYPE_OPTIONS.includes(actionType)) {
+    throw new Error(
+      `Variant actionType must be one of: ${VARIANT_ACTION_TYPE_OPTIONS.join(", ")}`,
+    );
+  }
 
   return {
     ...buildVariantSignaturePayload(variant),
     icon_id,
+    actionsPerHour,
+    actionType,
   };
+}
+
+function buildMethodWithVariantsUrl(
+  path: string,
+  variants: UpdateVariantDto[],
+): URL {
+  const url = toApiUrl(path);
+  variants.forEach((variant) => {
+    url.searchParams.append("actionsPerHour", String(variant.actionsPerHour));
+    url.searchParams.append("actionType", variant.actionType);
+  });
+  return url;
 }
 
 export function buildMethodUpdatePayload(
@@ -1547,7 +1788,8 @@ export async function updateMethodWithVariants(
   variants: Variant[],
 ): Promise<Method> {
   const dto = buildMethodUpdatePayload(values, variants);
-  const res = await apiFetch(`${API_URL}/methods/${id}`, {
+  const url = buildMethodWithVariantsUrl(`/methods/${id}`, dto.variants);
+  const res = await apiFetch(url.toString(), {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(dto),
@@ -1574,7 +1816,8 @@ export async function createMethodWithVariants(
   variants: Variant[],
 ): Promise<Method> {
   const dto = buildMethodUpdatePayload(values, variants);
-  const res = await apiFetch(`${API_URL}/methods`, {
+  const url = buildMethodWithVariantsUrl("/methods", dto.variants);
+  const res = await apiFetch(url.toString(), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(dto),
@@ -1595,3 +1838,5 @@ export async function createMethodWithVariants(
   }
   return normalizeMethod(method);
 }
+
+

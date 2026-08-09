@@ -48,6 +48,7 @@ describe("critical flow: protected routes and redirects", () => {
           data: {
             id: "user-1",
             email: "test@example.com",
+            username: "account_user",
             role: "user",
           },
         })
@@ -65,5 +66,95 @@ describe("critical flow: protected routes and redirects", () => {
 
     expect(await screen.findByText("403 - Super admin only")).toBeInTheDocument();
     expect(screen.queryByText("Create form")).not.toBeInTheDocument();
+  });
+
+  it("redirects authenticated users without an account username to onboarding for complete-profile routes", async () => {
+    const authProviderModule = await import("@/auth/AuthProvider");
+    authProviderModule.__setAuthMockState({
+      session: {
+        access_token: "token-1",
+      },
+      user: {
+        id: "user-1",
+        email: "test@example.com",
+      },
+      isLoading: false,
+    });
+
+    server.use(
+      http.get("*/users/me", () =>
+        HttpResponse.json({
+          data: {
+            id: "user-1",
+            email: "test@example.com",
+            username: null,
+            role: "user",
+          },
+        }),
+      ),
+    );
+
+    renderWithProviders(
+      <Routes>
+        <Route element={<ProtectedRoute requireCompleteProfile />}>
+          <Route path="/roadmaps" element={<div>Roadmaps view</div>} />
+        </Route>
+        <Route
+          element={<ProtectedRoute requireIncompleteProfile />}
+        >
+          <Route
+            path="/account/onboarding"
+            element={<div>Onboarding view</div>}
+          />
+        </Route>
+      </Routes>,
+      { route: "/roadmaps" }
+    );
+
+    expect(await screen.findByText("Onboarding view")).toBeInTheDocument();
+    expect(screen.queryByText("Roadmaps view")).not.toBeInTheDocument();
+  });
+
+  it("redirects completed users away from the onboarding route", async () => {
+    const authProviderModule = await import("@/auth/AuthProvider");
+    authProviderModule.__setAuthMockState({
+      session: {
+        access_token: "token-1",
+      },
+      user: {
+        id: "user-1",
+        email: "test@example.com",
+      },
+      isLoading: false,
+    });
+
+    server.use(
+      http.get("*/users/me", () =>
+        HttpResponse.json({
+          data: {
+            id: "user-1",
+            email: "test@example.com",
+            username: "account_user",
+            role: "user",
+          },
+        }),
+      ),
+    );
+
+    renderWithProviders(
+      <Routes>
+        <Route element={<ProtectedRoute requireIncompleteProfile />}>
+          <Route
+            path="/account/onboarding"
+            element={<div>Onboarding view</div>}
+          />
+        </Route>
+        <Route path="/account" element={<div>Account view</div>} />
+      </Routes>,
+      { route: "/account/onboarding" }
+    );
+
+    expect(await screen.findByText("Account view")).toBeInTheDocument();
+    expect(screen.queryByText("Onboarding view")).not.toBeInTheDocument();
   });
 });

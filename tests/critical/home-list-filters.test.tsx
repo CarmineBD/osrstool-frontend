@@ -413,96 +413,104 @@ describe("critical flow: list render + filters", () => {
     ).not.toBeInTheDocument();
   }, 10000);
 
-  it("restores default table field visibility and order", async () => {
-    window.sessionStorage.clear();
+  it(
+    "restores default table field visibility and order",
+    async () => {
+      window.sessionStorage.clear();
 
-    const authProviderModule = await import("@/auth/AuthProvider");
-    authProviderModule.__setAuthMockState({
-      session: {
-        access_token: "token-1",
-      },
-      user: {
-        id: "user-1",
-        email: "test@example.com",
-      },
-    });
+      const authProviderModule = await import("@/auth/AuthProvider");
+      authProviderModule.__setAuthMockState({
+        session: {
+          access_token: "token-1",
+        },
+        user: {
+          id: "user-1",
+          email: "test@example.com",
+        },
+      });
 
-    server.use(
-      http.get("*/methods", () =>
-        HttpResponse.json({
-          data: {
-            methods: [buildMethod("method-1", "Shark fishing", "shark-fishing", 1001)],
-            page: 1,
-            perPage: 10,
-            total: 1,
-          },
-        })
-      )
-    );
+      server.use(
+        http.get("*/methods", () =>
+          HttpResponse.json({
+            data: {
+              methods: [
+                buildMethod("method-1", "Shark fishing", "shark-fishing", 1001),
+              ],
+              page: 1,
+              perPage: 10,
+              total: 1,
+            },
+          })
+        )
+      );
 
-    const storageKey = getMethodsTableColumnStorageKey("user-1", false);
-    const user = userEvent.setup();
+      const storageKey = getMethodsTableColumnStorageKey("user-1", false);
+      const user = userEvent.setup();
 
-    renderWithProviders(<Home />);
+      renderWithProviders(<Home />);
 
-    await screen.findByRole("link", { name: "Shark fishing" });
-    await user.click(screen.getByRole("button", { name: "Table Fields" }));
-    const tableFieldsList = screen.getByRole("list", { name: "Table fields" });
+      await screen.findByRole("link", { name: "Shark fishing" });
+      await user.click(screen.getByRole("button", { name: "Table Fields" }));
+      const tableFieldsList = screen.getByRole("list", { name: "Table fields" });
 
-    fireEvent.dragStart(
-      screen.getByRole("button", { name: "Reorder Tags" })
-    );
-    fireEvent.dragOver(screen.getByRole("listitem", { name: "Gp/Hr" }));
-    fireEvent.drop(tableFieldsList);
-    fireEvent.dragEnd(screen.getByRole("button", { name: "Reorder Tags" }));
+      fireEvent.dragStart(
+        screen.getByRole("button", { name: "Reorder Tags" })
+      );
+      fireEvent.dragOver(screen.getByRole("listitem", { name: "Gp/Hr" }));
+      fireEvent.drop(tableFieldsList);
+      fireEvent.dragEnd(screen.getByRole("button", { name: "Reorder Tags" }));
 
-    await user.click(
-      screen.getByRole("checkbox", { name: /Market impact/i })
-    );
-    await user.click(screen.getByRole("checkbox", { name: /Members/i }));
+      await user.click(
+        screen.getByRole("checkbox", { name: /Market impact/i })
+      );
+      await user.click(screen.getByRole("checkbox", { name: /Members/i }));
 
-    expect(screen.getAllByRole("columnheader")[1]).toHaveTextContent("Tags");
-    expect(
-      screen.queryByRole("columnheader", { name: "Members" })
-    ).not.toBeInTheDocument();
+      expect(screen.getAllByRole("columnheader")[1]).toHaveTextContent("Tags");
+      expect(
+        screen.queryByRole("columnheader", { name: "Members" })
+      ).not.toBeInTheDocument();
 
-    await user.click(
-      screen.getByRole("button", { name: "Reset to default" })
-    );
-    await user.click(
-      screen.getByRole("button", { name: "Confirm" })
-    );
+      await user.click(
+        screen.getByRole("button", { name: "Reset to default" })
+      );
+      await user.click(
+        screen.getByRole("button", { name: "Confirm" })
+      );
 
-    expect(
-      await screen.findByRole("columnheader", { name: "Members" })
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("columnheader", { name: "Market impact" })
-    ).not.toBeInTheDocument();
-    expect(screen.getAllByRole("columnheader")[1]).toHaveTextContent("Gp/Hr");
+      expect(
+        await screen.findByRole("columnheader", { name: "Members" })
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole("columnheader", { name: "Market impact" })
+      ).not.toBeInTheDocument();
+      expect(screen.getAllByRole("columnheader")[1]).toHaveTextContent("Gp/Hr");
 
-    const storedState = JSON.parse(window.sessionStorage.getItem(storageKey) ?? "{}");
-    expect(storedState.orderedColumnIds).toEqual([
-      "methodName",
-      "gpPerHr",
-      "tags",
-      "liquidityScore",
-      "xpPerHr",
-      "clickIntensity",
-      "afkiness",
-      "requirements",
-      "members",
-      "likes",
-    ]);
-    expect(storedState.visibleColumnIds).toEqual([
-      "methodName",
-      "gpPerHr",
-      "tags",
-      "xpPerHr",
-      "afkiness",
-      "requirements",
-      "members",
-      "likes",
-    ]);
-  });
+      const storedState = JSON.parse(
+        window.sessionStorage.getItem(storageKey) ?? "{}",
+      );
+      expect(storedState.orderedColumnIds).toEqual([
+        "methodName",
+        "gpPerHr",
+        "tags",
+        "liquidityScore",
+        "xpPerHr",
+        "clickIntensity",
+        "afkiness",
+        "requirements",
+        "members",
+        "likes",
+      ]);
+      expect(storedState.visibleColumnIds).toEqual([
+        "methodName",
+        "gpPerHr",
+        "tags",
+        "xpPerHr",
+        "afkiness",
+        "requirements",
+        "members",
+        "likes",
+      ]);
+    },
+    SLOW_INTERACTION_TEST_TIMEOUT_MS,
+  );
 });

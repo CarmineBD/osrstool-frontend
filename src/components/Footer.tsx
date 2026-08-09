@@ -3,12 +3,12 @@ import { Link } from "react-router-dom";
 const navigationLinks = [
   { label: "All Methods", to: "/allMethods" },
   { label: "Training Methods", to: "/skilling" },
+  { label: "Roadmaps", to: "/roadmaps" },
   { label: "Wiki", to: "/wiki" },
   { label: "Account", to: "/account" },
 ] as const;
 
 const resourceLinks = [
-  { label: "Roadmap" },
   { label: "Status" },
   { label: "API docs" },
 ] as const;

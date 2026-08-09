@@ -1,31 +1,36 @@
-import { useQuery } from "@tanstack/react-query";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@/auth/AuthProvider";
-import { fetchMe } from "@/lib/me";
+import { useMe } from "@/hooks/useMe";
 import { ForbiddenPage } from "@/pages/ForbiddenPage";
-import { QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
 
 type ProtectedRouteProps = {
   requiredRole?: string;
+  requireCompleteProfile?: boolean;
+  requireIncompleteProfile?: boolean;
 };
 
-export function ProtectedRoute({ requiredRole }: ProtectedRouteProps) {
+type RouteState = {
+  from?: {
+    pathname?: string;
+    search?: string;
+    hash?: string;
+  };
+};
+
+export function ProtectedRoute({
+  requiredRole,
+  requireCompleteProfile = false,
+  requireIncompleteProfile = false,
+}: ProtectedRouteProps) {
   const { session, isLoading } = useAuth();
   const location = useLocation();
+  const meQuery = useMe();
   const requiresRole = Boolean(requiredRole);
-  const {
-    data: meData,
-    isLoading: isRoleLoading,
-    error: roleError,
-  } = useQuery({
-    queryKey: ["me"],
-    queryFn: fetchMe,
-    enabled: !!session && requiresRole,
-    staleTime: QUERY_STALE_TIME_MS,
-    retry: false,
-  });
+  const requiresProfile =
+    Boolean(session) &&
+    (requiresRole || requireCompleteProfile || requireIncompleteProfile);
 
-  if (isLoading || (requiresRole && isRoleLoading)) {
+  if (isLoading || (requiresProfile && meQuery.isLoading)) {
     return (
       <div className="mx-auto w-full max-w-xl p-6 text-sm text-muted-foreground">
         Checking access...
@@ -37,9 +42,34 @@ export function ProtectedRoute({ requiredRole }: ProtectedRouteProps) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
+  if (requiresProfile && meQuery.error) {
+    return (
+      <div className="mx-auto w-full max-w-xl p-6 text-sm text-destructive">
+        {meQuery.error instanceof Error
+          ? meQuery.error.message
+          : "Unable to verify your account profile."}
+      </div>
+    );
+  }
+
+  const accountUsername = meQuery.data?.data?.username ?? null;
+
+  if (requireCompleteProfile && !accountUsername) {
+    return <Navigate to="/account/onboarding" replace state={{ from: location }} />;
+  }
+
+  if (requireIncompleteProfile && accountUsername) {
+    const state = location.state as RouteState | null;
+    const from = state?.from;
+    const redirectTo = from?.pathname
+      ? `${from.pathname}${from.search ?? ""}${from.hash ?? ""}`
+      : "/account";
+    return <Navigate to={redirectTo} replace />;
+  }
+
   if (requiresRole) {
-    const role = meData?.data?.role ?? "";
-    if (roleError || role !== requiredRole) {
+    const role = meQuery.data?.data?.role ?? "";
+    if (role !== requiredRole) {
       return (
         <ForbiddenPage
           title="403 - Super admin only"

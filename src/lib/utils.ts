@@ -84,7 +84,7 @@ export function formatNumber(num: number): string {
   } else if (absNum >= 1_000) {
     return sign + (absNum / 1_000).toFixed(2).replace(/\.?0+$/, "") + "k";
   } else {
-    return sign + absNum.toString();
+    return sign + Math.round(absNum).toString();
   }
 }
 

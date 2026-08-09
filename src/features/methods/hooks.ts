@@ -102,7 +102,11 @@ export function useMethods(
 
   useEffect(() => {
     if (query.error) {
-      setUserError("Failed to fetch user");
+      setUserError(
+        query.error instanceof Error
+          ? query.error.message
+          : "Unable to load methods.",
+      );
     }
   }, [query.error, setUserError]);
 

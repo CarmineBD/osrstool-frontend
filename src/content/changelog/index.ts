@@ -14,6 +14,15 @@ const changelogLoaders = import.meta.glob("./*.md", {
 
 const entries: ChangelogEntry[] = [
   {
+    slug: "2026-08-05-v2026-08-05-pr118",
+    date: "2026-08-05",
+    version: "v2026.08.05-pr118",
+    title: "Enhance user experience with new features and translations",
+    summary:
+      "Latest user-facing updates, improvements, and fixes in OSRSTool.",
+    fileName: "2026-08-05-v2026-08-05-pr118.md",
+  },
+  {
     slug: "2026-07-24-v2026-07-24-pr107",
     date: "2026-07-24",
     version: "v2026.07.24-pr107",
