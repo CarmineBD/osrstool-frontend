@@ -21,6 +21,23 @@
         root.dataset.theme = theme;
       })();
     </script>
+    <script type="module">
+      (() => {
+        const robotsContent = import.meta.env.VITE_ROBOTS?.trim();
+        if (!robotsContent) {
+          return;
+        }
+
+        let tag = document.head.querySelector('meta[name="robots"]');
+        if (!tag) {
+          tag = document.createElement("meta");
+          tag.setAttribute("name", "robots");
+          document.head.appendChild(tag);
+        }
+
+        tag.setAttribute("content", robotsContent);
+      })();
+    </script>
     <link
       href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
       rel="stylesheet"

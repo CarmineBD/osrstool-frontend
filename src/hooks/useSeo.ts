@@ -7,6 +7,19 @@ type SeoConfig = {
   keywords?: string;
 };
 
+function resolveSeoBaseUrl(): string {
+  const configuredSiteUrl = (import.meta.env.VITE_SITE_URL as string | undefined)?.trim();
+  if (configuredSiteUrl) {
+    return configuredSiteUrl.replace(/\/$/, "");
+  }
+
+  return window.location.origin;
+}
+
+function toSeoUrl(path: string): string {
+  return new URL(path, `${resolveSeoBaseUrl()}/`).toString();
+}
+
 function upsertMeta(
   attr: "name" | "property",
   key: string,
@@ -25,8 +38,7 @@ function upsertMeta(
 }
 
 function upsertCanonical(path: string): void {
-  const base = window.location.origin;
-  const url = new URL(path, base).toString();
+  const url = toSeoUrl(path);
   let tag = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
 
   if (!tag) {
@@ -45,7 +57,7 @@ export function useSeo({ title, description, path, keywords }: SeoConfig): void 
     upsertMeta("property", "og:title", title);
     upsertMeta("property", "og:description", description);
     upsertMeta("property", "og:type", "website");
-    upsertMeta("property", "og:url", new URL(path, window.location.origin).toString());
+    upsertMeta("property", "og:url", toSeoUrl(path));
     upsertMeta("name", "twitter:card", "summary_large_image");
     upsertMeta("name", "twitter:title", title);
     upsertMeta("name", "twitter:description", description);
@@ -57,4 +69,3 @@ export function useSeo({ title, description, path, keywords }: SeoConfig): void 
     upsertCanonical(path);
   }, [description, keywords, path, title]);
 }
-
