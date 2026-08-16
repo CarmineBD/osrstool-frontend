@@ -42,7 +42,7 @@ describe("critical flow: Google auth entrypoint", () => {
       name: "Continue with Google",
     });
 
-    expect(screen.getByText("or")).toBeInTheDocument();
+    expect(screen.getByText("Or continue with email")).toBeInTheDocument();
 
     await userEvent.click(googleButton);
 

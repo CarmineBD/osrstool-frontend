@@ -19,7 +19,7 @@ type AuthContextValue = {
   user: User | null;
   isLoading: boolean;
   isRecoveryMode: boolean;
-  signUp: (email: string, password: string) => Promise<{
+  signUp: (email: string, password: string, termsVersion: string) => Promise<{
     needsEmailConfirmation: boolean;
     error: string | null;
   }>;
@@ -128,8 +128,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
   }, [resolveRecoveryMode, syncRecoveryMode]);
 
-  const signUp = useCallback(async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signUp({ email, password });
+  const signUp = useCallback(async (email: string, password: string, termsVersion: string) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          termsOfUseVersion: termsVersion,
+        },
+      },
+    });
     if (error) {
       return { needsEmailConfirmation: false, error: error.message };
     }

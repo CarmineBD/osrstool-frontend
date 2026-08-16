@@ -15,6 +15,7 @@ import { PresenceHeartbeat } from "./components/PresenceHeartbeat";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { LandingPage } from "./pages/LandingPage";
 import { PrivacyPolicyPage } from "./pages/PrivacyPolicyPage";
+import { TermsOfUsePage } from "./pages/TermsOfUsePage";
 import { CookiesAndLocalStoragePage } from "./pages/CookiesAndLocalStoragePage";
 import { ChangelogDetailPage } from "./pages/ChangelogDetailPage";
 import { ChangelogListPage } from "./pages/ChangelogListPage";
@@ -49,6 +50,7 @@ function App() {
               <Route element={<Layout />}>
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+                <Route path="/terms-of-use" element={<TermsOfUsePage />} />
                 <Route
                   path="/cookies-and-local-storage"
                   element={<CookiesAndLocalStoragePage />}

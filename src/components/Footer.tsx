@@ -21,7 +21,7 @@ const communityLinks = [
 
 const legalLinks = [
   { label: "Privacy policy", to: "/privacy-policy" },
-  { label: "Terms of service" },
+  { label: "Terms of Use", to: "/terms-of-use" },
   { label: "Cookies and local storage", to: "/cookies-and-local-storage" },
 ] as const;
 
@@ -111,17 +111,13 @@ export function Footer() {
           <p>Copyright {year} RSMethods. All rights reserved.</p>
           <div className="flex flex-wrap items-center gap-4">
             {legalLinks.map((link) => (
-              "to" in link ? (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  className="hover:text-foreground"
-                >
-                  {link.label}
-                </Link>
-              ) : (
-                <ComingSoonLink key={link.label} label={link.label} />
-              )
+              <Link
+                key={link.to}
+                to={link.to}
+                className="hover:text-foreground"
+              >
+                {link.label}
+              </Link>
             ))}
           </div>
         </div>
