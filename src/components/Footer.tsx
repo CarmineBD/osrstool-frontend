@@ -20,7 +20,7 @@ const communityLinks = [
 ] as const;
 
 const legalLinks = [
-  { label: "Privacy policy" },
+  { label: "Privacy policy", to: "/privacy-policy" },
   { label: "Terms of service" },
   { label: "Cookie policy" },
 ] as const;
@@ -108,7 +108,17 @@ export function Footer() {
           <p>Copyright {year} GP Now. All rights reserved.</p>
           <div className="flex flex-wrap items-center gap-4">
             {legalLinks.map((link) => (
-              <ComingSoonLink key={link.label} label={link.label} />
+              "to" in link ? (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  className="hover:text-foreground"
+                >
+                  {link.label}
+                </Link>
+              ) : (
+                <ComingSoonLink key={link.label} label={link.label} />
+              )
             ))}
           </div>
         </div>
