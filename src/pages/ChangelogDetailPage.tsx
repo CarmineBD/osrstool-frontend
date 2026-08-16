@@ -36,11 +36,11 @@ export function ChangelogDetailPage() {
 
   useSeo({
     title: entry
-      ? `${entry.version} | ${entry.title} | OSRSTool`
-      : "Changelog entry not found | OSRSTool",
+      ? `${entry.version} | ${entry.title} | RSMethods`
+      : "Changelog entry not found | RSMethods",
     description: entry
       ? entry.summary
-      : "The requested changelog entry does not exist in OSRSTool.",
+      : "The requested changelog entry does not exist in RSMethods.",
     path: entry ? `/changelog/${entry.slug}` : "/changelog",
   });
 

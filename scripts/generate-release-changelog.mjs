@@ -242,7 +242,7 @@ function main() {
   const title = args.get("title") || extractTitle(releaseTitle, version);
   const summary =
     args.get("summary") ||
-    "Latest user-facing updates, improvements, and fixes in OSRSTool.";
+    "Latest user-facing updates, improvements, and fixes in RSMethods.";
   const repo = process.env.GITHUB_REPOSITORY;
 
   if (!repo) {

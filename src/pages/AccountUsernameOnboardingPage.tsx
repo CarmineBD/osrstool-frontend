@@ -93,7 +93,7 @@ export function AccountUsernameOnboardingPage() {
         <CardHeader>
           <CardTitle>Choose your account username</CardTitle>
           <CardDescription>
-            Set the account username used for your OSRS Tool profile. This is separate from your OSRS character username.
+            Set the account username used for your RSMethods profile. This is separate from your OSRS character username.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

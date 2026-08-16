@@ -42,7 +42,7 @@ import {
 } from "@/lib/queryRefresh";
 import { cn, formatPercent } from "@/lib/utils";
 
-const SEO_TITLE = "OSRSTool | OSRS Money Making Methods";
+const SEO_TITLE = "RSMethods | OSRS Money Making Methods";
 const SEO_DESCRIPTION =
   "Find OSRS money making methods with clear filters, fast comparisons, and live product updates.";
 const SEO_KEYWORDS =
@@ -343,13 +343,13 @@ export function LandingPage() {
       <header className="mx-auto grid w-full max-w-6xl items-center gap-10 px-6 py-18 sm:px-10 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand">
-            Welcome to OSRSTool
+            Welcome to RSMethods
           </p>
           <h1 className="mt-3 max-w-4xl text-4xl font-black leading-tight text-foreground sm:text-6xl">
             Make money and train efficiently with real-time data.
           </h1>
           <p className="mt-6 max-w-3xl text-lg leading-relaxed text-muted-foreground sm:text-2xl">
-            OSRSTool is a real-time decision tool for exploring money making and
+            RSMethods is a real-time decision tool for exploring money making and
             training methods that fit each account&apos;s stats.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">

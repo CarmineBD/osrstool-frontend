@@ -154,7 +154,7 @@ export function AccountPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Your OSRS character username stays separate and still works as before. This step only sets the username for your OSRS Tool account.
+              Your OSRS character username stays separate and still works as before. This step only sets the username for your RSMethods account.
             </p>
             <Button asChild>
               <Link to="/account/onboarding">Choose account username</Link>

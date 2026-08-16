@@ -19,7 +19,7 @@ const entries: ChangelogEntry[] = [
     version: "v2026.08.05-pr118",
     title: "Enhance user experience with new features and translations",
     summary:
-      "Latest user-facing updates, improvements, and fixes in OSRSTool.",
+      "Latest user-facing updates, improvements, and fixes in RSMethods.",
     fileName: "2026-08-05-v2026-08-05-pr118.md",
   },
   {
@@ -28,7 +28,7 @@ const entries: ChangelogEntry[] = [
     version: "v2026.07.24-pr107",
     title: "English translate and variants component fixes",
     summary:
-      "Latest user-facing updates, improvements, and fixes in OSRSTool.",
+      "Latest user-facing updates, improvements, and fixes in RSMethods.",
     fileName: "2026-07-24-v2026-07-24-pr107.md",
   },
   {

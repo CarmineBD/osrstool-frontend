@@ -83,11 +83,11 @@ const DEFAULT_SORT_CONFIG: SortConfig = {
 const SKILL_OPTIONS = ["combat", ...OSRS_SKILLS] as const;
 const METHOD_SEARCH_DEBOUNCE_MS = 400;
 const DEFAULT_SEO: SeoConfig = {
-  title: "All Methods | OSRSTool",
+  title: "All Methods | RSMethods",
   description:
     "Browse every OSRS method with real data and filter by category, risk, AFK level, and skills.",
   path: "/allMethods",
-  keywords: "all methods osrs, osrs moneymaking list, osrstool methods",
+  keywords: "all methods osrs, osrs moneymaking list, rsmethods methods",
 };
 
 export function Home({ lockedSkill, pageTitle, seo }: Props) {

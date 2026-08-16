@@ -23,6 +23,6 @@ describe("getRuntimeEnvironmentLabel", () => {
   });
 
   it("returns null for production-like hosts", () => {
-    expect(getRuntimeEnvironmentLabel("osrstool.com", false)).toBeNull();
+    expect(getRuntimeEnvironmentLabel("rsmethods.com", false)).toBeNull();
   });
 });
