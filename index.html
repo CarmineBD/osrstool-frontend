@@ -4,9 +4,12 @@
     <meta charset="UTF-8" />
     <script>
       (() => {
-        const storageKey = "osrstool-theme";
+        const storageKey = "rsmethods-theme";
+        const legacyStorageKey = "osrstool-theme";
         const root = document.documentElement;
-        const storedTheme = window.localStorage.getItem(storageKey);
+        const storedTheme =
+          window.localStorage.getItem(storageKey) ??
+          window.localStorage.getItem(legacyStorageKey);
         const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
           .matches
           ? "dark"

@@ -44,6 +44,7 @@ import { useSeo } from "@/hooks/useSeo";
 import { OSRS_SKILLS, formatSkillName } from "@/lib/skills";
 import {
   getDefaultMethodsTableFieldsState,
+  getLegacyMethodsTableColumnStorageKey,
   getMethodsTableColumns,
   getMethodsTableColumnStorageKey,
   getMethodsTableColumnStorageKeys,
@@ -174,6 +175,9 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
   const tableFieldsStorageKey = currentUserId
     ? getMethodsTableColumnStorageKey(currentUserId, hasLockedSkill)
     : null;
+  const legacyTableFieldsStorageKey = currentUserId
+    ? getLegacyMethodsTableColumnStorageKey(currentUserId, hasLockedSkill)
+    : null;
   const orderedTableColumns = useMemo(() => {
     const columnsById = new Map(tableColumns.map((column) => [column.id, column]));
     return orderedColumnIds
@@ -218,7 +222,11 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
       return;
     }
 
-    const storedValue = window.sessionStorage.getItem(tableFieldsStorageKey);
+    const storedValue =
+      window.sessionStorage.getItem(tableFieldsStorageKey) ??
+      (legacyTableFieldsStorageKey
+        ? window.sessionStorage.getItem(legacyTableFieldsStorageKey)
+        : null);
     if (!storedValue) {
       setOrderedColumnIds(defaultTableFieldsState.orderedColumnIds);
       setVisibleColumnIds(defaultTableFieldsState.visibleColumnIds);
@@ -240,7 +248,12 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
     }
 
     setHasLoadedTableFields(true);
-  }, [defaultTableFieldsState, hasLockedSkill, tableFieldsStorageKey]);
+  }, [
+    defaultTableFieldsState,
+    hasLockedSkill,
+    legacyTableFieldsStorageKey,
+    tableFieldsStorageKey,
+  ]);
 
   useEffect(() => {
     if (!tableFieldsStorageKey || !hasLoadedTableFields) return;
@@ -252,8 +265,12 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
         visibleColumnIds,
       }),
     );
+    if (legacyTableFieldsStorageKey) {
+      window.sessionStorage.removeItem(legacyTableFieldsStorageKey);
+    }
   }, [
     hasLoadedTableFields,
+    legacyTableFieldsStorageKey,
     orderedColumnIds,
     tableFieldsStorageKey,
     visibleColumnIds,

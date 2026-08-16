@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   applyTheme,
+  LEGACY_THEME_STORAGE_KEY,
   resolveInitialTheme,
   THEME_STORAGE_KEY,
   type Theme,
@@ -17,6 +18,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   useEffect(() => {
     applyTheme(theme);
     window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+    window.localStorage.removeItem(LEGACY_THEME_STORAGE_KEY);
   }, [theme]);
 
   const value = useMemo(

@@ -11,7 +11,8 @@ import type { AuthChangeEvent, Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
 import { getGoogleAuthRedirectTo } from "@/lib/authRedirect";
 
-const RECOVERY_MODE_STORAGE_KEY = "gp-now-recovery-mode";
+const RECOVERY_MODE_STORAGE_KEY = "rsmethods-recovery-mode";
+const LEGACY_RECOVERY_MODE_STORAGE_KEY = "gp-now-recovery-mode";
 
 type AuthContextValue = {
   session: Session | null;
@@ -48,10 +49,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     if (nextValue) {
       window.sessionStorage.setItem(RECOVERY_MODE_STORAGE_KEY, "1");
+      window.sessionStorage.removeItem(LEGACY_RECOVERY_MODE_STORAGE_KEY);
       return;
     }
 
     window.sessionStorage.removeItem(RECOVERY_MODE_STORAGE_KEY);
+    window.sessionStorage.removeItem(LEGACY_RECOVERY_MODE_STORAGE_KEY);
   }, []);
 
   const hasRecoveryParams = useCallback(() => {
@@ -68,7 +71,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const isRecoveryModeStored = useCallback(() => {
     if (typeof window === "undefined") return false;
-    return window.sessionStorage.getItem(RECOVERY_MODE_STORAGE_KEY) === "1";
+    return (
+      window.sessionStorage.getItem(RECOVERY_MODE_STORAGE_KEY) === "1" ||
+      window.sessionStorage.getItem(LEGACY_RECOVERY_MODE_STORAGE_KEY) === "1"
+    );
   }, []);
 
   const resolveRecoveryMode = useCallback(
