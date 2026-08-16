@@ -18,7 +18,7 @@ const SEO_DESCRIPTION =
 const LAST_UPDATED = "August 15, 2026";
 
 const dataCategories = [
-  "Account and authentication data, including your Supabase user ID, email address, session or access tokens used to authenticate requests to the backend, and profile metadata such as an avatar URL when supplied by your authentication provider.",
+  "Account and authentication data, including your Supabase user ID, email address, session or access tokens used to authenticate requests to the backend, the accepted Terms of Use version recorded at account creation, and profile metadata such as an avatar URL when supplied by your authentication provider.",
   "RSMethods account data, including your account username, role, plan, and account creation and update timestamps.",
   "OSRS-related data you choose to provide, including your OSRS username and the public character data requested to support filters and roadmaps.",
   "Feature usage data, including likes connected to your authenticated account and removable by unliking.",

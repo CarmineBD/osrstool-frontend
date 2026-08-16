@@ -1,15 +1,9 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type RefObject } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   InputGroup,
@@ -31,8 +25,10 @@ import {
   normalizeBoundedText,
   PASSWORD_MAX_LENGTH,
 } from "@/lib/validation";
+import { CURRENT_TERMS_VERSION } from "@/lib/termsOfUse";
 
 type PendingAction = "google" | "sign-in" | "sign-up" | null;
+type StatusTone = "error" | "success";
 
 type LocationState = {
   from?: {
@@ -41,6 +37,13 @@ type LocationState = {
     hash?: string;
   };
 };
+
+const AUTH_CARD_CLASS =
+  "border-border/70 bg-surface-panel-elevated shadow-sm";
+const AUTH_BODY_TEXT_CLASS = "text-sm leading-5 text-muted-foreground";
+const AUTH_META_TEXT_CLASS = "text-xs font-medium leading-4 text-muted-foreground";
+const AUTH_INLINE_LINK_CLASS =
+  "font-medium text-link underline underline-offset-4 transition-colors hover:text-link-hover";
 
 function GoogleIcon() {
   return (
@@ -65,17 +68,144 @@ function GoogleIcon() {
   );
 }
 
+function AuthSectionDivider() {
+  return (
+    <div className="flex items-center gap-3" aria-label="Email sign-in section">
+      <Separator className="flex-1" />
+      <span className={AUTH_META_TEXT_CLASS}>Or continue with email</span>
+      <Separator className="flex-1" />
+    </div>
+  );
+}
+
+function AuthStatusMessage({
+  children,
+  tone,
+}: {
+  children: string;
+  tone: StatusTone;
+}) {
+  const toneClassName =
+    tone === "error"
+      ? "border-danger/20 bg-danger-soft text-danger-foreground"
+      : "border-success/20 bg-success-soft text-success-foreground";
+
+  return (
+    <p
+      role={tone === "error" ? "alert" : "status"}
+      className={`rounded-lg border px-4 py-3 text-[13px] font-medium leading-[18px] ${toneClassName}`}
+    >
+      {children}
+    </p>
+  );
+}
+
+type TermsConsentFieldProps = {
+  checked: boolean;
+  disabled: boolean;
+  error: string | null;
+  onChange: (checked: boolean) => void;
+  checkboxRef: RefObject<HTMLInputElement | null>;
+};
+
+function TermsConsentField({
+  checked,
+  disabled,
+  error,
+  onChange,
+  checkboxRef,
+}: TermsConsentFieldProps) {
+  return (
+    <section className="rounded-lg border border-border/70 bg-surface-panel-subtle p-4">
+      <div className="space-y-3">
+        <p id="sign-up-terms-hint" className={AUTH_META_TEXT_CLASS}>
+          Required only to create an account.
+        </p>
+
+        <div className="flex items-start gap-3">
+          <input
+            ref={checkboxRef}
+            id="sign-up-terms"
+            type="checkbox"
+            className="mt-0.5 size-4 shrink-0 cursor-pointer accent-primary"
+            checked={checked}
+            disabled={disabled}
+            onChange={(event) => onChange(event.currentTarget.checked)}
+            aria-invalid={error ? "true" : undefined}
+            aria-describedby={
+              error
+                ? "sign-up-terms-hint sign-up-terms-error"
+                : "sign-up-terms-hint"
+            }
+            aria-labelledby="sign-up-terms-prefix sign-up-terms-link"
+          />
+
+          <div className="min-w-0 space-y-1.5">
+            <div className="text-sm leading-5 text-foreground">
+              <Label
+                htmlFor="sign-up-terms"
+                className="cursor-pointer text-sm leading-5"
+              >
+                <span id="sign-up-terms-prefix">I accept the </span>
+              </Label>
+              <Link
+                id="sign-up-terms-link"
+                to="/terms-of-use"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={AUTH_INLINE_LINK_CLASS}
+              >
+                Terms of Use
+                <span className="sr-only"> (opens in a new tab)</span>
+              </Link>
+              .
+            </div>
+
+            <p className={AUTH_BODY_TEXT_CLASS}>
+              You can review the{" "}
+              <Link
+                to="/privacy-policy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={AUTH_INLINE_LINK_CLASS}
+              >
+                Privacy Policy
+                <span className="sr-only"> (opens in a new tab)</span>
+              </Link>
+              .
+            </p>
+          </div>
+        </div>
+
+        {error ? (
+          <p
+            id="sign-up-terms-error"
+            role="alert"
+            className="text-[13px] font-medium leading-[18px] text-destructive"
+          >
+            {error}
+          </p>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
 export function LoginPage() {
   const { signIn, signInWithGoogle, signUp, session } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const state = location.state as LocationState | null;
   const stateRedirectPath = buildAuthRedirectPath(state?.from);
+  const authFormRef = useRef<HTMLFormElement>(null);
+  const termsCheckboxRef = useRef<HTMLInputElement>(null);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [hasAcceptedTerms, setHasAcceptedTerms] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [termsError, setTermsError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const isSubmitting = pendingAction !== null;
@@ -97,6 +227,7 @@ export function LoginPage() {
     event.preventDefault();
     if (isSubmitting) return;
 
+    setTermsError(null);
     setError(null);
     setInfo(null);
     setPendingAction("sign-in");
@@ -115,11 +246,18 @@ export function LoginPage() {
 
   const handleSignUp = async () => {
     if (isSubmitting) return;
+    if (!authFormRef.current?.reportValidity()) return;
+    if (!hasAcceptedTerms) {
+      setTermsError("You must accept the Terms of Use to create an account.");
+      termsCheckboxRef.current?.focus();
+      return;
+    }
 
     setError(null);
     setInfo(null);
+    setTermsError(null);
     setPendingAction("sign-up");
-    const result = await signUp(email.trim(), password);
+    const result = await signUp(email.trim(), password, CURRENT_TERMS_VERSION);
     setPendingAction(null);
 
     if (result.error) {
@@ -140,6 +278,7 @@ export function LoginPage() {
   const handleGoogleSignIn = async () => {
     if (isSubmitting) return;
 
+    setTermsError(null);
     setError(null);
     setInfo(null);
     persistPendingAuthRedirectPath(stateRedirectPath);
@@ -155,102 +294,135 @@ export function LoginPage() {
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col px-4 py-10">
-      <Card>
-        <CardHeader>
-          <CardTitle>Access</CardTitle>
-          <CardDescription>
-            Sign in or create an account with email and password.
-          </CardDescription>
+    <div className="mx-auto flex w-full max-w-lg flex-col px-4 py-8 sm:px-6">
+      <Card className={AUTH_CARD_CLASS}>
+        <CardHeader className="gap-2 px-6 pb-0">
+          <p className={AUTH_META_TEXT_CLASS}>Account access</p>
+          <h1 className="text-3xl font-semibold leading-9 tracking-tight text-foreground">
+            Sign in or create your account
+          </h1>
+          <p className={AUTH_BODY_TEXT_CLASS}>
+            Continue with Google or use your email and password to access
+            RSMethods.
+          </p>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6 px-6">
           <Button
             type="button"
             variant="outline"
             disabled={isSubmitting}
             onClick={handleGoogleSignIn}
-            className="w-full"
+            className="h-10 w-full border-border/70 bg-surface-panel shadow-none hover:bg-surface-panel-subtle"
           >
             <GoogleIcon />
-            {pendingAction === "google" ? "Connecting..." : "Continue with Google"}
+            {pendingAction === "google"
+              ? "Connecting..."
+              : "Continue with Google"}
           </Button>
 
-          <div className="flex items-center gap-3 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-            <Separator className="flex-1" />
-            <span>or</span>
-            <Separator className="flex-1" />
-          </div>
+          <AuthSectionDivider />
 
-          <form className="space-y-4" onSubmit={handleSignIn}>
-            <div className="space-y-2">
-              <Label htmlFor="auth-email">Email</Label>
-              <Input
-                id="auth-email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                maxLength={EMAIL_MAX_LENGTH}
-                onChange={(event) =>
-                  setEmail(
-                    normalizeBoundedText(
-                      event.target.value,
-                      EMAIL_MAX_LENGTH,
-                    ),
-                  )
-                }
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-3">
-                <Label htmlFor="auth-password">Password</Label>
-                <Link
-                  to="/forgot-password"
-                  className="text-sm font-medium text-primary hover:underline"
-                >
-                  Forgot your password?
-                </Link>
-              </div>
-              <InputGroup>
-                <InputGroupInput
-                  id="auth-password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  maxLength={PASSWORD_MAX_LENGTH}
-                  onChange={(event) => setPassword(event.target.value)}
-                  minLength={6}
+          <form ref={authFormRef} className="space-y-6" onSubmit={handleSignIn}>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="auth-email" className="leading-5">
+                  Email
+                </Label>
+                <Input
+                  id="auth-email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  maxLength={EMAIL_MAX_LENGTH}
+                  onChange={(event) =>
+                    setEmail(
+                      normalizeBoundedText(event.target.value, EMAIL_MAX_LENGTH),
+                    )
+                  }
+                  className="h-10 border-input bg-background shadow-none"
                   required
                 />
-                <InputGroupAddon align="inline-end">
-                  <InputGroupButton
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    size="icon-xs"
-                    onClick={() => setShowPassword((previous) => !previous)}
-                    type="button"
-                    variant="ghost"
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <Label htmlFor="auth-password" className="leading-5">
+                    Password
+                  </Label>
+                  <Link
+                    to="/forgot-password"
+                    className={`${AUTH_INLINE_LINK_CLASS} text-sm leading-5`}
                   >
-                    {showPassword ? <EyeOff /> : <Eye />}
-                  </InputGroupButton>
-                </InputGroupAddon>
-              </InputGroup>
+                    Forgot your password?
+                  </Link>
+                </div>
+
+                <InputGroup className="h-10 border-input bg-background shadow-none">
+                  <InputGroupInput
+                    id="auth-password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    maxLength={PASSWORD_MAX_LENGTH}
+                    onChange={(event) => setPassword(event.target.value)}
+                    minLength={6}
+                    className="h-10"
+                    required
+                  />
+                  <InputGroupAddon align="inline-end">
+                    <InputGroupButton
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
+                      size="icon-sm"
+                      onClick={() => setShowPassword((previous) => !previous)}
+                      type="button"
+                      variant="ghost"
+                    >
+                      {showPassword ? <EyeOff /> : <Eye />}
+                    </InputGroupButton>
+                  </InputGroupAddon>
+                </InputGroup>
+              </div>
             </div>
 
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
-            {info ? <p className="text-sm text-success">{info}</p> : null}
+            {error ? <AuthStatusMessage tone="error">{error}</AuthStatusMessage> : null}
+            {info ? <AuthStatusMessage tone="success">{info}</AuthStatusMessage> : null}
 
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Button type="submit" disabled={isSubmitting} className="sm:flex-1">
-                {pendingAction === "sign-in" ? "Processing..." : "Sign in"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
+            <div className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="h-10 shadow-none"
+                >
+                  {pendingAction === "sign-in" ? "Processing..." : "Sign in"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isSubmitting}
+                  onClick={handleSignUp}
+                  aria-describedby="sign-up-terms-hint"
+                  className="h-10 w-full border-border/70 bg-surface-panel shadow-none hover:bg-surface-panel-subtle"
+                >
+                  {pendingAction === "sign-up"
+                    ? "Processing..."
+                    : "Create account"}
+                </Button>
+              </div>
+
+              <TermsConsentField
+                checked={hasAcceptedTerms}
                 disabled={isSubmitting}
-                onClick={handleSignUp}
-                className="sm:flex-1"
-              >
-                {pendingAction === "sign-up" ? "Processing..." : "Create account"}
-              </Button>
+                error={termsError}
+                onChange={(checked) => {
+                  setHasAcceptedTerms(checked);
+                  if (checked) {
+                    setTermsError(null);
+                  }
+                }}
+                checkboxRef={termsCheckboxRef}
+              />
             </div>
           </form>
         </CardContent>

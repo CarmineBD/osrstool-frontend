@@ -17,7 +17,7 @@ type AuthState = {
   user: AuthSession["user"] | null;
   isLoading: boolean;
   isRecoveryMode: boolean;
-  signUp: (email: string, password: string) => Promise<{
+  signUp: (email: string, password: string, termsVersion: string) => Promise<{
     needsEmailConfirmation: boolean;
     error: string | null;
   }>;
