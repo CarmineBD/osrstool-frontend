@@ -205,7 +205,7 @@ function SkillSummaryTags({
 
 export function SkillingPage() {
   useSeo({
-    title: "Skilling | OSRSTool",
+    title: "Skilling | RSMethods",
     description:
       "Browse every OSRS skill and review the best method for each one by GP/hr, XP/hr, and AFK.",
     path: "/skilling",

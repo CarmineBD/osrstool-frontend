@@ -1,4 +1,6 @@
-const PENDING_AUTH_REDIRECT_STORAGE_KEY = "gp-now-pending-auth-redirect";
+const PENDING_AUTH_REDIRECT_STORAGE_KEY = "rsmethods-pending-auth-redirect";
+const LEGACY_PENDING_AUTH_REDIRECT_STORAGE_KEY =
+  "gp-now-pending-auth-redirect";
 const OAUTH_CALLBACK_PATH = "/login";
 
 export const DEFAULT_AUTH_REDIRECT_PATH = "/account";
@@ -10,7 +12,7 @@ type AuthLocation = {
 };
 
 function toSafeRedirectUrl(path: string) {
-  return new URL(path, "https://osrstool.local");
+  return new URL(path, "https://rsmethods.local");
 }
 
 export function sanitizeAuthRedirectPath(
@@ -65,10 +67,12 @@ export function persistPendingAuthRedirectPath(
 
   if (!safePath || isOAuthCallbackPath(safePath)) {
     window.sessionStorage.removeItem(PENDING_AUTH_REDIRECT_STORAGE_KEY);
+    window.sessionStorage.removeItem(LEGACY_PENDING_AUTH_REDIRECT_STORAGE_KEY);
     return;
   }
 
   window.sessionStorage.setItem(PENDING_AUTH_REDIRECT_STORAGE_KEY, safePath);
+  window.sessionStorage.removeItem(LEGACY_PENDING_AUTH_REDIRECT_STORAGE_KEY);
 }
 
 export function clearPendingAuthRedirectPath() {
@@ -77,6 +81,7 @@ export function clearPendingAuthRedirectPath() {
   }
 
   window.sessionStorage.removeItem(PENDING_AUTH_REDIRECT_STORAGE_KEY);
+  window.sessionStorage.removeItem(LEGACY_PENDING_AUTH_REDIRECT_STORAGE_KEY);
 }
 
 export function consumePendingAuthRedirectPath() {
@@ -85,10 +90,12 @@ export function consumePendingAuthRedirectPath() {
   }
 
   const safePath = sanitizeAuthRedirectPath(
-    window.sessionStorage.getItem(PENDING_AUTH_REDIRECT_STORAGE_KEY),
+    window.sessionStorage.getItem(PENDING_AUTH_REDIRECT_STORAGE_KEY) ??
+      window.sessionStorage.getItem(LEGACY_PENDING_AUTH_REDIRECT_STORAGE_KEY),
   );
 
   window.sessionStorage.removeItem(PENDING_AUTH_REDIRECT_STORAGE_KEY);
+  window.sessionStorage.removeItem(LEGACY_PENDING_AUTH_REDIRECT_STORAGE_KEY);
 
   if (!safePath || isOAuthCallbackPath(safePath)) {
     return null;

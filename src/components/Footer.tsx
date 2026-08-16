@@ -48,10 +48,13 @@ export function Footer() {
             <Link to="/" className="inline-flex items-center gap-2">
               <img
                 src="https://oldschool.runescape.wiki/images/thumb/Coins_detail.png/120px-Coins_detail.png?404bc"
-                alt="GP Now logo"
+                alt="RSMethods logo"
                 className="h-7 w-auto"
               />
-              <span className="text-lg font-semibold tracking-tight">GP Now</span>
+              <span className="text-lg font-semibold tracking-tight">
+                <span className="text-brand">RSM</span>
+                <span className="text-black dark:text-white">ethods</span>
+              </span>
             </Link>
             <p className="mt-3 max-w-md text-sm text-muted-foreground">
               Practical OSRS tools for money making, skilling, and community
@@ -105,7 +108,7 @@ export function Footer() {
         </div>
 
         <div className="mt-10 flex flex-col gap-3 border-t border-border/70 pt-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <p>Copyright {year} GP Now. All rights reserved.</p>
+          <p>Copyright {year} RSMethods. All rights reserved.</p>
           <div className="flex flex-wrap items-center gap-4">
             {legalLinks.map((link) => (
               "to" in link ? (

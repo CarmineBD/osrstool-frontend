@@ -11,9 +11,9 @@ import {
 import { changelogEntries, formatChangelogDate } from "@/content/changelog";
 import { useSeo } from "@/hooks/useSeo";
 
-const SEO_TITLE = "OSRSTool Updates";
+const SEO_TITLE = "RSMethods Updates";
 const SEO_DESCRIPTION =
-  "Complete release history and product updates for OSRSTool.";
+  "Complete release history and product updates for RSMethods.";
 const ENTRIES_PER_PAGE = 5;
 
 function parsePage(value: string | null): number {
@@ -61,7 +61,7 @@ export function ChangelogListPage() {
           <div>
             <h1 className={PUBLIC_TITLE_CLASS}>All updates</h1>
             <p className={`mt-2 ${PUBLIC_BODY_CLASS}`}>
-              Release history and product updates for OSRSTool.
+              Release history and product updates for RSMethods.
             </p>
           </div>
           <Button asChild variant="outline">

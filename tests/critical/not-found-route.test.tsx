@@ -20,6 +20,6 @@ describe("critical flow: unknown routes", () => {
     expect(
       screen.getByText("The page you are looking for does not exist or was moved.")
     ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "LogoGP Now" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "RSMethods home" })).toBeInTheDocument();
   });
 });

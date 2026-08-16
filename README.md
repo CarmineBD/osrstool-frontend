@@ -1,6 +1,6 @@
-# OSRSTool Frontend
+# RSMethods Frontend
 
-Frontend de OSRSTool para explorar metodos de money making de Old School RuneScape, revisar detalle por variantes y gestionar likes/autenticacion.
+Frontend de RSMethods para explorar metodos de money making de Old School RuneScape, revisar detalle por variantes y gestionar likes/autenticacion.
 
 ## Overview
 
@@ -222,6 +222,6 @@ Because `develop` is protected, the workflow needs a repository secret named `RE
 
 ## Links
 
-- Frontend repo: [github.com/CarmineBD/osrstool-frontend](https://github.com/CarmineBD/osrstool-frontend)
-- Backend repo: [github.com/CarmineBD/osrstool-backend](https://github.com/CarmineBD/osrstool-backend)
-- Backend API (prod): [osrstool-backend-production.up.railway.app](https://osrstool-backend-production.up.railway.app)
+- Frontend repo: [RSMethods frontend repository](https://github.com/CarmineBD/osrstool-frontend)
+- Backend repo: [RSMethods backend repository](https://github.com/CarmineBD/osrstool-backend)
+- Backend API (prod): [Production backend API](https://osrstool-backend-production.up.railway.app)

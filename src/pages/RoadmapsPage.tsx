@@ -908,7 +908,7 @@ function RoadmapTimelineSkeleton() {
 
 export function RoadmapsPage() {
   useSeo({
-    title: "Roadmaps | OSRSTool",
+    title: "Roadmaps | RSMethods",
     description:
       "Generate a 1-99 training roadmap from your OSRS username, skill choice, and roadmap strategy.",
     path: "/roadmaps",

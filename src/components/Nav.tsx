@@ -28,10 +28,7 @@ import { OPEN_NAV_USERNAME_EVENT } from "@/lib/events";
 import { fetchMe } from "@/lib/me";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
 import { getRuntimeEnvironmentLabel } from "@/lib/runtimeEnv";
-import {
-  normalizeBoundedText,
-  USERNAME_MAX_LENGTH,
-} from "@/lib/validation";
+import { normalizeBoundedText, USERNAME_MAX_LENGTH } from "@/lib/validation";
 
 export type Props = { hideInput?: boolean };
 const LOGIN_REQUIRED_MESSAGE = "sign-in/login to fetch data by osrs usernames";
@@ -77,7 +74,9 @@ export function Nav({ hideInput }: Props) {
   });
   const [input, setInput] = useState<string>(username);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [mobileAccordionValue, setMobileAccordionValue] = useState<string[]>([]);
+  const [mobileAccordionValue, setMobileAccordionValue] = useState<string[]>(
+    [],
+  );
   const isSuperAdmin = meData?.data?.role === "super_admin";
   const avatarUrl =
     typeof session?.user?.user_metadata?.avatar_url === "string"
@@ -100,7 +99,9 @@ export function Nav({ hideInput }: Props) {
   }, [location.pathname]);
 
   const focusInputById = useCallback((inputId: string, attempt = 0) => {
-    const usernameInput = document.getElementById(inputId) as HTMLInputElement | null;
+    const usernameInput = document.getElementById(
+      inputId,
+    ) as HTMLInputElement | null;
     if (usernameInput) {
       usernameInput.focus();
       usernameInput.select?.();
@@ -114,7 +115,9 @@ export function Nav({ hideInput }: Props) {
     const handleOpenNavUsernameInput = () => {
       if (hideInput) return;
 
-      const isCompactViewport = window.matchMedia("(max-width: 1023px)").matches;
+      const isCompactViewport = window.matchMedia(
+        "(max-width: 1023px)",
+      ).matches;
       if (!isCompactViewport) {
         focusInputById("username-input");
         return;
@@ -134,9 +137,15 @@ export function Nav({ hideInput }: Props) {
       });
     };
 
-    window.addEventListener(OPEN_NAV_USERNAME_EVENT, handleOpenNavUsernameInput);
+    window.addEventListener(
+      OPEN_NAV_USERNAME_EVENT,
+      handleOpenNavUsernameInput,
+    );
     return () => {
-      window.removeEventListener(OPEN_NAV_USERNAME_EVENT, handleOpenNavUsernameInput);
+      window.removeEventListener(
+        OPEN_NAV_USERNAME_EVENT,
+        handleOpenNavUsernameInput,
+      );
     };
   }, [focusInputById, hideInput]);
 
@@ -160,14 +169,21 @@ export function Nav({ hideInput }: Props) {
   return (
     <nav className="sticky top-0 z-50 border-b border-border/60 bg-surface-panel-elevated p-4 shadow-sm backdrop-blur">
       <div className="flex items-center justify-between gap-4">
-        <Link to="/" aria-label="LogoGP Now" className="flex items-center space-x-2">
+        <Link
+          to="/"
+          aria-label="RSMethods home"
+          className="flex items-center space-x-2"
+        >
           <img
             src="https://oldschool.runescape.wiki/images/thumb/Coins_detail.png/120px-Coins_detail.png?404bc"
             alt="Logo"
             className="h-8 w-auto"
           />
           <span className="flex items-baseline gap-2">
-            <span className="text-xl font-bold">GP Now</span>
+            <span className="text-xl font-bold">
+              <span className="text-brand ">RSM</span>
+              <span className="text-black dark:text-white">ethods</span>
+            </span>
             {runtimeEnvironmentLabel ? (
               <span className="text-sm font-semibold text-muted-foreground">
                 ({runtimeEnvironmentLabel})
@@ -308,7 +324,9 @@ export function Nav({ hideInput }: Props) {
                 />
                 <Button type="submit">Fetch</Button>
               </form>
-              {userError && <p className="text-sm text-destructive">{userError}</p>}
+              {userError && (
+                <p className="text-sm text-destructive">{userError}</p>
+              )}
             </div>
           )}
 
@@ -345,7 +363,7 @@ export function Nav({ hideInput }: Props) {
                   "absolute inset-0 size-4 transition-all duration-200",
                   isMobileMenuOpen
                     ? "rotate-90 scale-0 opacity-0"
-                    : "rotate-0 scale-100 opacity-100"
+                    : "rotate-0 scale-100 opacity-100",
                 )}
               />
               <X
@@ -353,7 +371,7 @@ export function Nav({ hideInput }: Props) {
                   "absolute inset-0 size-4 transition-all duration-200",
                   isMobileMenuOpen
                     ? "rotate-0 scale-100 opacity-100"
-                    : "-rotate-90 scale-0 opacity-0"
+                    : "-rotate-90 scale-0 opacity-0",
                 )}
               />
             </span>
@@ -366,7 +384,7 @@ export function Nav({ hideInput }: Props) {
           "overflow-hidden transition-[max-height,opacity,margin] duration-300 ease-out lg:hidden",
           isMobileMenuOpen
             ? "mt-4 max-h-[80vh] opacity-100"
-            : "pointer-events-none mt-0 max-h-0 opacity-0"
+            : "pointer-events-none mt-0 max-h-0 opacity-0",
         )}
       >
         <div className="rounded-2xl bg-surface-panel-subtle/90 p-2 shadow-sm ring-1 ring-border/80 backdrop-blur">
@@ -391,7 +409,9 @@ export function Nav({ hideInput }: Props) {
                       to="/allMethods"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
-                      <div className="mb-1 text-base font-medium">All methods</div>
+                      <div className="mb-1 text-base font-medium">
+                        All methods
+                      </div>
                       <p className="text-muted-foreground leading-tight">
                         All official money making methods in one place.
                       </p>
@@ -481,7 +501,9 @@ export function Nav({ hideInput }: Props) {
                       />
                       <Button type="submit">Fetch</Button>
                     </form>
-                    {userError && <p className="text-sm text-destructive">{userError}</p>}
+                    {userError && (
+                      <p className="text-sm text-destructive">{userError}</p>
+                    )}
                   </div>
                 </AccordionContent>
               </AccordionItem>
