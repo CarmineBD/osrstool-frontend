@@ -1,7 +1,9 @@
 import { authFetch } from "@/lib/http";
 
+const LEGACY_PRESENCE_VISITOR_ID_STORAGE_KEY = "osrs-tool-presence-visitor-id";
 export const PRESENCE_HEARTBEAT_INTERVAL_MS = 60_000;
 let ephemeralPresenceVisitorId: string | null = null;
+let hasRemovedLegacyPresenceVisitorId = false;
 
 function resolveApiUrl(): string {
   const directUrl =
@@ -63,6 +65,11 @@ export function getOrCreatePresenceVisitorId(): string {
   if (typeof window === "undefined") {
     ephemeralPresenceVisitorId = buildFallbackVisitorId();
     return ephemeralPresenceVisitorId;
+  }
+
+  if (!hasRemovedLegacyPresenceVisitorId) {
+    window.localStorage.removeItem(LEGACY_PRESENCE_VISITOR_ID_STORAGE_KEY);
+    hasRemovedLegacyPresenceVisitorId = true;
   }
 
   ephemeralPresenceVisitorId =

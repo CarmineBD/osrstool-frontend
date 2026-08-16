@@ -235,8 +235,13 @@ export function PrivacyPolicyPage() {
               <li>Theme preferences may be stored in your browser.</li>
               <li>Your OSRS username may be stored locally in your browser.</li>
               <li>
+                Supabase authentication session data, including the access and
+                refresh session used to keep you signed in across page reloads,
+                may be stored in browser storage.
+              </li>
+              <li>
                 Temporary authentication recovery and post-login redirect data
-                may be stored for the current browser session.
+                may also be stored for the current browser session.
               </li>
               <li>
                 Table layout preferences may be stored for the current signed-in
@@ -293,6 +298,12 @@ export function PrivacyPolicyPage() {
             <p>
               Browser-stored data remains until it is cleared, overwritten, you
               sign out where applicable, or the browser session ends.
+            </p>
+            <p>
+              Supabase authentication session data remains in browser storage
+              until you sign out, it is replaced by a newer session, it expires
+              according to the authentication flow, or browser storage is
+              cleared.
             </p>
             <p>
               Live presence records are short-lived and currently expire after

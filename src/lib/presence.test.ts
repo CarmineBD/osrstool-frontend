@@ -18,6 +18,11 @@ describe("presence helpers", () => {
   });
 
   it("creates one in-memory visitor id without persisting it", () => {
+    window.localStorage.setItem(
+      "osrs-tool-presence-visitor-id",
+      "legacy-visitor-id",
+    );
+
     const first = getOrCreatePresenceVisitorId();
     const second = getOrCreatePresenceVisitorId();
 
