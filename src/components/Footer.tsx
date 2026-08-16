@@ -22,7 +22,7 @@ const communityLinks = [
 const legalLinks = [
   { label: "Privacy policy", to: "/privacy-policy" },
   { label: "Terms of service" },
-  { label: "Cookie policy" },
+  { label: "Cookies and local storage", to: "/cookies-and-local-storage" },
 ] as const;
 
 function ComingSoonLink({ label }: { label: string }) {
