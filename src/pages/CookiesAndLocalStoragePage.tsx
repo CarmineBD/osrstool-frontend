@@ -57,15 +57,6 @@ const storageRows: readonly StorageRow[] = [
     strictlyNecessary: "Yes",
   },
   {
-    item: "sb-<supabase-project-ref>-auth-token-code-verifier",
-    technology: "localStorage",
-    purpose:
-      "Supabase may store a temporary PKCE code verifier during Google sign-in or recovery-style auth handoffs so the authentication flow can complete securely.",
-    provider: "Supabase Auth on behalf of RSMethods",
-    duration: "Usually only for the active auth flow, then removed automatically.",
-    strictlyNecessary: "Yes",
-  },
-  {
     item: "rsmethods-recovery-mode",
     technology: "sessionStorage",
     purpose:

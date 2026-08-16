@@ -17,6 +17,9 @@ describe("CookiesAndLocalStoragePage", () => {
       screen.getByText("sb-<supabase-project-ref>-auth-token"),
     ).toBeInTheDocument();
     expect(
+      screen.queryByText("sb-<supabase-project-ref>-auth-token-code-verifier"),
+    ).not.toBeInTheDocument();
+    expect(
       screen.getByText(
         /RSMethods does not currently set first-party cookies from its own frontend code\./i,
       ),
