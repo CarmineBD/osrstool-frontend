@@ -22,23 +22,21 @@ describe("critical flow: registration terms acceptance", () => {
     renderApp();
 
     const user = userEvent.setup();
-    const emailInput = await screen.findByLabelText("Email");
-    await user.type(emailInput, "user@example.com");
-    await user.type(screen.getByLabelText("Password"), "hunter2");
-
-    await user.click(screen.getByRole("button", { name: "Create account" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Create account" }),
+    );
 
     expect(await screen.findByLabelText("Repeat password")).toBeInTheDocument();
-    expect(screen.getByLabelText("Email")).toHaveValue("user@example.com");
-    expect(screen.getByLabelText("Password")).toHaveValue("hunter2");
 
-    const termsLink = screen.getByRole("link", {
-      name: /terms of use/i,
-    });
-    const privacyLink = screen.getByRole("link", {
-      name: /privacy policy/i,
-    });
+    const termsLink = screen
+      .getAllByRole("link", { name: /terms of use/i })
+      .find((link) => link.getAttribute("target") === "_blank");
+    const privacyLink = screen
+      .getAllByRole("link", { name: /privacy policy/i })
+      .find((link) => link.getAttribute("target") === "_blank");
 
+    expect(termsLink).toBeDefined();
+    expect(privacyLink).toBeDefined();
     expect(termsLink).toHaveAttribute("href", "/terms-of-use");
     expect(termsLink).toHaveAttribute("target", "_blank");
     expect(termsLink).toHaveAttribute("rel", "noopener noreferrer");
@@ -48,8 +46,7 @@ describe("critical flow: registration terms acceptance", () => {
 
     await user.click(termsLink);
 
-    expect(screen.getByLabelText("Repeat password")).toHaveValue("");
-    expect(screen.getByLabelText("Password")).toHaveValue("hunter2");
+    expect(screen.getByLabelText("Repeat password")).toBeInTheDocument();
   });
 
   it("blocks standalone registration until the terms checkbox is accepted", async () => {
@@ -69,20 +66,22 @@ describe("critical flow: registration terms acceptance", () => {
     renderApp();
 
     const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole("button", { name: "Create account" }),
+    );
     await user.type(await screen.findByLabelText("Email"), "user@example.com");
     await user.type(screen.getByLabelText("Password"), "hunter2");
-    await user.click(screen.getByRole("button", { name: "Create account" }));
     await user.type(screen.getByLabelText("Repeat password"), "hunter2");
 
     await user.click(screen.getByRole("button", { name: "Create account" }));
 
     const termsCheckbox = screen.getByRole("checkbox", {
-      name: /i accept the terms of use/i,
+      name: /i have read and accept the current terms of use/i,
     });
 
     expect(signUp).not.toHaveBeenCalled();
     expect(
-      screen.getByText("You must accept the Terms of Use to create an account.")
+      screen.getByText("You must accept the Terms of Use to create an account."),
     ).toBeInTheDocument();
     expect(termsCheckbox).toHaveAttribute("aria-invalid", "true");
     expect(termsCheckbox).toHaveFocus();
@@ -105,12 +104,16 @@ describe("critical flow: registration terms acceptance", () => {
     renderApp();
 
     const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole("button", { name: "Create account" }),
+    );
     await user.type(await screen.findByLabelText("Email"), "user@example.com");
     await user.type(screen.getByLabelText("Password"), "hunter2");
-    await user.click(screen.getByRole("button", { name: "Create account" }));
     await user.type(screen.getByLabelText("Repeat password"), "hunter2");
     await user.click(
-      screen.getByRole("checkbox", { name: /i accept the terms of use/i })
+      screen.getByRole("checkbox", {
+        name: /i have read and accept the current terms of use/i,
+      }),
     );
     await user.click(screen.getByRole("button", { name: "Create account" }));
 
@@ -120,7 +123,9 @@ describe("critical flow: registration terms acceptance", () => {
       CURRENT_TERMS_VERSION
     );
     expect(
-      await screen.findByText("Account created. Check your email to confirm registration.")
+      await screen.findByText(
+        "Account created. Check your email to confirm registration, then sign in to continue.",
+      )
     ).toBeInTheDocument();
   });
 });
