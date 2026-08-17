@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AccountSetupSection } from "@/components/account-setup/AccountSetupSection";
+import { DeleteAccountAction } from "@/components/account/DeleteAccountAction";
 import { TermsAcceptanceField } from "@/components/account-setup/TermsAcceptanceField";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -272,7 +273,9 @@ export function AccountUsernameOnboardingPage() {
               </AccountSetupSection>
             ) : null}
 
-            {needsAccountUsername && needsTermsAcceptance ? <Separator /> : null}
+            {needsAccountUsername && needsTermsAcceptance ? (
+              <Separator />
+            ) : null}
 
             {needsTermsAcceptance ? (
               <AccountSetupSection
@@ -341,6 +344,13 @@ export function AccountUsernameOnboardingPage() {
               >
                 Sign out
               </Button>
+            </div>
+
+            <div className="pt-2">
+              <DeleteAccountAction
+                disabled={completeSetupMutation.isPending}
+                triggerVariant="text"
+              />
             </div>
           </form>
         </CardContent>
