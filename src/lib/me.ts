@@ -18,6 +18,12 @@ export type MeResponse = {
   data?: MeData;
 };
 
+export type DeleteMeResponse = {
+  data?: {
+    deleted?: boolean;
+  };
+};
+
 export const ME_QUERY_KEY = ["me"] as const;
 
 export class MeRequestError extends Error {
@@ -28,6 +34,24 @@ export class MeRequestError extends Error {
     this.name = "MeRequestError";
     this.status = status;
   }
+}
+
+function resolveApiUrl(): string {
+  const useProxy =
+    import.meta.env.DEV &&
+    (import.meta.env.VITE_API_USE_PROXY as string | undefined) !== "false";
+  const apiUrl = useProxy
+    ? "/api"
+    : (
+        (import.meta.env.VITE_API_URL as string | undefined) ||
+        (import.meta.env.VITE_API_BASE_URL as string | undefined)
+      )?.replace(/\/$/, "");
+
+  if (!apiUrl) {
+    throw new Error("VITE_API_URL is missing");
+  }
+
+  return apiUrl;
 }
 
 function toNumber(value: unknown): number | undefined {
@@ -102,19 +126,7 @@ function parseErrorMessage(value: unknown): string | null {
 }
 
 export async function fetchMe(): Promise<MeResponse> {
-  const useProxy =
-    import.meta.env.DEV &&
-    (import.meta.env.VITE_API_USE_PROXY as string | undefined) !== "false";
-  const apiUrl = useProxy
-    ? "/api"
-    : (
-        (import.meta.env.VITE_API_URL as string | undefined) ||
-        (import.meta.env.VITE_API_BASE_URL as string | undefined)
-      )?.replace(/\/$/, "");
-
-  if (!apiUrl) {
-    throw new Error("VITE_API_URL is missing");
-  }
+  const apiUrl = resolveApiUrl();
 
   const usersMeResponse = await authFetch(`${apiUrl}/users/me`, {
     method: "GET",
@@ -143,19 +155,7 @@ export async function fetchMe(): Promise<MeResponse> {
 export async function completeAccountUsername(
   username: string,
 ): Promise<{ data?: { username: string | null } }> {
-  const useProxy =
-    import.meta.env.DEV &&
-    (import.meta.env.VITE_API_USE_PROXY as string | undefined) !== "false";
-  const apiUrl = useProxy
-    ? "/api"
-    : (
-        (import.meta.env.VITE_API_URL as string | undefined) ||
-        (import.meta.env.VITE_API_BASE_URL as string | undefined)
-      )?.replace(/\/$/, "");
-
-  if (!apiUrl) {
-    throw new Error("VITE_API_URL is missing");
-  }
+  const apiUrl = resolveApiUrl();
 
   const primaryResponse = await authFetch(
     `${apiUrl}/users/me/account-username`,
@@ -204,19 +204,7 @@ export async function acceptCurrentTerms(): Promise<{
     };
   };
 }> {
-  const useProxy =
-    import.meta.env.DEV &&
-    (import.meta.env.VITE_API_USE_PROXY as string | undefined) !== "false";
-  const apiUrl = useProxy
-    ? "/api"
-    : (
-        (import.meta.env.VITE_API_URL as string | undefined) ||
-        (import.meta.env.VITE_API_BASE_URL as string | undefined)
-      )?.replace(/\/$/, "");
-
-  if (!apiUrl) {
-    throw new Error("VITE_API_URL is missing");
-  }
+  const apiUrl = resolveApiUrl();
 
   const primaryResponse = await authFetch(
     `${apiUrl}/users/me/terms/acceptance`,
@@ -254,4 +242,35 @@ export async function acceptCurrentTerms(): Promise<{
       };
     };
   };
+}
+
+export async function deleteCurrentUser(): Promise<DeleteMeResponse> {
+  const apiUrl = resolveApiUrl();
+
+  const primaryResponse = await authFetch(`${apiUrl}/users/me`, {
+    method: "DELETE",
+  });
+
+  let response = primaryResponse;
+  if (primaryResponse.status === 404) {
+    response = await authFetch(`${apiUrl}/me`, {
+      method: "DELETE",
+    });
+  }
+
+  if (!response.ok) {
+    let message = `HTTP ${response.status} - Error deleting account`;
+
+    try {
+      const payload: unknown = await response.json();
+      message = parseErrorMessage(payload) ?? message;
+    } catch {
+      // Ignore invalid error bodies and preserve the fallback message.
+    }
+
+    throw new MeRequestError(message, response.status);
+  }
+
+  const payload: unknown = await response.json();
+  return payload as DeleteMeResponse;
 }
