@@ -11,6 +11,7 @@ import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { AccountPage } from "./pages/AccountPage";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { AccountUsernameRequiredDialog } from "./components/AccountUsernameRequiredDialog";
+import { TermsAcceptanceRequiredDialog } from "./components/TermsAcceptanceRequiredDialog";
 import { AuthenticatedProfileBootstrap } from "./components/AuthenticatedProfileBootstrap";
 import { PresenceHeartbeat } from "./components/PresenceHeartbeat";
 import { NotFoundPage } from "./pages/NotFoundPage";
@@ -28,6 +29,7 @@ import { MethodDetailSkeleton } from "./features/method-detail/MethodDetailSkele
 import { MethodUpsertSkeleton } from "./features/method-upsert/MethodUpsertSkeleton";
 import { ThemeProvider } from "./contexts/ThemeProvider";
 import { AccountUsernameOnboardingPage } from "./pages/AccountUsernameOnboardingPage";
+import { AcceptTermsPage } from "./pages/AcceptTermsPage";
 
 const LazyMethodDetail = lazy(() =>
   import("./pages/MethodDetail").then((module) => ({
@@ -45,6 +47,7 @@ function App() {
         <PresenceHeartbeat />
         <BrowserRouter>
           <AuthenticatedProfileBootstrap />
+          <TermsAcceptanceRequiredDialog />
           <AccountUsernameRequiredDialog />
           <UsernameProvider>
             <Routes>
@@ -74,22 +77,38 @@ function App() {
                 />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route
-                  element={<ProtectedRoute />}
+                  element={
+                    <ProtectedRoute
+                      requireAcceptedTerms
+                      requireCompleteProfile
+                    />
+                  }
                 >
                   <Route path="/account" element={<AccountPage />} />
                 </Route>
-                <Route element={<ProtectedRoute requireIncompleteProfile />}>
+                <Route
+                  element={<ProtectedRoute requireIncompleteAccountSetup />}
+                >
+                  <Route path="/accept-terms" element={<AcceptTermsPage />} />
                   <Route
                     path="/account/onboarding"
                     element={<AccountUsernameOnboardingPage />}
                   />
                 </Route>
-                <Route element={<ProtectedRoute />}>
+                <Route
+                  element={
+                    <ProtectedRoute
+                      requireAcceptedTerms
+                      requireCompleteProfile
+                    />
+                  }
+                >
                   <Route path="/roadmaps" element={<RoadmapsPage />} />
                 </Route>
                 <Route
                   element={
                     <ProtectedRoute
+                      requireAcceptedTerms
                       requireCompleteProfile
                       requiredRole="super_admin"
                     />

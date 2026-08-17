@@ -26,7 +26,10 @@ type AuthContextValue = {
   signIn: (email: string, password: string) => Promise<string | null>;
   signInWithGoogle: () => Promise<string | null>;
   signOut: () => Promise<string | null>;
-  requestPasswordReset: (email: string, redirectTo?: string) => Promise<string | null>;
+  requestPasswordReset: (
+    email: string,
+    redirectTo?: string,
+  ) => Promise<string | null>;
   updatePassword: (password: string) => Promise<string | null>;
 };
 
@@ -65,7 +68,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return true;
     }
 
-    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const hashParams = new URLSearchParams(
+      window.location.hash.replace(/^#/, ""),
+    );
     return hashParams.get("type") === "recovery";
   }, []);
 
@@ -93,7 +98,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       return isRecoveryModeStored();
     },
-    [hasRecoveryParams, isRecoveryModeStored]
+    [hasRecoveryParams, isRecoveryModeStored],
   );
 
   useEffect(() => {
@@ -128,27 +133,33 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
   }, [resolveRecoveryMode, syncRecoveryMode]);
 
-  const signUp = useCallback(async (email: string, password: string, termsVersion: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          termsOfUseVersion: termsVersion,
+  const signUp = useCallback(
+    async (email: string, password: string, termsVersion: string) => {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            termsOfUseVersion: termsVersion,
+          },
         },
-      },
-    });
-    if (error) {
-      return { needsEmailConfirmation: false, error: error.message };
-    }
+      });
+      if (error) {
+        return { needsEmailConfirmation: false, error: error.message };
+      }
 
-    const needsEmailConfirmation =
-      !data.session && Boolean(data.user?.identities?.length);
-    return { needsEmailConfirmation, error: null };
-  }, []);
+      const needsEmailConfirmation =
+        !data.session && Boolean(data.user?.identities?.length);
+      return { needsEmailConfirmation, error: null };
+    },
+    [],
+  );
 
   const signIn = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
     return error ? error.message : null;
   }, []);
 
@@ -182,7 +193,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       return error ? error.message : null;
     },
-    []
+    [],
   );
 
   const updatePassword = useCallback(
@@ -194,7 +205,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       return error ? error.message : null;
     },
-    [syncRecoveryMode]
+    [syncRecoveryMode],
   );
 
   const value = useMemo<AuthContextValue>(
@@ -221,7 +232,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       signUp,
       updatePassword,
       user,
-    ]
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

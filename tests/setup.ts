@@ -24,7 +24,10 @@ type AuthState = {
   signIn: (email: string, password: string) => Promise<string | null>;
   signInWithGoogle: () => Promise<string | null>;
   signOut: () => Promise<string | null>;
-  requestPasswordReset: (email: string, redirectTo?: string) => Promise<string | null>;
+  requestPasswordReset: (
+    email: string,
+    redirectTo?: string,
+  ) => Promise<string | null>;
   updatePassword: (password: string) => Promise<string | null>;
 };
 
@@ -79,7 +82,10 @@ vi.mock("@/lib/supabaseClient", () => {
     onAuthStateChange: vi.fn(() => ({
       data: { subscription: { unsubscribe: () => undefined } },
     })),
-    signUp: vi.fn(async () => ({ data: { session: null, user: null }, error: null })),
+    signUp: vi.fn(async () => ({
+      data: { session: null, user: null },
+      error: null,
+    })),
     signInWithPassword: vi.fn(async () => ({ error: null })),
     signInWithOAuth: vi.fn(async () => ({
       data: { provider: "google", url: null },
@@ -190,6 +196,14 @@ afterEach(async () => {
 
   const usernameContextModule = await import("@/contexts/UsernameContext");
   usernameContextModule.__resetUsernameMockState();
+
+  const accountUsernameRequirementModule =
+    await import("@/lib/accountUsernameRequirement");
+  accountUsernameRequirementModule.__resetAccountUsernameRequiredNotifications();
+
+  const termsAcceptanceRequirementModule =
+    await import("@/lib/termsAcceptanceRequirement");
+  termsAcceptanceRequirementModule.__resetTermsAcceptanceRequiredNotifications();
 });
 
 afterAll(() => {

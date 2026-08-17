@@ -12,20 +12,20 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  ACCOUNT_USERNAME_REQUIRED_FALLBACK_MESSAGE,
-  subscribeToAccountUsernameRequired,
-} from "@/lib/accountUsernameRequirement";
+  subscribeToTermsAcceptanceRequired,
+  TERMS_ACCEPTANCE_REQUIRED_FALLBACK_MESSAGE,
+} from "@/lib/termsAcceptanceRequirement";
 
-export function AccountUsernameRequiredDialog() {
+export function TermsAcceptanceRequiredDialog() {
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState(
-    ACCOUNT_USERNAME_REQUIRED_FALLBACK_MESSAGE,
+    TERMS_ACCEPTANCE_REQUIRED_FALLBACK_MESSAGE,
   );
 
   useEffect(() => {
-    return subscribeToAccountUsernameRequired((payload) => {
+    return subscribeToTermsAcceptanceRequired((payload) => {
       if (
         location.pathname === "/account/onboarding" ||
         location.pathname === "/accept-terms"
@@ -33,12 +33,12 @@ export function AccountUsernameRequiredDialog() {
         return;
       }
 
-      setMessage(payload.message || ACCOUNT_USERNAME_REQUIRED_FALLBACK_MESSAGE);
+      setMessage(payload.message || TERMS_ACCEPTANCE_REQUIRED_FALLBACK_MESSAGE);
       setOpen(true);
     });
   }, [location.pathname]);
 
-  const handleChooseUsername = () => {
+  const handleReviewTerms = () => {
     setOpen(false);
     navigate("/account/onboarding", {
       state: { from: location },
@@ -49,7 +49,7 @@ export function AccountUsernameRequiredDialog() {
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Account username required</AlertDialogTitle>
+          <AlertDialogTitle>Terms acceptance required</AlertDialogTitle>
           <AlertDialogDescription>{message}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -59,8 +59,8 @@ export function AccountUsernameRequiredDialog() {
             </Button>
           </AlertDialogCancel>
           <AlertDialogAction asChild>
-            <Button type="button" onClick={handleChooseUsername}>
-              Choose account username
+            <Button type="button" onClick={handleReviewTerms}>
+              Review terms
             </Button>
           </AlertDialogAction>
         </AlertDialogFooter>
