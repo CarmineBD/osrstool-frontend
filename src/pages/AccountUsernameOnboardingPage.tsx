@@ -1,26 +1,24 @@
 import { useState, type FormEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { AccountSetupSection } from "@/components/account-setup/AccountSetupSection";
+import { TermsAcceptanceField } from "@/components/account-setup/TermsAcceptanceField";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Field,
   FieldContent,
-  FieldDescription,
   FieldError,
   FieldLabel,
 } from "@/components/ui/field";
+import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/auth/AuthProvider";
 import { useMe } from "@/hooks/useMe";
 import {
+  ACCOUNT_USERNAME_ALLOWED_CHARACTERS_MESSAGE,
   ACCOUNT_USERNAME_MAX_LENGTH,
+  hasDisallowedAccountUsernameCharacters,
   normalizeAccountUsername,
   validateAccountUsername,
 } from "@/lib/accountUsername";
@@ -47,6 +45,33 @@ function resolveRedirectPath(state: LocationState | null): string {
   return `${state.from.pathname}${state.from.search ?? ""}${state.from.hash ?? ""}`;
 }
 
+function getPageCopy(
+  needsAccountUsername: boolean,
+  needsTermsAcceptance: boolean,
+) {
+  if (needsAccountUsername && needsTermsAcceptance) {
+    return {
+      eyebrow: "Account setup",
+      title: "Complete your account setup",
+      description: "Complete these steps to continue.",
+    };
+  }
+
+  if (needsAccountUsername) {
+    return {
+      eyebrow: "Account setup",
+      title: "Choose your RSMethods username",
+      description: "Set your account username to continue.",
+    };
+  }
+
+  return {
+    eyebrow: "Account setup",
+    title: "Accept the current Terms of Use",
+    description: "Accept the terms to continue.",
+  };
+}
+
 export function AccountUsernameOnboardingPage() {
   const { signOut } = useAuth();
   const navigate = useNavigate();
@@ -60,14 +85,16 @@ export function AccountUsernameOnboardingPage() {
   const locationState = location.state as LocationState | null;
   const redirectPath = resolveRedirectPath(locationState);
   const termsAccepted = meQuery.data?.data?.terms?.accepted === true;
-  const currentVersion =
-    meQuery.data?.data?.terms?.currentVersion?.trim() || "the current version";
   const hasAccountUsername = Boolean(meQuery.data?.data?.username);
   const needsTermsAcceptance = !termsAccepted;
   const needsAccountUsername = !hasAccountUsername;
-  const normalizedAccountUsername = normalizeAccountUsername(accountUsernameInput);
+  const hasInvalidAccountUsernameCharacters =
+    hasDisallowedAccountUsernameCharacters(accountUsernameInput);
+  const normalizedAccountUsername =
+    normalizeAccountUsername(accountUsernameInput);
   const isAccountUsernameValid =
-    !needsAccountUsername || !validateAccountUsername(normalizedAccountUsername);
+    !needsAccountUsername ||
+    !validateAccountUsername(normalizedAccountUsername);
 
   const completeSetupMutation = useMutation({
     mutationFn: async (normalizedUsername: string | null) => {
@@ -87,7 +114,9 @@ export function AccountUsernameOnboardingPage() {
   const canSubmit =
     !completeSetupMutation.isPending &&
     (!needsTermsAcceptance || acceptedTerms) &&
+    !hasInvalidAccountUsernameCharacters &&
     (!needsAccountUsername || isAccountUsernameValid);
+  const pageCopy = getPageCopy(needsAccountUsername, needsTermsAcceptance);
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -97,6 +126,11 @@ export function AccountUsernameOnboardingPage() {
 
     let normalizedUsername: string | null = null;
     if (needsAccountUsername) {
+      if (hasDisallowedAccountUsernameCharacters(accountUsernameInput)) {
+        setValidationError(ACCOUNT_USERNAME_ALLOWED_CHARACTERS_MESSAGE);
+        return;
+      }
+
       normalizedUsername = normalizeAccountUsername(accountUsernameInput);
       const nextValidationError = validateAccountUsername(normalizedUsername);
       setValidationError(nextValidationError);
@@ -141,13 +175,18 @@ export function AccountUsernameOnboardingPage() {
 
   if (meQuery.isLoading) {
     return (
-      <div className="mx-auto flex w-full max-w-2xl flex-col px-4 py-10">
-        <Card>
-          <CardHeader>
-            <CardTitle>Complete your account setup</CardTitle>
-            <CardDescription>
+      <div className="mx-auto flex min-h-[70vh] w-full max-w-2xl items-center px-4 py-8">
+        <Card className="w-full bg-surface-panel shadow-none">
+          <CardHeader className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Account setup
+            </p>
+            <h1 className="text-3xl font-semibold leading-9 tracking-tight text-foreground">
+              Complete your account setup
+            </h1>
+            <p className="text-sm leading-5 text-muted-foreground">
               Checking your account requirements...
-            </CardDescription>
+            </p>
           </CardHeader>
         </Card>
       </div>
@@ -155,37 +194,40 @@ export function AccountUsernameOnboardingPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col px-4 py-10">
-      <Card>
-        <CardHeader>
-          <CardTitle>Complete your account setup</CardTitle>
-          <CardDescription>
-            Finish the required setup for your RSMethods account before
-            continuing.
-          </CardDescription>
+    <div className="mx-auto flex min-h-[70vh] w-full max-w-2xl items-center px-4 py-8">
+      <Card className="w-full bg-surface-panel shadow-none">
+        <CardHeader className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            {pageCopy.eyebrow}
+          </p>
+          <h1 className="text-3xl font-semibold leading-9 tracking-tight text-foreground">
+            {pageCopy.title}
+          </h1>
+          <p className="text-sm leading-5 text-muted-foreground">
+            {pageCopy.description}
+          </p>
         </CardHeader>
-        <CardContent className="space-y-6">
+
+        <CardContent className="space-y-8">
           {meQuery.error ? (
-            <p className="text-sm text-destructive">
+            <p className="text-[13px] font-medium leading-[18px] text-destructive">
               {meQuery.error instanceof Error
                 ? meQuery.error.message
                 : "Unable to load your account requirements."}
             </p>
           ) : null}
 
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form className="space-y-8" onSubmit={handleSubmit}>
             {needsAccountUsername ? (
-              <div className="space-y-4 rounded-xl border border-border/70 bg-background/40 p-4">
-                <div className="space-y-2">
-                  <h2 className="text-base font-semibold text-foreground">
-                    Choose your RSMethods username
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    This username is required, must be unique, and cannot
-                    currently be changed after you save it.
+              <AccountSetupSection
+                title="RSMethods username"
+                description={
+                  <p>
+                    Your RSMethods username. It can differ from your OSRS
+                    username and cannot be changed later.
                   </p>
-                </div>
-
+                }
+              >
                 <Field>
                   <FieldLabel htmlFor="account-username">
                     RSMethods username
@@ -203,99 +245,87 @@ export function AccountUsernameOnboardingPage() {
                       placeholder="Enter account username"
                       value={accountUsernameInput}
                       onChange={(event) => {
+                        const nextValue = event.target.value
+                          .toLowerCase()
+                          .slice(0, ACCOUNT_USERNAME_MAX_LENGTH);
+
                         setValidationError(null);
                         setGeneralError(null);
-                        setAccountUsernameInput(
-                          event.target.value
-                            .toLowerCase()
-                            .slice(0, ACCOUNT_USERNAME_MAX_LENGTH),
-                        );
+                        setAccountUsernameInput(nextValue);
+
+                        if (hasDisallowedAccountUsernameCharacters(nextValue)) {
+                          setValidationError(
+                            ACCOUNT_USERNAME_ALLOWED_CHARACTERS_MESSAGE,
+                          );
+                        }
                       }}
                       aria-invalid={validationError ? true : undefined}
                       disabled={completeSetupMutation.isPending}
                       required
                     />
                   </FieldContent>
-                  <FieldDescription>
-                    3 to 20 characters. Use lowercase letters, numbers, and
-                    underscores. It must start with a letter or number.
-                  </FieldDescription>
-                  <FieldError>{validationError}</FieldError>
+
+                  <FieldError className="text-[13px] font-medium leading-[18px]">
+                    {validationError}
+                  </FieldError>
                 </Field>
-              </div>
+              </AccountSetupSection>
             ) : null}
 
+            {needsAccountUsername && needsTermsAcceptance ? <Separator /> : null}
+
             {needsTermsAcceptance ? (
-              <div className="space-y-4 rounded-xl border border-border/70 bg-background/40 p-4">
-                <div className="space-y-2">
-                  <h2 className="text-base font-semibold text-foreground">
-                    Accept the current Terms of Use
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    Current version:{" "}
-                    <span className="font-medium text-foreground">
-                      {currentVersion}
-                    </span>
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Read the{" "}
+              <AccountSetupSection
+                title="Terms of Use"
+                description={
+                  <p>
+                    Review the{" "}
                     <Link
-                      className="font-medium text-primary hover:underline"
+                      className="font-medium text-link underline underline-offset-4 transition-colors hover:text-link-hover"
                       to="/terms-of-use"
                     >
                       Terms of Use
                     </Link>{" "}
-                    before continuing. The{" "}
+                    and{" "}
                     <Link
-                      className="font-medium text-primary hover:underline"
+                      className="font-medium text-link underline underline-offset-4 transition-colors hover:text-link-hover"
                       to="/privacy-policy"
                     >
                       Privacy Policy
-                    </Link>{" "}
-                    is provided here for information about data handling and
-                    does not require separate consent on this screen.
+                    </Link>
+                    .
                   </p>
-                </div>
-
-                <Field orientation="horizontal">
-                  <input
-                    id="accept-terms-checkbox"
-                    type="checkbox"
-                    className="mt-1 h-4 w-4 rounded border border-input"
-                    checked={acceptedTerms}
-                    onChange={(event) => {
-                      setGeneralError(null);
-                      setAcceptedTerms(event.target.checked);
-                    }}
-                    disabled={completeSetupMutation.isPending}
-                  />
-                  <FieldContent>
-                    <FieldLabel htmlFor="accept-terms-checkbox">
-                      I have read and accept the current Terms of Use.
-                    </FieldLabel>
-                    <FieldDescription>
-                      This acceptance is recorded for your authenticated account
-                      in the backend when you save this form.
-                    </FieldDescription>
-                  </FieldContent>
-                </Field>
-              </div>
+                }
+              >
+                <TermsAcceptanceField
+                  checkboxId="accept-terms-checkbox"
+                  checked={acceptedTerms}
+                  disabled={completeSetupMutation.isPending}
+                  variant="plain"
+                  onCheckedChange={(checked) => {
+                    setGeneralError(null);
+                    setAcceptedTerms(checked);
+                  }}
+                />
+              </AccountSetupSection>
             ) : null}
 
+            {(generalError || mutationErrorMessage) && <Separator />}
+
             {generalError ? (
-              <p className="text-sm text-destructive">{generalError}</p>
+              <p className="text-[13px] font-medium leading-[18px] text-destructive">
+                {generalError}
+              </p>
             ) : null}
 
             {mutationErrorMessage ? (
-              <p className="text-sm text-destructive">{mutationErrorMessage}</p>
+              <p className="text-[13px] font-medium leading-[18px] text-destructive">
+                {mutationErrorMessage}
+              </p>
             ) : null}
 
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Button
-                type="submit"
-                className="sm:flex-1"
-                disabled={!canSubmit}
-              >
+            <div className="flex flex-col gap-3 pt-2 sm:flex-row">
+              <Button type="submit" className="sm:flex-1" disabled={!canSubmit}>
                 {completeSetupMutation.isPending
                   ? "Saving..."
                   : "Complete account"}

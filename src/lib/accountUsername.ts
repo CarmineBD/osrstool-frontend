@@ -1,6 +1,9 @@
 export const ACCOUNT_USERNAME_MIN_LENGTH = 3;
 export const ACCOUNT_USERNAME_MAX_LENGTH = 20;
 export const ACCOUNT_USERNAME_PATTERN = /^[a-z0-9][a-z0-9_]{2,19}$/;
+export const ACCOUNT_USERNAME_ALLOWED_CHARACTERS_PATTERN = /^[a-z0-9_]*$/;
+export const ACCOUNT_USERNAME_ALLOWED_CHARACTERS_MESSAGE =
+  "3 to 20 characters. Lowercase letters, numbers, and underscores only.";
 export const RESERVED_ACCOUNT_USERNAMES = new Set([
   "admin",
   "administrator",
@@ -18,6 +21,10 @@ export function normalizeAccountUsername(value: string): string {
   return value.trim().toLowerCase();
 }
 
+export function hasDisallowedAccountUsernameCharacters(value: string): boolean {
+  return !ACCOUNT_USERNAME_ALLOWED_CHARACTERS_PATTERN.test(value.toLowerCase());
+}
+
 export function validateAccountUsername(value: string): string | null {
   const normalizedValue = normalizeAccountUsername(value);
 
@@ -33,7 +40,7 @@ export function validateAccountUsername(value: string): string | null {
   }
 
   if (!ACCOUNT_USERNAME_PATTERN.test(normalizedValue)) {
-    return "Account username must start with a letter or number and use only lowercase letters, numbers, and underscores.";
+    return "Account username must start with a letter or number.";
   }
 
   if (RESERVED_ACCOUNT_USERNAMES.has(normalizedValue)) {
