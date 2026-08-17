@@ -5,6 +5,7 @@ import { Layout } from "./components/Layout";
 import { UsernameProvider } from "./contexts/UsernameContext";
 import { AuthProvider } from "./auth/AuthProvider";
 import { LoginPage } from "./pages/LoginPage";
+import { CreateAccountPage } from "./pages/CreateAccountPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { AccountPage } from "./pages/AccountPage";
@@ -31,7 +32,7 @@ import { AccountUsernameOnboardingPage } from "./pages/AccountUsernameOnboarding
 const LazyMethodDetail = lazy(() =>
   import("./pages/MethodDetail").then((module) => ({
     default: module.MethodDetail,
-  }))
+  })),
 );
 const LazyMethodCreate = lazy(() => import("./pages/MethodCreate"));
 const LazyMethodEdit = lazy(() => import("./pages/MethodEdit"));
@@ -61,26 +62,29 @@ function App() {
                 <Route path="/skilling/:skill" element={<SkillMethodsPage />} />
                 <Route path="/wiki" element={<WikiPage />} />
                 <Route path="/wiki/:category" element={<WikiCategoryPage />} />
-                <Route path="/changelog/:slug" element={<ChangelogDetailPage />} />
+                <Route
+                  path="/changelog/:slug"
+                  element={<ChangelogDetailPage />}
+                />
                 <Route path="/login" element={<LoginPage />} />
-                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/create-account" element={<CreateAccountPage />} />
+                <Route
+                  path="/forgot-password"
+                  element={<ForgotPasswordPage />}
+                />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route
                   element={<ProtectedRoute />}
                 >
                   <Route path="/account" element={<AccountPage />} />
                 </Route>
-                <Route
-                  element={<ProtectedRoute requireIncompleteProfile />}
-                >
+                <Route element={<ProtectedRoute requireIncompleteProfile />}>
                   <Route
                     path="/account/onboarding"
                     element={<AccountUsernameOnboardingPage />}
                   />
                 </Route>
-                <Route
-                  element={<ProtectedRoute />}
-                >
+                <Route element={<ProtectedRoute />}>
                   <Route path="/roadmaps" element={<RoadmapsPage />} />
                 </Route>
                 <Route
