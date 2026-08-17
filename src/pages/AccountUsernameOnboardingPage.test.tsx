@@ -1,7 +1,7 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { server } from "../../tests/msw/server";
@@ -10,6 +10,12 @@ import { AccountUsernameOnboardingPage } from "./AccountUsernameOnboardingPage";
 
 type AuthProviderTestModule = typeof import("@/auth/AuthProvider") & {
   __setAuthMockState: (partial: Record<string, unknown>) => void;
+};
+
+type UsernameContextTestModule = typeof import("@/contexts/UsernameContext") & {
+  __getUsernameMockSpies: () => {
+    clearUsernameSpy: ReturnType<typeof vi.fn>;
+  };
 };
 
 function renderOnboarding(
@@ -36,6 +42,7 @@ function renderOnboarding(
             path="/account/onboarding"
             element={<AccountUsernameOnboardingPage />}
           />
+          <Route path="/" element={<div>Home destination</div>} />
           <Route path="/roadmaps" element={<div>Roadmaps destination</div>} />
         </Routes>
       </MemoryRouter>
@@ -133,9 +140,7 @@ describe("AccountUsernameOnboardingPage", () => {
     expect(submitButton).toBeDisabled();
 
     await user.click(
-      screen.getByLabelText(
-        "I have read and accept the current Terms of Use.",
-      ),
+      screen.getByLabelText("I have read and accept the current Terms of Use."),
     );
     expect(submitButton).toBeEnabled();
 
@@ -337,5 +342,72 @@ describe("AccountUsernameOnboardingPage", () => {
     expect(
       await screen.findByText("This account username is already taken."),
     ).toBeInTheDocument();
+  });
+
+  it("lets onboarding users delete the account without accepting terms", async () => {
+    const authProviderModule =
+      (await import("@/auth/AuthProvider")) as AuthProviderTestModule;
+    authProviderModule.__setAuthMockState({
+      session: {
+        access_token: "token-1",
+        user: {
+          id: "user-1",
+          email: "user@example.com",
+        },
+      },
+      user: {
+        id: "user-1",
+        email: "user@example.com",
+      },
+      isLoading: false,
+    });
+
+    const usernameContextModule =
+      (await import("@/contexts/UsernameContext")) as UsernameContextTestModule;
+    const usernameSpies = usernameContextModule.__getUsernameMockSpies();
+    const supabaseModule = await import("@/lib/supabaseClient");
+    vi.mocked(supabaseModule.supabase.auth.signOut).mockClear();
+
+    server.use(
+      http.get("*/users/me", () =>
+        HttpResponse.json({
+          data: {
+            id: "user-1",
+            email: "user@example.com",
+            username: null,
+            role: "user",
+            terms: {
+              currentVersion: "v1",
+              accepted: false,
+            },
+          },
+        }),
+      ),
+      http.delete("*/users/me", () =>
+        HttpResponse.json({
+          data: {
+            deleted: true,
+          },
+        }),
+      ),
+    );
+
+    renderOnboarding();
+
+    const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Delete account and remove my data",
+      }),
+    );
+    await user.click(screen.getByRole("button", { name: "Delete account" }));
+
+    await waitFor(() => {
+      expect(usernameSpies.clearUsernameSpy).toHaveBeenCalledTimes(1);
+      expect(supabaseModule.supabase.auth.signOut).toHaveBeenCalledWith({
+        scope: "local",
+      });
+      expect(screen.getByText("Home destination")).toBeInTheDocument();
+    });
   });
 });
