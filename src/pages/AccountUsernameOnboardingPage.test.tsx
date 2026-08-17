@@ -231,6 +231,57 @@ describe("AccountUsernameOnboardingPage", () => {
     expect(acceptedTermsCalls).toBe(0);
   });
 
+  it("shows an error immediately when the username contains a disallowed character", async () => {
+    const authProviderModule =
+      (await import("@/auth/AuthProvider")) as AuthProviderTestModule;
+    authProviderModule.__setAuthMockState({
+      session: {
+        access_token: "token-1",
+        user: {
+          id: "user-1",
+          email: "user@example.com",
+        },
+      },
+      user: {
+        id: "user-1",
+        email: "user@example.com",
+      },
+      isLoading: false,
+    });
+
+    server.use(
+      http.get("*/users/me", () =>
+        HttpResponse.json({
+          data: {
+            id: "user-1",
+            email: "user@example.com",
+            username: null,
+            role: "user",
+            terms: {
+              currentVersion: "v1",
+              accepted: true,
+            },
+          },
+        }),
+      ),
+    );
+
+    renderOnboarding();
+
+    const user = userEvent.setup();
+    await user.type(
+      await screen.findByLabelText("RSMethods username"),
+      "bad-name",
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "3 to 20 characters. Lowercase letters, numbers, and underscores only.",
+    );
+    expect(
+      screen.getByRole("button", { name: "Complete account" }),
+    ).toBeDisabled();
+  });
+
   it("shows a clear conflict error when the username is already taken", async () => {
     const authProviderModule =
       (await import("@/auth/AuthProvider")) as AuthProviderTestModule;

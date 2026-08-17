@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
+import { TermsAcceptanceField } from "@/components/account-setup/TermsAcceptanceField";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -117,7 +118,7 @@ export function CreateAccountPage() {
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col px-4 py-10">
+    <div className="mx-auto flex w-full max-w-md flex-col px-4 py-8">
       <Card>
         <CardHeader>
           <CardTitle>Create account</CardTitle>
@@ -212,7 +213,7 @@ export function CreateAccountPage() {
             <p className="text-sm text-muted-foreground">
               You must accept the current{" "}
               <Link
-                className="font-medium text-primary hover:underline"
+                className="font-medium text-link underline underline-offset-4 transition-colors hover:text-link-hover"
                 to="/terms-of-use"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -223,7 +224,7 @@ export function CreateAccountPage() {
               . After creating your account, you will finish setup by choosing
               your RSMethods username. You can also review the{" "}
               <Link
-                className="font-medium text-primary hover:underline"
+                className="font-medium text-link underline underline-offset-4 transition-colors hover:text-link-hover"
                 to="/privacy-policy"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -233,26 +234,19 @@ export function CreateAccountPage() {
               </Link>{" "}
               before continuing.
             </p>
-            <label className="flex items-start gap-3 rounded-lg border border-border/70 bg-background/40 p-4 text-sm text-foreground">
-              <input
-                ref={termsCheckboxRef}
-                type="checkbox"
-                className="mt-0.5 h-4 w-4 rounded border border-input"
-                checked={hasAcceptedTerms}
-                onChange={(event) => {
-                  setHasAcceptedTerms(event.target.checked);
-                  if (event.target.checked) {
-                    setTermsError(null);
-                  }
-                }}
-                disabled={isSubmitting}
-                aria-invalid={termsError ? true : undefined}
-              />
-              <span>I have read and accept the current Terms of Use.</span>
-            </label>
-            {termsError ? (
-              <p className="text-sm text-destructive">{termsError}</p>
-            ) : null}
+            <TermsAcceptanceField
+              checkboxId="create-account-terms-checkbox"
+              checkboxRef={termsCheckboxRef}
+              checked={hasAcceptedTerms}
+              disabled={isSubmitting}
+              error={termsError}
+              onCheckedChange={(checked) => {
+                setHasAcceptedTerms(checked);
+                if (checked) {
+                  setTermsError(null);
+                }
+              }}
+            />
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
             {info ? <p className="text-sm text-success">{info}</p> : null}
 
