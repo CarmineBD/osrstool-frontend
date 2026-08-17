@@ -7,6 +7,29 @@ import { server } from "../msw/server";
 import { renderWithProviders } from "../utils/render";
 
 describe("critical flow: protected routes and redirects", () => {
+  it("allows authenticated users with incomplete onboarding to keep browsing public content", async () => {
+    const authProviderModule = await import("@/auth/AuthProvider");
+    authProviderModule.__setAuthMockState({
+      session: {
+        access_token: "token-1",
+      },
+      user: {
+        id: "user-1",
+        email: "test@example.com",
+      },
+      isLoading: false,
+    });
+
+    renderWithProviders(
+      <Routes>
+        <Route path="/methods" element={<div>Public methods view</div>} />
+      </Routes>,
+      { route: "/methods" },
+    );
+
+    expect(await screen.findByText("Public methods view")).toBeInTheDocument();
+  });
+
   it("redirects unauthenticated users to login", async () => {
     const authProviderModule = await import("@/auth/AuthProvider");
     authProviderModule.__setAuthMockState({
@@ -22,7 +45,7 @@ describe("critical flow: protected routes and redirects", () => {
         </Route>
         <Route path="/login" element={<div>Login view</div>} />
       </Routes>,
-      { route: "/account" }
+      { route: "/account" },
     );
 
     expect(await screen.findByText("Login view")).toBeInTheDocument();
@@ -50,21 +73,30 @@ describe("critical flow: protected routes and redirects", () => {
             email: "test@example.com",
             username: "account_user",
             role: "user",
+            terms: {
+              currentVersion: "v1",
+              accepted: true,
+            },
           },
-        })
-      )
+        }),
+      ),
     );
 
     renderWithProviders(
       <Routes>
         <Route element={<ProtectedRoute requiredRole="super_admin" />}>
-          <Route path="/moneyMakingMethod/new" element={<div>Create form</div>} />
+          <Route
+            path="/moneyMakingMethod/new"
+            element={<div>Create form</div>}
+          />
         </Route>
       </Routes>,
-      { route: "/moneyMakingMethod/new" }
+      { route: "/moneyMakingMethod/new" },
     );
 
-    expect(await screen.findByText("403 - Super admin only")).toBeInTheDocument();
+    expect(
+      await screen.findByText("403 - Super admin only"),
+    ).toBeInTheDocument();
     expect(screen.queryByText("Create form")).not.toBeInTheDocument();
   });
 
@@ -89,6 +121,10 @@ describe("critical flow: protected routes and redirects", () => {
             email: "test@example.com",
             username: null,
             role: "user",
+            terms: {
+              currentVersion: "v1",
+              accepted: true,
+            },
           },
         }),
       ),
@@ -96,26 +132,28 @@ describe("critical flow: protected routes and redirects", () => {
 
     renderWithProviders(
       <Routes>
-        <Route element={<ProtectedRoute requireCompleteProfile />}>
+        <Route
+          element={
+            <ProtectedRoute requireAcceptedTerms requireCompleteProfile />
+          }
+        >
           <Route path="/roadmaps" element={<div>Roadmaps view</div>} />
         </Route>
-        <Route
-          element={<ProtectedRoute requireIncompleteProfile />}
-        >
+        <Route element={<ProtectedRoute requireIncompleteAccountSetup />}>
           <Route
             path="/account/onboarding"
             element={<div>Onboarding view</div>}
           />
         </Route>
       </Routes>,
-      { route: "/roadmaps" }
+      { route: "/roadmaps" },
     );
 
     expect(await screen.findByText("Onboarding view")).toBeInTheDocument();
     expect(screen.queryByText("Roadmaps view")).not.toBeInTheDocument();
   });
 
-  it("redirects completed users away from the onboarding route", async () => {
+  it("redirects authenticated users without current terms acceptance to the unified onboarding route", async () => {
     const authProviderModule = await import("@/auth/AuthProvider");
     authProviderModule.__setAuthMockState({
       session: {
@@ -136,6 +174,10 @@ describe("critical flow: protected routes and redirects", () => {
             email: "test@example.com",
             username: "account_user",
             role: "user",
+            terms: {
+              currentVersion: "v1",
+              accepted: false,
+            },
           },
         }),
       ),
@@ -143,7 +185,60 @@ describe("critical flow: protected routes and redirects", () => {
 
     renderWithProviders(
       <Routes>
-        <Route element={<ProtectedRoute requireIncompleteProfile />}>
+        <Route
+          element={
+            <ProtectedRoute requireAcceptedTerms requireCompleteProfile />
+          }
+        >
+          <Route path="/roadmaps" element={<div>Roadmaps view</div>} />
+        </Route>
+        <Route element={<ProtectedRoute requireIncompleteAccountSetup />}>
+          <Route
+            path="/account/onboarding"
+            element={<div>Onboarding view</div>}
+          />
+        </Route>
+      </Routes>,
+      { route: "/roadmaps" },
+    );
+
+    expect(await screen.findByText("Onboarding view")).toBeInTheDocument();
+    expect(screen.queryByText("Roadmaps view")).not.toBeInTheDocument();
+  });
+
+  it("redirects completed users away from the unified onboarding route", async () => {
+    const authProviderModule = await import("@/auth/AuthProvider");
+    authProviderModule.__setAuthMockState({
+      session: {
+        access_token: "token-1",
+      },
+      user: {
+        id: "user-1",
+        email: "test@example.com",
+      },
+      isLoading: false,
+    });
+
+    server.use(
+      http.get("*/users/me", () =>
+        HttpResponse.json({
+          data: {
+            id: "user-1",
+            email: "test@example.com",
+            username: "account_user",
+            role: "user",
+            terms: {
+              currentVersion: "v1",
+              accepted: true,
+            },
+          },
+        }),
+      ),
+    );
+
+    renderWithProviders(
+      <Routes>
+        <Route element={<ProtectedRoute requireIncompleteAccountSetup />}>
           <Route
             path="/account/onboarding"
             element={<div>Onboarding view</div>}
@@ -151,10 +246,57 @@ describe("critical flow: protected routes and redirects", () => {
         </Route>
         <Route path="/account" element={<div>Account view</div>} />
       </Routes>,
-      { route: "/account/onboarding" }
+      { route: "/account/onboarding" },
     );
 
     expect(await screen.findByText("Account view")).toBeInTheDocument();
     expect(screen.queryByText("Onboarding view")).not.toBeInTheDocument();
+  });
+
+  it("keeps users on unified onboarding when terms are missing even if they already have an account username", async () => {
+    const authProviderModule = await import("@/auth/AuthProvider");
+    authProviderModule.__setAuthMockState({
+      session: {
+        access_token: "token-1",
+      },
+      user: {
+        id: "user-1",
+        email: "test@example.com",
+      },
+      isLoading: false,
+    });
+
+    server.use(
+      http.get("*/users/me", () =>
+        HttpResponse.json({
+          data: {
+            id: "user-1",
+            email: "test@example.com",
+            username: "account_user",
+            role: "user",
+            terms: {
+              currentVersion: "v1",
+              accepted: false,
+            },
+          },
+        }),
+      ),
+    );
+
+    renderWithProviders(
+      <Routes>
+        <Route element={<ProtectedRoute requireIncompleteAccountSetup />}>
+          <Route
+            path="/account/onboarding"
+            element={<div>Onboarding view</div>}
+          />
+        </Route>
+        <Route path="/account" element={<div>Account view</div>} />
+      </Routes>,
+      { route: "/account/onboarding" },
+    );
+
+    expect(await screen.findByText("Onboarding view")).toBeInTheDocument();
+    expect(screen.queryByText("Account view")).not.toBeInTheDocument();
   });
 });

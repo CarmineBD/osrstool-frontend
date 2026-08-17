@@ -5,6 +5,10 @@ import {
   notifyAccountUsernameRequired,
 } from "@/lib/accountUsernameRequirement";
 import {
+  isTermsAcceptanceRequiredErrorCode,
+  notifyTermsAcceptanceRequired,
+} from "@/lib/termsAcceptanceRequirement";
+import {
   MAX_ACTIONS_PER_HOUR,
   MAX_SKILL_LEVEL,
   SEARCH_QUERY_MAX_LENGTH,
@@ -144,7 +148,9 @@ export interface MethodVariantTagDefinition {
   description?: string;
 }
 
-export const DEFAULT_IGNORED_METHOD_TAGS: MethodVariantTagKey[] = ["not_viable"];
+export const DEFAULT_IGNORED_METHOD_TAGS: MethodVariantTagKey[] = [
+  "not_viable",
+];
 export const VARIANT_ACTION_TYPE_OPTIONS = [
   "items",
   "kills",
@@ -251,7 +257,8 @@ function parseWarnings(value: unknown): ApiWarning[] | undefined {
 
 function parseStringWarnings(value: unknown): string[] | undefined {
   if (!value) return undefined;
-  return Array.isArray(value) && value.every((entry) => typeof entry === "string")
+  return Array.isArray(value) &&
+    value.every((entry) => typeof entry === "string")
     ? value
     : undefined;
 }
@@ -307,13 +314,16 @@ function normalizeVariant(variant: Variant): Variant {
 
 function normalizeMethod(method: Method): Method {
   const variants = (method.variants ?? []).map(normalizeVariant);
-  const aggregatedLikes = variants.reduce<number | undefined>((total, variant) => {
-    if (typeof variant.likes !== "number") {
-      return total;
-    }
+  const aggregatedLikes = variants.reduce<number | undefined>(
+    (total, variant) => {
+      if (typeof variant.likes !== "number") {
+        return total;
+      }
 
-    return (total ?? 0) + variant.likes;
-  }, undefined);
+      return (total ?? 0) + variant.likes;
+    },
+    undefined,
+  );
 
   return {
     ...method,
@@ -387,7 +397,10 @@ export async function fetchMethods(
   if (page !== undefined) url.searchParams.set("page", page.toString());
   if (cursor) url.searchParams.set("cursor", cursor);
   if (name) {
-    url.searchParams.set("name", normalizeBoundedText(name.trim(), SEARCH_QUERY_MAX_LENGTH));
+    url.searchParams.set(
+      "name",
+      normalizeBoundedText(name.trim(), SEARCH_QUERY_MAX_LENGTH),
+    );
   }
   if (filters?.category) url.searchParams.set("category", filters.category);
   if (filters?.clickIntensity !== undefined) {
@@ -428,7 +441,9 @@ export async function fetchMethods(
           .filter((tag) => tag.length > 0),
       ),
     );
-    uniqueIgnoredTags.forEach((tag) => url.searchParams.append("ignoredTags", tag));
+    uniqueIgnoredTags.forEach((tag) =>
+      url.searchParams.append("ignoredTags", tag),
+    );
   }
   if (filters?.sortBy) url.searchParams.set("sortBy", filters.sortBy);
   if (filters?.order) url.searchParams.set("order", filters.order);
@@ -437,7 +452,7 @@ export async function fetchMethods(
   if (!res.ok) {
     throw await buildApiRequestError(
       res,
-      `HTTP ${res.status} - Error fetching methods`, 
+      `HTTP ${res.status} - Error fetching methods`,
     );
   }
   const json: unknown = await res.json();
@@ -577,7 +592,9 @@ export async function fetchTrendingProfitMethods(): Promise<Method[]> {
   return normalizeMethods(parseMethodsFromResponse(json));
 }
 
-function parseMethodTagDefinitions(value: unknown): MethodVariantTagDefinition[] {
+function parseMethodTagDefinitions(
+  value: unknown,
+): MethodVariantTagDefinition[] {
   if (!value || typeof value !== "object") return [];
 
   const root = value as Record<string, unknown>;
@@ -609,7 +626,8 @@ function parseMethodTagDefinitions(value: unknown): MethodVariantTagDefinition[]
         ? record.severity
         : null;
     const description =
-      typeof record.description === "string" && record.description.trim().length > 0
+      typeof record.description === "string" &&
+      record.description.trim().length > 0
         ? record.description.trim()
         : undefined;
 
@@ -1170,7 +1188,9 @@ export async function fetchSkillRoadmap(
           .filter((tag) => tag.length > 0),
       ),
     );
-    uniqueIgnoredTags.forEach((tag) => url.searchParams.append("ignoredTags", tag));
+    uniqueIgnoredTags.forEach((tag) =>
+      url.searchParams.append("ignoredTags", tag),
+    );
   }
 
   const res = await apiFetch(url.toString());
@@ -1425,9 +1445,7 @@ function parseApiErrorMessage(value: unknown): string | undefined {
   );
 }
 
-function parseConflictItems(
-  values: unknown,
-): Array<{
+function parseConflictItems(values: unknown): Array<{
   id?: number;
   name: string;
 }> {
@@ -1455,8 +1473,9 @@ function parseConflictItems(
           const id = Number.isFinite(numericId) ? numericId : undefined;
           return [name.toLowerCase(), { ...(id ? { id } : {}), name }] as const;
         })
-        .filter((item): item is readonly [string, { id?: number; name: string }] =>
-          item !== null,
+        .filter(
+          (item): item is readonly [string, { id?: number; name: string }] =>
+            item !== null,
         ),
     ).values(),
   );
@@ -1592,9 +1611,7 @@ function parseFreeToPlayVariantConflicts(
     .filter(Array.isArray)
     .flatMap((entries) => entries as unknown[])
     .map(parseFreeToPlayVariantConflictEntry)
-    .filter(
-      (entry): entry is FreeToPlayVariantConflict => entry !== undefined,
-    );
+    .filter((entry): entry is FreeToPlayVariantConflict => entry !== undefined);
 
   if (parsed.length === 0) return undefined;
 
@@ -1663,6 +1680,11 @@ async function buildApiRequestError(
     });
     if (isAccountUsernameRequiredErrorCode(code)) {
       notifyAccountUsernameRequired({
+        message: apiMessage ?? fallback,
+      });
+    }
+    if (isTermsAcceptanceRequiredErrorCode(code)) {
+      notifyTermsAcceptanceRequired({
         message: apiMessage ?? fallback,
       });
     }
@@ -1838,5 +1860,3 @@ export async function createMethodWithVariants(
   }
   return normalizeMethod(method);
 }
-
-

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent, type RefObject } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
@@ -25,9 +25,8 @@ import {
   normalizeBoundedText,
   PASSWORD_MAX_LENGTH,
 } from "@/lib/validation";
-import { CURRENT_TERMS_VERSION } from "@/lib/termsOfUse";
 
-type PendingAction = "google" | "sign-in" | "sign-up" | null;
+type PendingAction = "google" | "sign-in" | null;
 type StatusTone = "error" | "success";
 
 type LocationState = {
@@ -38,8 +37,7 @@ type LocationState = {
   };
 };
 
-const AUTH_CARD_CLASS =
-  "border-border/70 bg-surface-panel-elevated shadow-sm";
+const AUTH_CARD_CLASS = "border-border/70 bg-surface-panel-elevated shadow-sm";
 const AUTH_BODY_TEXT_CLASS = "text-sm leading-5 text-muted-foreground";
 const AUTH_META_TEXT_CLASS = "text-xs font-medium leading-4 text-muted-foreground";
 const AUTH_INLINE_LINK_CLASS =
@@ -100,112 +98,17 @@ function AuthStatusMessage({
   );
 }
 
-type TermsConsentFieldProps = {
-  checked: boolean;
-  disabled: boolean;
-  error: string | null;
-  onChange: (checked: boolean) => void;
-  checkboxRef: RefObject<HTMLInputElement | null>;
-};
-
-function TermsConsentField({
-  checked,
-  disabled,
-  error,
-  onChange,
-  checkboxRef,
-}: TermsConsentFieldProps) {
-  return (
-    <section className="rounded-lg border border-border/70 bg-surface-panel-subtle p-4">
-      <div className="space-y-3">
-        <p id="sign-up-terms-hint" className={AUTH_META_TEXT_CLASS}>
-          Required only to create an account.
-        </p>
-
-        <div className="flex items-start gap-3">
-          <input
-            ref={checkboxRef}
-            id="sign-up-terms"
-            type="checkbox"
-            className="mt-0.5 size-4 shrink-0 cursor-pointer accent-primary"
-            checked={checked}
-            disabled={disabled}
-            onChange={(event) => onChange(event.currentTarget.checked)}
-            aria-invalid={error ? "true" : undefined}
-            aria-describedby={
-              error
-                ? "sign-up-terms-hint sign-up-terms-error"
-                : "sign-up-terms-hint"
-            }
-            aria-labelledby="sign-up-terms-prefix sign-up-terms-link"
-          />
-
-          <div className="min-w-0 space-y-1.5">
-            <div className="text-sm leading-5 text-foreground">
-              <Label
-                htmlFor="sign-up-terms"
-                className="cursor-pointer text-sm leading-5"
-              >
-                <span id="sign-up-terms-prefix">I accept the </span>
-              </Label>
-              <Link
-                id="sign-up-terms-link"
-                to="/terms-of-use"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={AUTH_INLINE_LINK_CLASS}
-              >
-                Terms of Use
-                <span className="sr-only"> (opens in a new tab)</span>
-              </Link>
-              .
-            </div>
-
-            <p className={AUTH_BODY_TEXT_CLASS}>
-              You can review the{" "}
-              <Link
-                to="/privacy-policy"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={AUTH_INLINE_LINK_CLASS}
-              >
-                Privacy Policy
-                <span className="sr-only"> (opens in a new tab)</span>
-              </Link>
-              .
-            </p>
-          </div>
-        </div>
-
-        {error ? (
-          <p
-            id="sign-up-terms-error"
-            role="alert"
-            className="text-[13px] font-medium leading-[18px] text-destructive"
-          >
-            {error}
-          </p>
-        ) : null}
-      </div>
-    </section>
-  );
-}
-
 export function LoginPage() {
-  const { signIn, signInWithGoogle, signUp, session } = useAuth();
+  const { signIn, signInWithGoogle, session } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const state = location.state as LocationState | null;
   const stateRedirectPath = buildAuthRedirectPath(state?.from);
-  const authFormRef = useRef<HTMLFormElement>(null);
-  const termsCheckboxRef = useRef<HTMLInputElement>(null);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [hasAcceptedTerms, setHasAcceptedTerms] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
-  const [termsError, setTermsError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const isSubmitting = pendingAction !== null;
@@ -227,7 +130,6 @@ export function LoginPage() {
     event.preventDefault();
     if (isSubmitting) return;
 
-    setTermsError(null);
     setError(null);
     setInfo(null);
     setPendingAction("sign-in");
@@ -244,41 +146,9 @@ export function LoginPage() {
     navigate(redirectTo, { replace: true });
   };
 
-  const handleSignUp = async () => {
-    if (isSubmitting) return;
-    if (!authFormRef.current?.reportValidity()) return;
-    if (!hasAcceptedTerms) {
-      setTermsError("You must accept the Terms of Use to create an account.");
-      termsCheckboxRef.current?.focus();
-      return;
-    }
-
-    setError(null);
-    setInfo(null);
-    setTermsError(null);
-    setPendingAction("sign-up");
-    const result = await signUp(email.trim(), password, CURRENT_TERMS_VERSION);
-    setPendingAction(null);
-
-    if (result.error) {
-      setError(result.error);
-      return;
-    }
-
-    if (result.needsEmailConfirmation) {
-      setInfo("Account created. Check your email to confirm registration.");
-      return;
-    }
-
-    setInfo("Account created and signed in.");
-    clearPendingAuthRedirectPath();
-    navigate("/account", { replace: true });
-  };
-
   const handleGoogleSignIn = async () => {
     if (isSubmitting) return;
 
-    setTermsError(null);
     setError(null);
     setInfo(null);
     persistPendingAuthRedirectPath(stateRedirectPath);
@@ -291,6 +161,13 @@ export function LoginPage() {
       setPendingAction(null);
       setError(oauthError);
     }
+  };
+
+  const handleCreateAccount = () => {
+    if (isSubmitting) return;
+    navigate("/create-account", {
+      state,
+    });
   };
 
   return (
@@ -322,7 +199,7 @@ export function LoginPage() {
 
           <AuthSectionDivider />
 
-          <form ref={authFormRef} className="space-y-6" onSubmit={handleSignIn}>
+          <form className="space-y-6" onSubmit={handleSignIn}>
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="auth-email" className="leading-5">
@@ -385,44 +262,30 @@ export function LoginPage() {
               </div>
             </div>
 
-            {error ? <AuthStatusMessage tone="error">{error}</AuthStatusMessage> : null}
-            {info ? <AuthStatusMessage tone="success">{info}</AuthStatusMessage> : null}
+            {error ? (
+              <AuthStatusMessage tone="error">{error}</AuthStatusMessage>
+            ) : null}
+            {info ? (
+              <AuthStatusMessage tone="success">{info}</AuthStatusMessage>
+            ) : null}
 
-            <div className="space-y-4">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="h-10 shadow-none"
-                >
-                  {pendingAction === "sign-in" ? "Processing..." : "Sign in"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={isSubmitting}
-                  onClick={handleSignUp}
-                  aria-describedby="sign-up-terms-hint"
-                  className="h-10 w-full border-border/70 bg-surface-panel shadow-none hover:bg-surface-panel-subtle"
-                >
-                  {pendingAction === "sign-up"
-                    ? "Processing..."
-                    : "Create account"}
-                </Button>
-              </div>
-
-              <TermsConsentField
-                checked={hasAcceptedTerms}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Button
+                type="submit"
                 disabled={isSubmitting}
-                error={termsError}
-                onChange={(checked) => {
-                  setHasAcceptedTerms(checked);
-                  if (checked) {
-                    setTermsError(null);
-                  }
-                }}
-                checkboxRef={termsCheckboxRef}
-              />
+                className="h-10 shadow-none"
+              >
+                {pendingAction === "sign-in" ? "Processing..." : "Sign in"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isSubmitting}
+                onClick={handleCreateAccount}
+                className="h-10 w-full border-border/70 bg-surface-panel shadow-none hover:bg-surface-panel-subtle"
+              >
+                Create account
+              </Button>
             </div>
           </form>
         </CardContent>

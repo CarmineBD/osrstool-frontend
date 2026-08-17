@@ -8,10 +8,7 @@ const navigationLinks = [
   { label: "Account", to: "/account" },
 ] as const;
 
-const resourceLinks = [
-  { label: "Status" },
-  { label: "API docs" },
-] as const;
+const resourceLinks = [{ label: "Status" }, { label: "API docs" }] as const;
 
 const communityLinks = [
   { label: "Discord" },

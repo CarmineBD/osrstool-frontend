@@ -15,11 +15,11 @@ import { useSeo } from "@/hooks/useSeo";
 const SEO_TITLE = "Privacy Policy | RSMethods";
 const SEO_DESCRIPTION =
   "Privacy Policy for RSMethods, including authentication, account data, OSRS player lookups, browser storage, providers, retention, security, and user rights.";
-const LAST_UPDATED = "August 15, 2026";
+const LAST_UPDATED = "August 17, 2026";
 
 const dataCategories = [
   "Account and authentication data, including your Supabase user ID, email address, session or access tokens used to authenticate requests to the backend, the accepted Terms of Use version recorded at account creation, and profile metadata such as an avatar URL when supplied by your authentication provider.",
-  "RSMethods account data, including your account username, role, plan, and account creation and update timestamps.",
+  "RSMethods account data, including your account username, role, plan, account creation and update timestamps, and any current Terms of Use acceptance records such as the accepted version and acceptance timestamp.",
   "OSRS-related data you choose to provide, including your OSRS username and the public character data requested to support filters and roadmaps.",
   "Feature usage data, including likes connected to your authenticated account and removable by unliking.",
   "Browser-stored preferences and temporary session data used for theme, OSRS username, account recovery or redirect flows, and signed-in table preferences.",
@@ -43,7 +43,8 @@ const purposeRows = [
     title: "Security, abuse prevention, and operations",
     description:
       "We process limited technical and presence data to protect the service, apply rate limits, diagnose failures, monitor availability, and keep the application functioning safely.",
-    legalBasis: "Legal basis: legitimate interests in security and reliable operation.",
+    legalBasis:
+      "Legal basis: legitimate interests in security and reliable operation.",
   },
 ] as const;
 
@@ -195,13 +196,19 @@ export function PrivacyPolicyPage() {
               password as part of normal account authentication.
             </p>
             <p>
-              RSMethods uses your Supabase user ID and email address to
-              maintain your account and uses session or access tokens to
-              authenticate requests to the backend.
+              RSMethods uses your Supabase user ID and email address to maintain
+              your account and uses session or access tokens to authenticate
+              requests to the backend.
             </p>
             <p>
               If you choose Google sign-in, Google is used as the external
               identity provider through the Supabase authentication flow.
+            </p>
+            <p>
+              When current Terms of Use acceptance is required beyond initial
+              registration, RSMethods stores the accepted version and
+              acceptance timestamp in the application database for the
+              authenticated account.
             </p>
           </PolicySection>
 
@@ -311,10 +318,11 @@ export function PrivacyPolicyPage() {
               after 72 hours, and aggregated daily presence history is retained
               for up to 3 years.
             </p>
+            <p>Technical application logs are retained for up to 30 days.</p>
             <p>
-              Technical application logs are retained for up to 30 days.
+              RSMethods does not currently apply an inactivity auto-delete
+              policy.
             </p>
-            <p>RSMethods does not currently apply an inactivity auto-delete policy.</p>
           </PolicySection>
 
           <PolicySection title="Account and Data Deletion">

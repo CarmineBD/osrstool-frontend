@@ -9,8 +9,12 @@ export const server = setupServer(
         email: "test@example.com",
         username: "account_user",
         role: "user",
+        terms: {
+          currentVersion: "v1",
+          accepted: true,
+        },
       },
-    })
+    }),
   ),
   http.get("*/me", () =>
     HttpResponse.json({
@@ -19,8 +23,12 @@ export const server = setupServer(
         email: "test@example.com",
         username: "account_user",
         role: "user",
+        terms: {
+          currentVersion: "v1",
+          accepted: true,
+        },
       },
-    })
+    }),
   ),
   http.get("*/achievement-diaries", () => HttpResponse.json([])),
   http.get("*/achievement_diaries", () => HttpResponse.json([])),
@@ -38,7 +46,7 @@ export const server = setupServer(
           name: `Item ${id}`,
           iconUrl: `https://example.com/items/${id}.png`,
         },
-      ])
+      ]),
     );
 
     return HttpResponse.json({ data });
@@ -80,7 +88,8 @@ export const server = setupServer(
             key: "safe",
             label: "Safe",
             severity: 1,
-            description: "This method stayed above break-even over the last 24 hours.",
+            description:
+              "This method stayed above break-even over the last 24 hours.",
           },
           {
             key: "very_slow_to_buy_inputs",
@@ -105,7 +114,7 @@ export const server = setupServer(
     if (url.searchParams.get("window") !== "1h") {
       return HttpResponse.json(
         { error: "Expected trending profit window=1h" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -176,5 +185,5 @@ export const server = setupServer(
       },
     });
   }),
-  http.get("*/skills", () => HttpResponse.json([]))
+  http.get("*/skills", () => HttpResponse.json([])),
 );

@@ -8,6 +8,10 @@ export type MeData = {
   role?: string;
   likes?: number;
   likesCount?: number;
+  terms?: {
+    currentVersion: string;
+    accepted: boolean;
+  };
 };
 
 export type MeResponse = {
@@ -42,12 +46,27 @@ function normalizeMeResponse(value: unknown): MeResponse {
     typeof data.username === "string" && data.username.trim().length > 0
       ? data.username
       : null;
+  const rawTerms =
+    data.terms && typeof data.terms === "object"
+      ? (data.terms as Record<string, unknown>)
+      : null;
+  const normalizedTerms =
+    rawTerms &&
+    typeof rawTerms.currentVersion === "string" &&
+    rawTerms.currentVersion.trim().length > 0 &&
+    typeof rawTerms.accepted === "boolean"
+      ? {
+          currentVersion: rawTerms.currentVersion.trim(),
+          accepted: rawTerms.accepted,
+        }
+      : undefined;
 
   return {
     ...response,
     data: {
       ...data,
       username: normalizedUsername,
+      ...(normalizedTerms ? { terms: normalizedTerms } : {}),
       ...(normalizedLikes === undefined
         ? {}
         : {
@@ -107,7 +126,9 @@ export async function fetchMe(): Promise<MeResponse> {
   }
 
   if (usersMeResponse.status !== 404) {
-    throw new Error(`HTTP ${usersMeResponse.status} - Error fetching /users/me`);
+    throw new Error(
+      `HTTP ${usersMeResponse.status} - Error fetching /users/me`,
+    );
   }
 
   const meResponse = await authFetch(`${apiUrl}/me`, { method: "GET" });
@@ -136,13 +157,16 @@ export async function completeAccountUsername(
     throw new Error("VITE_API_URL is missing");
   }
 
-  const primaryResponse = await authFetch(`${apiUrl}/users/me/account-username`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
+  const primaryResponse = await authFetch(
+    `${apiUrl}/users/me/account-username`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ username }),
     },
-    body: JSON.stringify({ username }),
-  });
+  );
 
   let response = primaryResponse;
   if (primaryResponse.status === 404) {
@@ -170,4 +194,64 @@ export async function completeAccountUsername(
 
   const payload: unknown = await response.json();
   return payload as { data?: { username: string | null } };
+}
+
+export async function acceptCurrentTerms(): Promise<{
+  data?: {
+    terms?: {
+      currentVersion: string;
+      accepted: boolean;
+    };
+  };
+}> {
+  const useProxy =
+    import.meta.env.DEV &&
+    (import.meta.env.VITE_API_USE_PROXY as string | undefined) !== "false";
+  const apiUrl = useProxy
+    ? "/api"
+    : (
+        (import.meta.env.VITE_API_URL as string | undefined) ||
+        (import.meta.env.VITE_API_BASE_URL as string | undefined)
+      )?.replace(/\/$/, "");
+
+  if (!apiUrl) {
+    throw new Error("VITE_API_URL is missing");
+  }
+
+  const primaryResponse = await authFetch(
+    `${apiUrl}/users/me/terms/acceptance`,
+    {
+      method: "POST",
+    },
+  );
+
+  let response = primaryResponse;
+  if (primaryResponse.status === 404) {
+    response = await authFetch(`${apiUrl}/me/terms/acceptance`, {
+      method: "POST",
+    });
+  }
+
+  if (!response.ok) {
+    let message = `HTTP ${response.status} - Error accepting current terms`;
+
+    try {
+      const payload: unknown = await response.json();
+      message = parseErrorMessage(payload) ?? message;
+    } catch {
+      // Ignore invalid error bodies and preserve the fallback message.
+    }
+
+    throw new MeRequestError(message, response.status);
+  }
+
+  const payload: unknown = await response.json();
+  return payload as {
+    data?: {
+      terms?: {
+        currentVersion: string;
+        accepted: boolean;
+      };
+    };
+  };
 }
