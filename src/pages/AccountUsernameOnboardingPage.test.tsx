@@ -280,7 +280,7 @@ describe("AccountUsernameOnboardingPage", () => {
     );
 
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "3 to 20 characters. Lowercase letters, numbers, and underscores only.",
+      "The username must be between 3 and 20 characters. Lowercase letters, numbers, and underscores only.",
     );
     expect(
       screen.getByRole("button", { name: "Complete account" }),
