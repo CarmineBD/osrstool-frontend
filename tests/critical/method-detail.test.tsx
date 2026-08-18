@@ -82,6 +82,7 @@ describe("critical flow: method detail load + error", () => {
     expect(screen.getByText(/850 clicks\/hr/i)).toBeInTheDocument();
     expect(screen.getByText("Safe")).toBeInTheDocument();
     expect(screen.getByText("High investment required")).toBeInTheDocument();
+    expect(screen.queryByText("It's better to")).not.toBeInTheDocument();
 
     const user = userEvent.setup();
     await user.hover(screen.getByText("Safe"));

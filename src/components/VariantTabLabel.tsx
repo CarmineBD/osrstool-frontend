@@ -32,7 +32,7 @@ export function VariantTabLabel({
       {summary ? (
         <span
           className={cn(
-            "flex w-[6.75rem] shrink-0 justify-end overflow-hidden text-right leading-tight",
+            "flex w-[7.5rem] shrink-0 justify-end overflow-hidden text-right leading-tight",
             summaryClassName,
           )}
         >

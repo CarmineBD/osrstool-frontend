@@ -430,6 +430,8 @@ function MetricsCards({ variant }: { variant: Variant }) {
     (total, { experience }) => total + experience,
     0,
   );
+  const hasInputs = (variant.inputs?.length ?? 0) > 0;
+  const hasOutputs = (variant.outputs?.length ?? 0) > 0;
   const inputStrategyRecommendation = getStrategyRecommendation(
     "inputs",
     variant.inputMarketImpactInstant,
@@ -614,29 +616,35 @@ function MetricsCards({ variant }: { variant: Variant }) {
             </div>
           </div>
 
-          <div className={rowClassName}>
-            <MetricLabelWithInfo
-              label="Strategy"
-              tooltip={
-                <p className="m-0">
-                  Strategy compares instant and slow market impact for inputs
-                  and outputs. Lower impact is better because it puts less
-                  pressure on the weighted daily volume behind this variant.
-                </p>
-              }
-            />
-            <div className="w-full max-w-[15rem] rounded-lg border border-border/60 bg-muted/30 p-3">
-              <p className={EDITOR_META_TEXT_CLASS}>It&apos;s better to</p>
-              <div className="mt-2 space-y-3">
-                <StrategyRecommendationLine
-                  recommendation={inputStrategyRecommendation}
-                />
-                <StrategyRecommendationLine
-                  recommendation={outputStrategyRecommendation}
-                />
+          {hasInputs || hasOutputs ? (
+            <div className={rowClassName}>
+              <MetricLabelWithInfo
+                label="Strategy"
+                tooltip={
+                  <p className="m-0">
+                    Strategy compares instant and slow market impact for inputs
+                    and outputs. Lower impact is better because it puts less
+                    pressure on the weighted daily volume behind this variant.
+                  </p>
+                }
+              />
+              <div className="w-full max-w-[15rem] rounded-lg border border-border/60 bg-muted/30 p-3">
+                <p className={EDITOR_META_TEXT_CLASS}>It&apos;s better to</p>
+                <div className="mt-2 space-y-3">
+                  {hasInputs ? (
+                    <StrategyRecommendationLine
+                      recommendation={inputStrategyRecommendation}
+                    />
+                  ) : null}
+                  {hasOutputs ? (
+                    <StrategyRecommendationLine
+                      recommendation={outputStrategyRecommendation}
+                    />
+                  ) : null}
+                </div>
               </div>
             </div>
-          </div>
+          ) : null}
 
           <div className={rowClassName}>
             <span className={labelClassName}>Tags</span>

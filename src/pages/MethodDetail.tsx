@@ -15,6 +15,7 @@ import {
 import { MethodVariantSelector } from "@/features/method-detail/MethodVariantSelector";
 import {
   DEFAULT_VARIANT_SORT_MODE,
+  getVariantGpPerXpHigh,
   getOrderedVariants,
   getVariantSortMetricValue,
   type VariantSortMode,
@@ -77,6 +78,7 @@ export function MethodDetail(_props: Props) {
       ? state.itemsMap[variant.icon_id]?.iconUrl
       : undefined,
     sortMetricValue: getVariantSortMetricValue(variant, variantSortMode),
+    gpPerXpHigh: getVariantGpPerXpHigh(variant),
     isNotViable,
   }));
 
