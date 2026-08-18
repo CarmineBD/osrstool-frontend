@@ -30,6 +30,7 @@ import {
   PASSWORD_MAX_LENGTH,
 } from "@/lib/validation";
 import { CURRENT_TERMS_VERSION } from "@/lib/termsOfUse";
+import { markPendingPostAuthSetup } from "@/lib/authRedirect";
 
 const MIN_PASSWORD_LENGTH = 6;
 
@@ -63,7 +64,7 @@ export function CreateAccountPage() {
       return;
     }
 
-    navigate("/account/onboarding", {
+    navigate("/account/authenticated", {
       replace: true,
       state,
     });
@@ -110,13 +111,14 @@ export function CreateAccountPage() {
     }
 
     if (result.needsEmailConfirmation) {
+      markPendingPostAuthSetup();
       setInfo(
-        "Account created. Check your email to confirm registration, then sign in to continue.",
+        "Account created. Check your email to confirm registration. After confirmation, you will continue with account setup.",
       );
       return;
     }
 
-    navigate("/account/onboarding", {
+    navigate("/account/authenticated", {
       replace: true,
       state,
     });
@@ -131,7 +133,7 @@ export function CreateAccountPage() {
           description={
             <p>
               Create an email and password account for RSMethods, then finish
-              setup by choosing your account username.
+              setup in a short guided flow.
             </p>
           }
         />

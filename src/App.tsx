@@ -30,6 +30,8 @@ import { MethodUpsertSkeleton } from "./features/method-upsert/MethodUpsertSkele
 import { ThemeProvider } from "./contexts/ThemeProvider";
 import { AccountUsernameOnboardingPage } from "./pages/AccountUsernameOnboardingPage";
 import { AcceptTermsPage } from "./pages/AcceptTermsPage";
+import { AccountAuthenticatedPage } from "./pages/AccountAuthenticatedPage";
+import { AccountOsrsUsernamePage } from "./pages/AccountOsrsUsernamePage";
 
 const LazyMethodDetail = lazy(() =>
   import("./pages/MethodDetail").then((module) => ({
@@ -89,10 +91,27 @@ function App() {
                 <Route
                   element={<ProtectedRoute requireIncompleteAccountSetup />}
                 >
+                  <Route
+                    path="/account/authenticated"
+                    element={<AccountAuthenticatedPage />}
+                  />
                   <Route path="/accept-terms" element={<AcceptTermsPage />} />
                   <Route
                     path="/account/onboarding"
                     element={<AccountUsernameOnboardingPage />}
+                  />
+                </Route>
+                <Route
+                  element={
+                    <ProtectedRoute
+                      requireAcceptedTerms
+                      requireCompleteProfile
+                    />
+                  }
+                >
+                  <Route
+                    path="/account/osrs-username"
+                    element={<AccountOsrsUsernamePage />}
                   />
                 </Route>
                 <Route

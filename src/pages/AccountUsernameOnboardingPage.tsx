@@ -38,22 +38,9 @@ import {
   ME_QUERY_KEY,
   MeRequestError,
 } from "@/lib/me";
-
-type LocationState = {
-  from?: {
-    pathname?: string;
-    search?: string;
-    hash?: string;
-  };
-};
-
-function resolveRedirectPath(state: LocationState | null): string {
-  if (!state?.from?.pathname) {
-    return "/account";
-  }
-
-  return `${state.from.pathname}${state.from.search ?? ""}${state.from.hash ?? ""}`;
-}
+import {
+  type AccountSetupLocationState,
+} from "@/lib/accountSetupFlow";
 
 function getPageCopy(
   needsAccountUsername: boolean,
@@ -92,8 +79,7 @@ export function AccountUsernameOnboardingPage() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [generalError, setGeneralError] = useState<string | null>(null);
-  const locationState = location.state as LocationState | null;
-  const redirectPath = resolveRedirectPath(locationState);
+  const locationState = location.state as AccountSetupLocationState | null;
   const termsAccepted = meQuery.data?.data?.terms?.accepted === true;
   const hasAccountUsername = Boolean(meQuery.data?.data?.username);
   const needsTermsAcceptance = !termsAccepted;
@@ -118,7 +104,12 @@ export function AccountUsernameOnboardingPage() {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY });
-      navigate(redirectPath, { replace: true });
+      navigate("/account/osrs-username", {
+        replace: true,
+        state: {
+          from: locationState?.from,
+        } satisfies AccountSetupLocationState,
+      });
     },
   });
   const canSubmit =

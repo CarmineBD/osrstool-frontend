@@ -1,6 +1,8 @@
 const PENDING_AUTH_REDIRECT_STORAGE_KEY = "rsmethods-pending-auth-redirect";
 const LEGACY_PENDING_AUTH_REDIRECT_STORAGE_KEY =
   "gp-now-pending-auth-redirect";
+const PENDING_POST_AUTH_SETUP_STORAGE_KEY =
+  "rsmethods-pending-post-auth-setup";
 const OAUTH_CALLBACK_PATH = "/login";
 
 export const DEFAULT_AUTH_REDIRECT_PATH = "/account";
@@ -54,6 +56,33 @@ export function getGoogleAuthRedirectTo(): string | undefined {
   }
 
   return `${window.location.origin}${OAUTH_CALLBACK_PATH}`;
+}
+
+export function markPendingPostAuthSetup() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(PENDING_POST_AUTH_SETUP_STORAGE_KEY, "1");
+}
+
+export function clearPendingPostAuthSetup() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(PENDING_POST_AUTH_SETUP_STORAGE_KEY);
+}
+
+export function consumePendingPostAuthSetup() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const isPending =
+    window.localStorage.getItem(PENDING_POST_AUTH_SETUP_STORAGE_KEY) === "1";
+  window.localStorage.removeItem(PENDING_POST_AUTH_SETUP_STORAGE_KEY);
+  return isPending;
 }
 
 export function persistPendingAuthRedirectPath(

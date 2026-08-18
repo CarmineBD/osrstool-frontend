@@ -135,10 +135,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const signUp = useCallback(
     async (email: string, password: string, termsVersion: string) => {
+      const redirectTo = getGoogleAuthRedirectTo();
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
+          ...(redirectTo ? { emailRedirectTo: redirectTo } : {}),
           data: {
             termsOfUseVersion: termsVersion,
           },

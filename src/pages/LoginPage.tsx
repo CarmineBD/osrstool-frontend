@@ -27,10 +27,14 @@ import { Label } from "@/components/ui/label";
 import {
   buildAuthRedirectPath,
   clearPendingAuthRedirectPath,
+  clearPendingPostAuthSetup,
+  consumePendingPostAuthSetup,
   consumePendingAuthRedirectPath,
   DEFAULT_AUTH_REDIRECT_PATH,
+  markPendingPostAuthSetup,
   persistPendingAuthRedirectPath,
 } from "@/lib/authRedirect";
+import { buildAccountSetupLocationState } from "@/lib/accountSetupFlow";
 import {
   EMAIL_MAX_LENGTH,
   normalizeBoundedText,
@@ -87,6 +91,26 @@ export function LoginPage() {
 
   useEffect(() => {
     if (!session) return;
+    if (consumePendingPostAuthSetup()) {
+      const postAuthState = (() => {
+        if (stateRedirectPath) {
+          clearPendingAuthRedirectPath();
+          return buildAccountSetupLocationState(stateRedirectPath);
+        }
+
+        const pendingRedirectPath = consumePendingAuthRedirectPath();
+        return pendingRedirectPath
+          ? buildAccountSetupLocationState(pendingRedirectPath)
+          : state;
+      })();
+
+      navigate("/account/authenticated", {
+        replace: true,
+        state: postAuthState,
+      });
+      return;
+    }
+
     if (stateRedirectPath) {
       clearPendingAuthRedirectPath();
       navigate(stateRedirectPath, { replace: true });
@@ -96,7 +120,7 @@ export function LoginPage() {
     const redirectTo =
       consumePendingAuthRedirectPath() ?? DEFAULT_AUTH_REDIRECT_PATH;
     navigate(redirectTo, { replace: true });
-  }, [navigate, session, stateRedirectPath]);
+  }, [navigate, session, state, stateRedirectPath]);
 
   const handleSignIn = async (event: FormEvent) => {
     event.preventDefault();
@@ -124,12 +148,14 @@ export function LoginPage() {
     setError(null);
     setInfo(null);
     persistPendingAuthRedirectPath(stateRedirectPath);
+    markPendingPostAuthSetup();
     setPendingAction("google");
 
     const oauthError = await signInWithGoogle();
 
     if (oauthError) {
       clearPendingAuthRedirectPath();
+      clearPendingPostAuthSetup();
       setPendingAction(null);
       setError(oauthError);
     }

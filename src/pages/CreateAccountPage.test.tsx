@@ -33,8 +33,8 @@ function renderCreateAccount(
         <Routes>
           <Route path="/create-account" element={<CreateAccountPage />} />
           <Route
-            path="/account/onboarding"
-            element={<div>Onboarding destination</div>}
+            path="/account/authenticated"
+            element={<div>Authenticated destination</div>}
           />
         </Routes>
       </MemoryRouter>
@@ -86,7 +86,7 @@ describe("CreateAccountPage", () => {
     await user.click(screen.getByRole("button", { name: "Create account" }));
 
     await waitFor(() =>
-      expect(screen.getByText("Onboarding destination")).toBeInTheDocument(),
+      expect(screen.getByText("Authenticated destination")).toBeInTheDocument(),
     );
 
     expect(signUp).toHaveBeenCalledWith(
@@ -123,9 +123,12 @@ describe("CreateAccountPage", () => {
 
     expect(
       await screen.findByText(
-        "Account created. Check your email to confirm registration, then sign in to continue.",
+        "Account created. Check your email to confirm registration. After confirmation, you will continue with account setup.",
       ),
     ).toBeInTheDocument();
+    expect(window.localStorage.getItem("rsmethods-pending-post-auth-setup")).toBe(
+      "1",
+    );
   });
 
   it("blocks account creation when the repeated password does not match", async () => {

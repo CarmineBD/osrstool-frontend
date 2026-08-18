@@ -124,8 +124,8 @@ describe("critical flow: registration terms acceptance", () => {
     );
     expect(
       await screen.findByText(
-        "Account created. Check your email to confirm registration, then sign in to continue.",
-      )
+        "Account created. Check your email to confirm registration. After confirmation, you will continue with account setup.",
+      ),
     ).toBeInTheDocument();
   });
 });
