@@ -16,6 +16,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { UsernameLookupErrorMessage } from "@/components/UsernameLookupErrorMessage";
 import {
   Field,
   FieldContent,
@@ -1335,7 +1336,10 @@ export function RoadmapsPage() {
 
               {roadmapMutation.error ? (
                 <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-                  {getRoadmapErrorMessage(roadmapMutation.error)}
+                  <UsernameLookupErrorMessage
+                    message={getRoadmapErrorMessage(roadmapMutation.error)}
+                    helperClassName="text-[13px] leading-[18px] text-destructive/85"
+                  />
                 </div>
               ) : null}
 
