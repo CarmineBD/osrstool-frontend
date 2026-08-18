@@ -49,6 +49,7 @@ describe("AuthProvider", () => {
       email: "user@example.com",
       password: "hunter2",
       options: {
+        emailRedirectTo: `${window.location.origin}/login`,
         data: {
           termsOfUseVersion: CURRENT_TERMS_VERSION,
         },

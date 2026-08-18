@@ -11,6 +11,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { UsernameLookupErrorMessage } from "@/components/UsernameLookupErrorMessage";
 import { useUsername } from "@/contexts/UsernameContext";
 import { useAuth } from "@/auth/AuthProvider";
 import { useQuery } from "@tanstack/react-query";
@@ -325,7 +326,12 @@ export function Nav({ hideInput }: Props) {
                 <Button type="submit">Fetch</Button>
               </form>
               {userError && (
-                <p className="text-sm text-destructive">{userError}</p>
+                <div className="text-sm text-destructive">
+                  <UsernameLookupErrorMessage
+                    message={userError}
+                    helperClassName="text-[13px] leading-[18px] text-destructive/85"
+                  />
+                </div>
               )}
             </div>
           )}
@@ -502,7 +508,12 @@ export function Nav({ hideInput }: Props) {
                       <Button type="submit">Fetch</Button>
                     </form>
                     {userError && (
-                      <p className="text-sm text-destructive">{userError}</p>
+                      <div className="text-sm text-destructive">
+                        <UsernameLookupErrorMessage
+                          message={userError}
+                          helperClassName="text-[13px] leading-[18px] text-destructive/85"
+                        />
+                      </div>
                     )}
                   </div>
                 </AccordionContent>

@@ -42,6 +42,10 @@ function renderOnboarding(
             path="/account/onboarding"
             element={<AccountUsernameOnboardingPage />}
           />
+          <Route
+            path="/account/osrs-username"
+            element={<div>OSRS username destination</div>}
+          />
           <Route path="/" element={<div>Home destination</div>} />
           <Route path="/roadmaps" element={<div>Roadmaps destination</div>} />
         </Routes>
@@ -147,7 +151,9 @@ describe("AccountUsernameOnboardingPage", () => {
     await user.click(submitButton);
 
     await waitFor(() =>
-      expect(screen.getByText("Roadmaps destination")).toBeInTheDocument(),
+      expect(
+        screen.getByText("OSRS username destination"),
+      ).toBeInTheDocument(),
     );
 
     expect(calls).toEqual(["terms", "username"]);
@@ -229,7 +235,9 @@ describe("AccountUsernameOnboardingPage", () => {
     await user.click(screen.getByRole("button", { name: "Complete account" }));
 
     await waitFor(() =>
-      expect(screen.getByText("Roadmaps destination")).toBeInTheDocument(),
+      expect(
+        screen.getByText("OSRS username destination"),
+      ).toBeInTheDocument(),
     );
 
     expect(submittedUsername).toBe("new_user");

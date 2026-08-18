@@ -189,6 +189,7 @@ beforeAll(() => {
 afterEach(async () => {
   cleanup();
   server.resetHandlers();
+  window.localStorage.clear();
   window.sessionStorage.clear();
 
   const authProviderModule = await import("@/auth/AuthProvider");
