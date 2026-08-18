@@ -11,6 +11,10 @@ import {
   PUBLIC_TITLE_CLASS,
 } from "@/components/public-page/publicPageStyles";
 import { useSeo } from "@/hooks/useSeo";
+import {
+  TERMS_AFFILIATION_NOTICE_PARAGRAPHS,
+  TERMS_AFFILIATION_NOTICE_TITLE,
+} from "@/lib/legalNotice";
 import { CURRENT_TERMS_LAST_UPDATED_LABEL } from "@/lib/termsOfUse";
 
 const SEO_TITLE = "Terms of Use | RSMethods";
@@ -51,6 +55,10 @@ const sections = [
       "RSMethods and its original content, design, and application logic remain the property of their respective owner unless stated otherwise.",
       "Third-party trademarks, game assets, and referenced materials remain the property of their respective owners.",
     ],
+  },
+  {
+    title: TERMS_AFFILIATION_NOTICE_TITLE,
+    paragraphs: [...TERMS_AFFILIATION_NOTICE_PARAGRAPHS],
   },
   {
     title: "Availability and Changes",
