@@ -51,6 +51,30 @@ type LocationState = {
   };
 };
 
+type SignInErrorKind = "invalid-credentials" | "user-not-found" | "generic";
+
+function classifySignInError(message: string): SignInErrorKind {
+  const normalizedMessage = message.trim().toLowerCase();
+
+  if (
+    normalizedMessage.includes("user not found") ||
+    normalizedMessage.includes("user doesn't exist") ||
+    normalizedMessage.includes("user does not exist") ||
+    normalizedMessage.includes("no account")
+  ) {
+    return "user-not-found";
+  }
+
+  if (
+    normalizedMessage.includes("invalid login credentials") ||
+    normalizedMessage.includes("invalid credentials")
+  ) {
+    return "invalid-credentials";
+  }
+
+  return "generic";
+}
+
 function GoogleIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -168,6 +192,31 @@ export function LoginPage() {
     });
   };
 
+  const renderErrorMessage = () => {
+    if (!error) return null;
+
+    switch (classifySignInError(error)) {
+      case "invalid-credentials":
+        return "The email or password is incorrect.";
+      case "user-not-found":
+        return (
+          <>
+            No account exists for that email.{" "}
+            <button
+              type="button"
+              onClick={handleCreateAccount}
+              className={AUTH_INLINE_LINK_CLASS}
+            >
+              Create an account
+            </button>
+            .
+          </>
+        );
+      default:
+        return error;
+    }
+  };
+
   return (
     <AuthPageShell>
       <Card className={`w-full ${AUTH_CARD_CLASS}`}>
@@ -265,7 +314,9 @@ export function LoginPage() {
               </div>
 
               {error ? (
-                <AuthStatusMessage tone="error">{error}</AuthStatusMessage>
+                <AuthStatusMessage tone="error">
+                  {renderErrorMessage()}
+                </AuthStatusMessage>
               ) : null}
               {info ? (
                 <AuthStatusMessage tone="success">{info}</AuthStatusMessage>
