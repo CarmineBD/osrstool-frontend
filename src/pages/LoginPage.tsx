@@ -2,8 +2,20 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
+import {
+  AUTH_ACTION_ROW_CLASS,
+  AUTH_CARD_CLASS,
+  AUTH_CONTROL_CLASS,
+  AUTH_INLINE_LINK_CLASS,
+  AUTH_OUTLINE_BUTTON_CLASS,
+  AuthPageHeader,
+  AuthPageShell,
+  AuthSection,
+  AuthSectionDivider,
+  AuthStatusMessage,
+} from "@/components/auth/AuthPage";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   InputGroup,
@@ -12,7 +24,6 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import {
   buildAuthRedirectPath,
   clearPendingAuthRedirectPath,
@@ -27,7 +38,6 @@ import {
 } from "@/lib/validation";
 
 type PendingAction = "google" | "sign-in" | null;
-type StatusTone = "error" | "success";
 
 type LocationState = {
   from?: {
@@ -36,12 +46,6 @@ type LocationState = {
     hash?: string;
   };
 };
-
-const AUTH_CARD_CLASS = "border-border/70 bg-surface-panel-elevated shadow-sm";
-const AUTH_BODY_TEXT_CLASS = "text-sm leading-5 text-muted-foreground";
-const AUTH_META_TEXT_CLASS = "text-xs font-medium leading-4 text-muted-foreground";
-const AUTH_INLINE_LINK_CLASS =
-  "font-medium text-link underline underline-offset-4 transition-colors hover:text-link-hover";
 
 function GoogleIcon() {
   return (
@@ -63,38 +67,6 @@ function GoogleIcon() {
         fill="#EA4335"
       />
     </svg>
-  );
-}
-
-function AuthSectionDivider() {
-  return (
-    <div className="flex items-center gap-3" aria-label="Email sign-in section">
-      <Separator className="flex-1" />
-      <span className={AUTH_META_TEXT_CLASS}>Or continue with email</span>
-      <Separator className="flex-1" />
-    </div>
-  );
-}
-
-function AuthStatusMessage({
-  children,
-  tone,
-}: {
-  children: string;
-  tone: StatusTone;
-}) {
-  const toneClassName =
-    tone === "error"
-      ? "border-danger/20 bg-danger-soft text-danger-foreground"
-      : "border-success/20 bg-success-soft text-success-foreground";
-
-  return (
-    <p
-      role={tone === "error" ? "alert" : "status"}
-      className={`rounded-lg border px-4 py-3 text-[13px] font-medium leading-[18px] ${toneClassName}`}
-    >
-      {children}
-    </p>
   );
 }
 
@@ -171,25 +143,25 @@ export function LoginPage() {
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-lg flex-col px-4 py-8 sm:px-6">
-      <Card className={AUTH_CARD_CLASS}>
-        <CardHeader className="gap-2 px-6 pb-0">
-          <p className={AUTH_META_TEXT_CLASS}>Account access</p>
-          <h1 className="text-3xl font-semibold leading-9 tracking-tight text-foreground">
-            Sign in or create your account
-          </h1>
-          <p className={AUTH_BODY_TEXT_CLASS}>
-            Continue with Google or use your email and password to access
-            RSMethods.
-          </p>
-        </CardHeader>
+    <AuthPageShell>
+      <Card className={`w-full ${AUTH_CARD_CLASS}`}>
+        <AuthPageHeader
+          eyebrow="Account access"
+          title="Sign in or create your account"
+          description={
+            <p>
+              Continue with Google or use your email and password to access
+              RSMethods.
+            </p>
+          }
+        />
         <CardContent className="space-y-6 px-6">
           <Button
             type="button"
             variant="outline"
             disabled={isSubmitting}
             onClick={handleGoogleSignIn}
-            className="h-10 w-full border-border/70 bg-surface-panel shadow-none hover:bg-surface-panel-subtle"
+            className={AUTH_OUTLINE_BUTTON_CLASS}
           >
             <GoogleIcon />
             {pendingAction === "google"
@@ -197,99 +169,104 @@ export function LoginPage() {
               : "Continue with Google"}
           </Button>
 
-          <AuthSectionDivider />
+          <AuthSectionDivider label="Or continue with email" />
 
-          <form className="space-y-6" onSubmit={handleSignIn}>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="auth-email" className="leading-5">
-                  Email
-                </Label>
-                <Input
-                  id="auth-email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  maxLength={EMAIL_MAX_LENGTH}
-                  onChange={(event) =>
-                    setEmail(
-                      normalizeBoundedText(event.target.value, EMAIL_MAX_LENGTH),
-                    )
-                  }
-                  className="h-10 border-input bg-background shadow-none"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between gap-3">
-                  <Label htmlFor="auth-password" className="leading-5">
-                    Password
+          <form onSubmit={handleSignIn}>
+            <AuthSection
+              title="Email sign in"
+              description="Enter your account email and password to continue."
+            >
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="auth-email" className="leading-5">
+                    Email
                   </Label>
-                  <Link
-                    to="/forgot-password"
-                    className={`${AUTH_INLINE_LINK_CLASS} text-sm leading-5`}
-                  >
-                    Forgot your password?
-                  </Link>
-                </div>
-
-                <InputGroup className="h-10 border-input bg-background shadow-none">
-                  <InputGroupInput
-                    id="auth-password"
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    maxLength={PASSWORD_MAX_LENGTH}
-                    onChange={(event) => setPassword(event.target.value)}
-                    minLength={6}
-                    className="h-10"
+                  <Input
+                    id="auth-email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    maxLength={EMAIL_MAX_LENGTH}
+                    onChange={(event) =>
+                      setEmail(
+                        normalizeBoundedText(event.target.value, EMAIL_MAX_LENGTH),
+                      )
+                    }
+                    className={AUTH_CONTROL_CLASS}
                     required
                   />
-                  <InputGroupAddon align="inline-end">
-                    <InputGroupButton
-                      aria-label={
-                        showPassword ? "Hide password" : "Show password"
-                      }
-                      size="icon-sm"
-                      onClick={() => setShowPassword((previous) => !previous)}
-                      type="button"
-                      variant="ghost"
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <Label htmlFor="auth-password" className="leading-5">
+                      Password
+                    </Label>
+                    <Link
+                      to="/forgot-password"
+                      className={`${AUTH_INLINE_LINK_CLASS} text-sm leading-5`}
                     >
-                      {showPassword ? <EyeOff /> : <Eye />}
-                    </InputGroupButton>
-                  </InputGroupAddon>
-                </InputGroup>
+                      Forgot your password?
+                    </Link>
+                  </div>
+
+                  <InputGroup className={AUTH_CONTROL_CLASS}>
+                    <InputGroupInput
+                      id="auth-password"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      maxLength={PASSWORD_MAX_LENGTH}
+                      onChange={(event) => setPassword(event.target.value)}
+                      minLength={6}
+                      className="h-10"
+                      required
+                    />
+                    <InputGroupAddon align="inline-end">
+                      <InputGroupButton
+                        aria-label={
+                          showPassword ? "Hide password" : "Show password"
+                        }
+                        size="icon-sm"
+                        onClick={() => setShowPassword((previous) => !previous)}
+                        type="button"
+                        variant="ghost"
+                      >
+                        {showPassword ? <EyeOff /> : <Eye />}
+                      </InputGroupButton>
+                    </InputGroupAddon>
+                  </InputGroup>
+                </div>
               </div>
-            </div>
 
-            {error ? (
-              <AuthStatusMessage tone="error">{error}</AuthStatusMessage>
-            ) : null}
-            {info ? (
-              <AuthStatusMessage tone="success">{info}</AuthStatusMessage>
-            ) : null}
+              {error ? (
+                <AuthStatusMessage tone="error">{error}</AuthStatusMessage>
+              ) : null}
+              {info ? (
+                <AuthStatusMessage tone="success">{info}</AuthStatusMessage>
+              ) : null}
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="h-10 shadow-none"
-              >
-                {pendingAction === "sign-in" ? "Processing..." : "Sign in"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={isSubmitting}
-                onClick={handleCreateAccount}
-                className="h-10 w-full border-border/70 bg-surface-panel shadow-none hover:bg-surface-panel-subtle"
-              >
-                Create account
-              </Button>
-            </div>
+              <div className={AUTH_ACTION_ROW_CLASS}>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="h-10 shadow-none"
+                >
+                  {pendingAction === "sign-in" ? "Processing..." : "Sign in"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isSubmitting}
+                  onClick={handleCreateAccount}
+                  className={AUTH_OUTLINE_BUTTON_CLASS}
+                >
+                  Create account
+                </Button>
+              </div>
+            </AuthSection>
           </form>
         </CardContent>
       </Card>
-    </div>
+    </AuthPageShell>
   );
 }

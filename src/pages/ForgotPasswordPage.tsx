@@ -1,14 +1,18 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/auth/AuthProvider";
-import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  AUTH_ACTION_ROW_CLASS,
+  AUTH_CARD_CLASS,
+  AUTH_CONTROL_CLASS,
+  AUTH_OUTLINE_BUTTON_CLASS,
+  AuthPageHeader,
+  AuthPageShell,
+  AuthSection,
+  AuthStatusMessage,
+} from "@/components/auth/AuthPage";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { EMAIL_MAX_LENGTH, normalizeBoundedText } from "@/lib/validation";
@@ -42,47 +46,59 @@ export function ForgotPasswordPage() {
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col px-4 py-10">
-      <Card>
-        <CardHeader>
-          <CardTitle>Reset password</CardTitle>
-          <CardDescription>
-            Enter your account email and we&apos;ll send you a password reset link.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form className="space-y-4" onSubmit={handleSubmit}>
-            <div className="space-y-2">
-              <Label htmlFor="reset-email">Email</Label>
-              <Input
-                id="reset-email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                maxLength={EMAIL_MAX_LENGTH}
-                onChange={(event) =>
-                  setEmail(
-                    normalizeBoundedText(event.target.value, EMAIL_MAX_LENGTH)
-                  )
-                }
-                required
-              />
-            </div>
+    <AuthPageShell>
+      <Card className={`w-full ${AUTH_CARD_CLASS}`}>
+        <AuthPageHeader
+          eyebrow="Account recovery"
+          title="Reset password"
+          description="Enter your account email and we will send you a password reset link."
+        />
+        <CardContent className="space-y-6 px-6">
+          <form onSubmit={handleSubmit}>
+            <AuthSection
+              title="Recovery email"
+              description="Use the email address linked to your RSMethods account."
+            >
+              <div className="space-y-2">
+                <Label htmlFor="reset-email" className="leading-5">
+                  Email
+                </Label>
+                <Input
+                  id="reset-email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  maxLength={EMAIL_MAX_LENGTH}
+                  onChange={(event) =>
+                    setEmail(
+                      normalizeBoundedText(event.target.value, EMAIL_MAX_LENGTH)
+                    )
+                  }
+                  className={AUTH_CONTROL_CLASS}
+                  required
+                />
+              </div>
 
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
-            {info ? <p className="text-sm text-success">{info}</p> : null}
+              {error ? <AuthStatusMessage tone="error">{error}</AuthStatusMessage> : null}
+              {info ? <AuthStatusMessage tone="success">{info}</AuthStatusMessage> : null}
 
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Button type="submit" disabled={isSubmitting} className="sm:flex-1">
-                {isSubmitting ? "Sending..." : "Send reset link"}
-              </Button>
-              <Button asChild type="button" variant="outline" className="sm:flex-1">
-                <Link to="/login">Back to login</Link>
-              </Button>
-            </div>
+              <div className={AUTH_ACTION_ROW_CLASS}>
+                <Button type="submit" disabled={isSubmitting} className="h-10">
+                  {isSubmitting ? "Sending..." : "Send reset link"}
+                </Button>
+                <Button
+                  asChild
+                  type="button"
+                  variant="outline"
+                  className={AUTH_OUTLINE_BUTTON_CLASS}
+                >
+                  <Link to="/login">Back to login</Link>
+                </Button>
+              </div>
+            </AuthSection>
           </form>
         </CardContent>
       </Card>
-    </div>
+    </AuthPageShell>
   );
 }

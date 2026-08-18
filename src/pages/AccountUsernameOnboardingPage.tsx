@@ -1,18 +1,27 @@
 import { useState, type FormEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { AccountSetupSection } from "@/components/account-setup/AccountSetupSection";
 import { DeleteAccountAction } from "@/components/account/DeleteAccountAction";
 import { TermsAcceptanceField } from "@/components/account-setup/TermsAcceptanceField";
+import {
+  AUTH_ACTION_ROW_CLASS,
+  AUTH_CARD_CLASS,
+  AUTH_CONTROL_CLASS,
+  AUTH_INLINE_LINK_CLASS,
+  AUTH_OUTLINE_BUTTON_CLASS,
+  AuthPageHeader,
+  AuthPageShell,
+  AuthSection,
+  AuthStatusMessage,
+} from "@/components/auth/AuthPage";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Field,
   FieldContent,
   FieldError,
   FieldLabel,
 } from "@/components/ui/field";
-import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/auth/AuthProvider";
 import { useMe } from "@/hooks/useMe";
@@ -176,51 +185,43 @@ export function AccountUsernameOnboardingPage() {
 
   if (meQuery.isLoading) {
     return (
-      <div className="mx-auto flex min-h-[70vh] w-full max-w-2xl items-center px-4 py-8">
-        <Card className="w-full bg-surface-panel shadow-none">
-          <CardHeader className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              Account setup
-            </p>
-            <h1 className="text-3xl font-semibold leading-9 tracking-tight text-foreground">
-              Complete your account setup
-            </h1>
-            <p className="text-sm leading-5 text-muted-foreground">
+      <AuthPageShell>
+        <Card className={`w-full ${AUTH_CARD_CLASS}`}>
+          <AuthPageHeader
+            eyebrow="Account setup"
+            title="Complete your account setup"
+            description="Checking your account requirements..."
+          />
+          <CardContent className="px-6">
+            <AuthStatusMessage tone="info">
               Checking your account requirements...
-            </p>
-          </CardHeader>
+            </AuthStatusMessage>
+          </CardContent>
         </Card>
-      </div>
+      </AuthPageShell>
     );
   }
 
   return (
-    <div className="mx-auto flex min-h-[70vh] w-full max-w-2xl items-center px-4 py-8">
-      <Card className="w-full bg-surface-panel shadow-none">
-        <CardHeader className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            {pageCopy.eyebrow}
-          </p>
-          <h1 className="text-3xl font-semibold leading-9 tracking-tight text-foreground">
-            {pageCopy.title}
-          </h1>
-          <p className="text-sm leading-5 text-muted-foreground">
-            {pageCopy.description}
-          </p>
-        </CardHeader>
-
-        <CardContent className="space-y-8">
+    <AuthPageShell>
+      <Card className={`w-full ${AUTH_CARD_CLASS}`}>
+        <AuthPageHeader
+          eyebrow={pageCopy.eyebrow}
+          title={pageCopy.title}
+          description={pageCopy.description}
+        />
+        <CardContent className="space-y-6 px-6">
           {meQuery.error ? (
-            <p className="text-[13px] font-medium leading-[18px] text-destructive">
+            <AuthStatusMessage tone="error">
               {meQuery.error instanceof Error
                 ? meQuery.error.message
                 : "Unable to load your account requirements."}
-            </p>
+            </AuthStatusMessage>
           ) : null}
 
-          <form className="space-y-8" onSubmit={handleSubmit}>
+          <form className="space-y-6" onSubmit={handleSubmit}>
             {needsAccountUsername ? (
-              <AccountSetupSection
+              <AuthSection
                 title="RSMethods username"
                 description={
                   <p>
@@ -230,7 +231,7 @@ export function AccountUsernameOnboardingPage() {
                 }
               >
                 <Field>
-                  <FieldLabel htmlFor="account-username">
+                  <FieldLabel htmlFor="account-username" className="leading-5">
                     RSMethods username
                   </FieldLabel>
                   <FieldContent>
@@ -262,6 +263,7 @@ export function AccountUsernameOnboardingPage() {
                       }}
                       aria-invalid={validationError ? true : undefined}
                       disabled={completeSetupMutation.isPending}
+                      className={AUTH_CONTROL_CLASS}
                       required
                     />
                   </FieldContent>
@@ -270,28 +272,24 @@ export function AccountUsernameOnboardingPage() {
                     {validationError}
                   </FieldError>
                 </Field>
-              </AccountSetupSection>
-            ) : null}
-
-            {needsAccountUsername && needsTermsAcceptance ? (
-              <Separator />
+              </AuthSection>
             ) : null}
 
             {needsTermsAcceptance ? (
-              <AccountSetupSection
+              <AuthSection
                 title="Terms of Use"
                 description={
                   <p>
                     Review the{" "}
                     <Link
-                      className="font-medium text-link underline underline-offset-4 transition-colors hover:text-link-hover"
+                      className={AUTH_INLINE_LINK_CLASS}
                       to="/terms-of-use"
                     >
                       Terms of Use
                     </Link>{" "}
                     and{" "}
                     <Link
-                      className="font-medium text-link underline underline-offset-4 transition-colors hover:text-link-hover"
+                      className={AUTH_INLINE_LINK_CLASS}
                       to="/privacy-policy"
                     >
                       Privacy Policy
@@ -310,25 +308,21 @@ export function AccountUsernameOnboardingPage() {
                     setAcceptedTerms(checked);
                   }}
                 />
-              </AccountSetupSection>
+              </AuthSection>
             ) : null}
 
-            {(generalError || mutationErrorMessage) && <Separator />}
-
             {generalError ? (
-              <p className="text-[13px] font-medium leading-[18px] text-destructive">
-                {generalError}
-              </p>
+              <AuthStatusMessage tone="error">{generalError}</AuthStatusMessage>
             ) : null}
 
             {mutationErrorMessage ? (
-              <p className="text-[13px] font-medium leading-[18px] text-destructive">
+              <AuthStatusMessage tone="error">
                 {mutationErrorMessage}
-              </p>
+              </AuthStatusMessage>
             ) : null}
 
-            <div className="flex flex-col gap-3 pt-2 sm:flex-row">
-              <Button type="submit" className="sm:flex-1" disabled={!canSubmit}>
+            <div className={AUTH_ACTION_ROW_CLASS}>
+              <Button type="submit" className="h-10" disabled={!canSubmit}>
                 {completeSetupMutation.isPending
                   ? "Saving..."
                   : "Complete account"}
@@ -336,7 +330,7 @@ export function AccountUsernameOnboardingPage() {
               <Button
                 type="button"
                 variant="outline"
-                className="sm:flex-1"
+                className={AUTH_OUTLINE_BUTTON_CLASS}
                 disabled={completeSetupMutation.isPending}
                 onClick={() => {
                   void handleSignOut();
@@ -346,7 +340,7 @@ export function AccountUsernameOnboardingPage() {
               </Button>
             </div>
 
-            <div className="pt-2">
+            <div className="border-t border-border/70 pt-6">
               <DeleteAccountAction
                 disabled={completeSetupMutation.isPending}
                 triggerVariant="text"
@@ -355,6 +349,6 @@ export function AccountUsernameOnboardingPage() {
           </form>
         </CardContent>
       </Card>
-    </div>
+    </AuthPageShell>
   );
 }
