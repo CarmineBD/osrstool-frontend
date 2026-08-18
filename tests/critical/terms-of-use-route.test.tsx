@@ -3,6 +3,11 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import App from "@/App";
+import {
+  FOOTER_AFFILIATION_NOTICE,
+  TERMS_AFFILIATION_NOTICE_PARAGRAPHS,
+  TERMS_AFFILIATION_NOTICE_TITLE,
+} from "@/lib/legalNotice";
 import { createTestQueryClient } from "../utils/render";
 
 function renderApp() {
@@ -21,6 +26,8 @@ describe("critical flow: terms of use route", () => {
     renderApp();
 
     const user = userEvent.setup();
+    expect(screen.getByText(FOOTER_AFFILIATION_NOTICE)).toBeInTheDocument();
+
     const termsLink = await screen.findByRole("link", {
       name: /terms of use/i,
     });
@@ -35,6 +42,12 @@ describe("critical flow: terms of use route", () => {
     expect(
       screen.getByRole("heading", { name: "Acceptable Use" })
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: TERMS_AFFILIATION_NOTICE_TITLE })
+    ).toBeInTheDocument();
+    for (const paragraph of TERMS_AFFILIATION_NOTICE_PARAGRAPHS) {
+      expect(screen.getByText(paragraph)).toBeInTheDocument();
+    }
 
     const termsPagePanel = screen.getByRole("heading", {
       name: "Terms of Use",
