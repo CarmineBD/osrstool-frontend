@@ -35,6 +35,7 @@ import {
   hasAtMostDecimalPlaces,
   INPUTS_MAX_COUNT,
   MAX_ACTIONS_PER_HOUR,
+  MAX_ACTIONS_PER_HOUR_DECIMAL_PLACES,
   MAX_COMBAT_LEVEL,
   MAX_AFKINESS,
   MAX_CLICK_INTENSITY,
@@ -170,11 +171,14 @@ function validateVariant(variant: Variant, index: number): string | null {
     return `${variantLabel}: actions/hr is required.`;
   }
   if (
-    !Number.isInteger(variant.actionsPerHour) ||
     variant.actionsPerHour < 0 ||
-    variant.actionsPerHour > MAX_ACTIONS_PER_HOUR
+    variant.actionsPerHour > MAX_ACTIONS_PER_HOUR ||
+    !hasAtMostDecimalPlaces(
+      variant.actionsPerHour,
+      MAX_ACTIONS_PER_HOUR_DECIMAL_PLACES,
+    )
   ) {
-    return `${variantLabel}: actions/hr must be an integer between 0 and ${MAX_ACTIONS_PER_HOUR}.`;
+    return `${variantLabel}: actions/hr must be between 0 and ${MAX_ACTIONS_PER_HOUR} with up to ${MAX_ACTIONS_PER_HOUR_DECIMAL_PLACES} decimal places.`;
   }
   if (!variant.actionType) {
     return `${variantLabel}: action type is required.`;

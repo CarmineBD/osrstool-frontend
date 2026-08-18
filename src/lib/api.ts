@@ -10,10 +10,12 @@ import {
 } from "@/lib/termsAcceptanceRequirement";
 import {
   MAX_ACTIONS_PER_HOUR,
+  MAX_ACTIONS_PER_HOUR_DECIMAL_PLACES,
   MAX_SKILL_LEVEL,
   SEARCH_QUERY_MAX_LENGTH,
   USERNAME_MAX_LENGTH,
   clampInteger,
+  hasAtMostDecimalPlaces,
   normalizeBoundedText,
 } from "@/lib/validation";
 
@@ -1724,12 +1726,15 @@ function buildVariantUpdatePayload(variant: Variant): UpdateVariantDto {
   const actionType = variant.actionType;
   if (
     typeof actionsPerHour !== "number" ||
-    !Number.isInteger(actionsPerHour) ||
     actionsPerHour < 0 ||
-    actionsPerHour > MAX_ACTIONS_PER_HOUR
+    actionsPerHour > MAX_ACTIONS_PER_HOUR ||
+    !hasAtMostDecimalPlaces(
+      actionsPerHour,
+      MAX_ACTIONS_PER_HOUR_DECIMAL_PLACES,
+    )
   ) {
     throw new Error(
-      `Variant actionsPerHour must be an integer between 0 and ${MAX_ACTIONS_PER_HOUR}`,
+      `Variant actionsPerHour must be between 0 and ${MAX_ACTIONS_PER_HOUR} with up to ${MAX_ACTIONS_PER_HOUR_DECIMAL_PLACES} decimal places`,
     );
   }
   if (!actionType || !VARIANT_ACTION_TYPE_OPTIONS.includes(actionType)) {

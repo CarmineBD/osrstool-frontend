@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "../../tests/msw/server";
-import { fetchMethodsSkillsSummary } from "./api";
+import { buildMethodUpdatePayload, fetchMethodsSkillsSummary } from "./api";
 import {
   __resetAccountUsernameRequiredNotifications,
   ACCOUNT_USERNAME_REQUIRED_ERROR_CODE,
@@ -86,5 +86,34 @@ describe("api account username requirement handling", () => {
     });
 
     unsubscribe();
+  });
+});
+
+describe("api method payloads", () => {
+  it("allows decimal actionsPerHour values within range", () => {
+    expect(
+      buildMethodUpdatePayload(
+        {
+          name: "Test method",
+          category: "combat",
+          description: "Test",
+          enabled: true,
+          icon_id: 4151,
+        },
+        [
+          {
+            label: "Main",
+            icon_id: 11284,
+            members: true,
+            actionsPerHour: 12.5,
+            actionType: "kills",
+            xpHour: [],
+            requirements: {},
+            inputs: [],
+            outputs: [],
+          },
+        ],
+      ).variants[0]?.actionsPerHour,
+    ).toBe(12.5);
   });
 });
