@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { FOOTER_AFFILIATION_NOTICE } from "@/lib/legalNotice";
 
 const navigationLinks = [
   { label: "All Methods", to: "/allMethods" },
@@ -104,18 +105,23 @@ export function Footer() {
           </section>
         </div>
 
-        <div className="mt-10 flex flex-col gap-3 border-t border-border/70 pt-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <p>Copyright {year} RSMethods. All rights reserved.</p>
-          <div className="flex flex-wrap items-center gap-4">
-            {legalLinks.map((link) => (
-              <Link
-                key={link.to}
-                to={link.to}
-                className="hover:text-foreground"
-              >
-                {link.label}
-              </Link>
-            ))}
+        <div className="mt-10 border-t border-border/70 pt-5 text-xs text-muted-foreground">
+          <p className="max-w-3xl text-xs leading-relaxed">
+            {FOOTER_AFFILIATION_NOTICE}
+          </p>
+          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p>Copyright {year} RSMethods. All rights reserved.</p>
+            <div className="flex flex-wrap items-center gap-4">
+              {legalLinks.map((link) => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  className="hover:text-foreground"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
       </div>
