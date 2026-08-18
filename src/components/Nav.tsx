@@ -173,13 +173,8 @@ export function Nav({ hideInput }: Props) {
         <Link
           to="/"
           aria-label="RSMethods home"
-          className="flex items-center space-x-2"
+          className="flex items-center"
         >
-          <img
-            src="https://oldschool.runescape.wiki/images/thumb/Coins_detail.png/120px-Coins_detail.png?404bc"
-            alt="Logo"
-            className="h-8 w-auto"
-          />
           <span className="flex items-baseline gap-2">
             <span className="text-xl font-bold">
               <span className="text-brand ">RSM</span>

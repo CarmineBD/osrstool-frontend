@@ -41,13 +41,16 @@ import type {
 import { VARIANT_ACTION_TYPE_OPTIONS } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import {
+  clampDecimal,
   clampInteger,
   DESCRIPTION_MAX_LENGTH,
   INPUTS_MAX_COUNT,
   MAX_ACTIONS_PER_HOUR,
+  MAX_ACTIONS_PER_HOUR_DECIMAL_PLACES,
   MAX_AFKINESS,
   MAX_CLICK_INTENSITY,
   MAX_XP_HOUR_SKILLS,
+  hasAtMostDecimalPlaces,
   normalizeBoundedText,
   normalizeDigitInput,
   OUTPUTS_MAX_COUNT,
@@ -136,10 +139,13 @@ export function VariantForm({
   const actionsPerHourError =
     showValidationErrors &&
     (actionsPerHour === undefined ||
-      !Number.isInteger(actionsPerHour) ||
       actionsPerHour < 0 ||
-      actionsPerHour > MAX_ACTIONS_PER_HOUR)
-      ? `Actions/hr is required and must be between 0 and ${MAX_ACTIONS_PER_HOUR}.`
+      actionsPerHour > MAX_ACTIONS_PER_HOUR ||
+      !hasAtMostDecimalPlaces(
+        actionsPerHour,
+        MAX_ACTIONS_PER_HOUR_DECIMAL_PLACES,
+      ))
+      ? `Actions/hr is required and must be between 0 and ${MAX_ACTIONS_PER_HOUR} with up to ${MAX_ACTIONS_PER_HOUR_DECIMAL_PLACES} decimals.`
       : undefined;
   const actionTypeError =
     showValidationErrors && !actionType ? "Action type is required." : undefined;
@@ -338,10 +344,10 @@ export function VariantForm({
           </label>
           <Input
             type="number"
-            inputMode="numeric"
+            inputMode="decimal"
             min={0}
             max={MAX_ACTIONS_PER_HOUR}
-            step={1}
+            step={0.01}
             className={cn(
               "h-10 w-full max-w-[8rem] bg-background",
               actionsPerHourError &&
@@ -352,10 +358,11 @@ export function VariantForm({
               const numericValue =
                 event.target.value === ""
                   ? undefined
-                  : clampInteger(
+                  : clampDecimal(
                       event.target.valueAsNumber,
                       0,
                       MAX_ACTIONS_PER_HOUR,
+                      MAX_ACTIONS_PER_HOUR_DECIMAL_PLACES,
                     );
               setActionsPerHour(numericValue);
               onChange?.({ ...variant, actionsPerHour: numericValue });

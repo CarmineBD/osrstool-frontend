@@ -7,7 +7,7 @@ export interface OrderedVariantEntry {
   isNotViable: boolean;
 }
 
-export type VariantSortMode = "profit" | "xp" | "afk";
+export type VariantSortMode = "profit" | "xp" | "gpPerXp" | "afk";
 
 export const DEFAULT_VARIANT_SORT_MODE: VariantSortMode = "profit";
 
@@ -17,6 +17,7 @@ export const VARIANT_SORT_OPTIONS: Array<{
 }> = [
   { value: "profit", label: "By profit" },
   { value: "xp", label: "By xp" },
+  { value: "gpPerXp", label: "By gp/xp" },
   { value: "afk", label: "By afk %" },
 ];
 
@@ -37,12 +38,23 @@ export function getVariantXpTotal(variant: Variant): number {
   }, 0);
 }
 
+export function getVariantGpPerXpHigh(variant: Variant): number | undefined {
+  const totalXp = getVariantXpTotal(variant);
+  if (totalXp <= 0) return undefined;
+  if (!isFiniteNumber(variant.highProfit)) return undefined;
+  return variant.highProfit / totalXp;
+}
+
 export function getVariantSortMetricValue(
   variant: Variant,
   sortMode: VariantSortMode,
 ): number | undefined {
   if (sortMode === "xp") {
     return getVariantXpTotal(variant);
+  }
+
+  if (sortMode === "gpPerXp") {
+    return getVariantGpPerXpHigh(variant);
   }
 
   if (sortMode === "afk") {
