@@ -27,8 +27,8 @@ export function TermsAcceptanceField({
       <div
         className={
           variant === "boxed"
-            ? "flex items-start gap-3 rounded-lg border bg-background p-4"
-            : "flex items-start gap-3"
+            ? "flex items-start gap-3 rounded-md border border-border/70 bg-background p-4"
+            : "flex items-start gap-3 rounded-md"
         }
       >
         <input
