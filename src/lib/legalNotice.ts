@@ -1,3 +1,7 @@
+export const PROJECT_CONTACT_EMAIL = "contact@rsmethods.com";
+
+export const PROJECT_CONTACT_MAILTO = `mailto:${PROJECT_CONTACT_EMAIL}`;
+
 export const FOOTER_AFFILIATION_NOTICE =
   "RSMethods is not affiliated with, endorsed by, or approved by Jagex. RuneScape, Old School RuneScape, and related names, marks, game content, and assets belong to their respective owners.";
 

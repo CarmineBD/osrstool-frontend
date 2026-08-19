@@ -12,6 +12,8 @@ import {
 } from "@/components/public-page/publicPageStyles";
 import { useSeo } from "@/hooks/useSeo";
 import {
+  PROJECT_CONTACT_EMAIL,
+  PROJECT_CONTACT_MAILTO,
   TERMS_AFFILIATION_NOTICE_PARAGRAPHS,
   TERMS_AFFILIATION_NOTICE_TITLE,
 } from "@/lib/legalNotice";
@@ -139,11 +141,8 @@ export function TermsOfUsePage() {
                 <p>
                   For legal or account-related questions about these Terms of
                   Use, contact{" "}
-                  <a
-                    className={PUBLIC_LINK_CLASS}
-                    href="mailto:contact@rsmethods.com"
-                  >
-                    contact@rsmethods.com
+                  <a className={PUBLIC_LINK_CLASS} href={PROJECT_CONTACT_MAILTO}>
+                    {PROJECT_CONTACT_EMAIL}
                   </a>
                   .
                 </p>

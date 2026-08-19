@@ -1,20 +1,15 @@
 import { Link } from "react-router-dom";
-import { FOOTER_AFFILIATION_NOTICE } from "@/lib/legalNotice";
+import {
+  FOOTER_AFFILIATION_NOTICE,
+  PROJECT_CONTACT_EMAIL,
+  PROJECT_CONTACT_MAILTO,
+} from "@/lib/legalNotice";
 
 const navigationLinks = [
   { label: "All Methods", to: "/allMethods" },
   { label: "Training Methods", to: "/skilling" },
-  { label: "Roadmaps", to: "/roadmaps" },
   { label: "Wiki", to: "/wiki" },
-  { label: "Account", to: "/account" },
-] as const;
-
-const resourceLinks = [{ label: "Status" }, { label: "API docs" }] as const;
-
-const communityLinks = [
-  { label: "Discord" },
-  { label: "X / Twitter" },
-  { label: "Reddit" },
+  { label: "Changelog", to: "/changelog" },
 ] as const;
 
 const legalLinks = [
@@ -22,18 +17,6 @@ const legalLinks = [
   { label: "Terms of Use", to: "/terms-of-use" },
   { label: "Cookies and local storage", to: "/cookies-and-local-storage" },
 ] as const;
-
-function ComingSoonLink({ label }: { label: string }) {
-  return (
-    <span
-      aria-disabled="true"
-      className="cursor-not-allowed text-muted-foreground/70"
-      title="Coming soon"
-    >
-      {label} <span className="text-xs">(soon)</span>
-    </span>
-  );
-}
 
 export function Footer() {
   const year = new Date().getFullYear();
@@ -58,9 +41,6 @@ export function Footer() {
               Practical OSRS tools for money making, skilling, and community
               knowledge.
             </p>
-            <p className="mt-4 text-xs text-muted-foreground">
-              Contact options are coming soon.
-            </p>
           </section>
 
           <section>
@@ -80,12 +60,14 @@ export function Footer() {
 
           <section>
             <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground/90">
-              Resources
+              Legal
             </h2>
             <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-              {resourceLinks.map((link) => (
-                <li key={link.label}>
-                  <ComingSoonLink label={link.label} />
+              {legalLinks.map((link) => (
+                <li key={link.to}>
+                  <Link to={link.to} className="hover:text-foreground">
+                    {link.label}
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -93,36 +75,25 @@ export function Footer() {
 
           <section>
             <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground/90">
-              Community
+              Contact
             </h2>
-            <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-              {communityLinks.map((link) => (
-                <li key={link.label}>
-                  <ComingSoonLink label={link.label} />
-                </li>
-              ))}
-            </ul>
+
+            <a
+              className="mt-2 inline-block text-sm text-muted-foreground hover:text-foreground"
+              href={PROJECT_CONTACT_MAILTO}
+            >
+              {PROJECT_CONTACT_EMAIL}
+            </a>
           </section>
         </div>
 
         <div className="mt-10 border-t border-border/70 pt-5 text-xs text-muted-foreground">
-          <p className="max-w-3xl text-xs leading-relaxed">
+          <p className="max-w-3xl leading-relaxed">
             {FOOTER_AFFILIATION_NOTICE}
           </p>
-          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p>Copyright {year} RSMethods. All rights reserved.</p>
-            <div className="flex flex-wrap items-center gap-4">
-              {legalLinks.map((link) => (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  className="hover:text-foreground"
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </div>
-          </div>
+          <p className="mt-2">
+            Copyright {year} RSMethods. All rights reserved.
+          </p>
         </div>
       </div>
     </footer>

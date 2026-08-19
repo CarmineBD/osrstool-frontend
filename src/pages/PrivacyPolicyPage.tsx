@@ -11,6 +11,10 @@ import {
   PUBLIC_TITLE_CLASS,
 } from "@/components/public-page/publicPageStyles";
 import { useSeo } from "@/hooks/useSeo";
+import {
+  PROJECT_CONTACT_EMAIL,
+  PROJECT_CONTACT_MAILTO,
+} from "@/lib/legalNotice";
 
 const SEO_TITLE = "Privacy Policy | RSMethods";
 const SEO_DESCRIPTION =
@@ -154,11 +158,8 @@ export function PrivacyPolicyPage() {
             </p>
             <p>
               For privacy matters, you can contact{" "}
-              <a
-                className={PUBLIC_LINK_CLASS}
-                href="mailto:contact@rsmethods.com"
-              >
-                contact@rsmethods.com
+              <a className={PUBLIC_LINK_CLASS} href={PROJECT_CONTACT_MAILTO}>
+                {PROJECT_CONTACT_EMAIL}
               </a>
               .
             </p>
@@ -332,11 +333,8 @@ export function PrivacyPolicyPage() {
             </p>
             <p>
               If you want your account and related data deleted, contact{" "}
-              <a
-                className={PUBLIC_LINK_CLASS}
-                href="mailto:contact@rsmethods.com"
-              >
-                contact@rsmethods.com
+              <a className={PUBLIC_LINK_CLASS} href={PROJECT_CONTACT_MAILTO}>
+                {PROJECT_CONTACT_EMAIL}
               </a>
               .
             </p>
@@ -376,11 +374,8 @@ export function PrivacyPolicyPage() {
           <PolicySection title="Contact">
             <p>
               For privacy questions, requests, or deletion requests, contact{" "}
-              <a
-                className={PUBLIC_LINK_CLASS}
-                href="mailto:contact@rsmethods.com"
-              >
-                contact@rsmethods.com
+              <a className={PUBLIC_LINK_CLASS} href={PROJECT_CONTACT_MAILTO}>
+                {PROJECT_CONTACT_EMAIL}
               </a>
               .
             </p>
