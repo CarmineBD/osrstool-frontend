@@ -24,7 +24,7 @@ export function Footer() {
   return (
     <footer className="border-t border-border bg-gradient-to-b from-background to-muted/30">
       <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-5">
           <section className="xl:col-span-2">
             <Link to="/" className="inline-flex items-center gap-2">
               <img
