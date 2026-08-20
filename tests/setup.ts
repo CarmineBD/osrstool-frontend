@@ -2,6 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterAll, afterEach, beforeAll, vi } from "vitest";
+import type { PlayerInfo } from "@/lib/api";
 import { server } from "./msw/server";
 
 type AuthSession = {
@@ -20,7 +21,11 @@ type AuthState = {
   user: AuthSession["user"] | null;
   isLoading: boolean;
   isRecoveryMode: boolean;
-  signUp: (email: string, password: string, termsVersion: string) => Promise<{
+  signUp: (
+    email: string,
+    password: string,
+    termsVersion: string,
+  ) => Promise<{
     needsEmailConfirmation: boolean;
     error: string | null;
   }>;
@@ -53,16 +58,23 @@ const authState: AuthState = {
 
 type UsernameState = {
   username: string;
+  player: PlayerInfo | null;
   userError: string | null;
 };
 
 const usernameState: UsernameState = {
   username: "",
+  player: null,
   userError: null,
 };
 
 const setUsernameSpy = vi.fn((value: string) => {
   usernameState.username = value.trim();
+  usernameState.player = {
+    levels: {},
+    quests: {},
+    achievement_diaries: {},
+  };
 });
 
 const clearUsernameSpy = vi.fn(() => {
@@ -73,6 +85,11 @@ const clearUsernameSpy = vi.fn(() => {
 const setUserErrorSpy = vi.fn((value: string | null) => {
   usernameState.userError = value;
 });
+const lookupPlayerSpy = vi.fn(async (): Promise<PlayerInfo> => ({
+  levels: {},
+  quests: {},
+  achievement_diaries: {},
+}));
 
 vi.mock("@/lib/supabaseClient", () => {
   const sessionRef: { current: AuthSession | null } = { current: null };
@@ -121,6 +138,12 @@ vi.mock("@/auth/AuthProvider", () => ({
 vi.mock("@/contexts/UsernameContext", () => ({
   useUsername: () => ({
     username: usernameState.username,
+    player: usernameState.player,
+    fetchedAt: null,
+    lookupPlayer: lookupPlayerSpy,
+    refreshPlayer: lookupPlayerSpy,
+    isPlayerLookupPending: false,
+    manualLookupCooldownRemaining: 0,
     setUsername: setUsernameSpy,
     clearUsername: clearUsernameSpy,
     userError: usernameState.userError,
@@ -129,18 +152,28 @@ vi.mock("@/contexts/UsernameContext", () => ({
   UsernameProvider: ({ children }: { children: ReactNode }) => children,
   __setUsernameMockState: (partial: Partial<UsernameState>) => {
     Object.assign(usernameState, partial);
+    if (partial.username && partial.player === undefined) {
+      usernameState.player = {
+        levels: {},
+        quests: {},
+        achievement_diaries: {},
+      };
+    }
   },
   __resetUsernameMockState: () => {
     usernameState.username = "";
+    usernameState.player = null;
     usernameState.userError = null;
     setUsernameSpy.mockClear();
     clearUsernameSpy.mockClear();
     setUserErrorSpy.mockClear();
+    lookupPlayerSpy.mockClear();
   },
   __getUsernameMockSpies: () => ({
     setUsernameSpy,
     clearUsernameSpy,
     setUserErrorSpy,
+    lookupPlayerSpy,
   }),
 }));
 

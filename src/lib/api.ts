@@ -841,6 +841,27 @@ export interface SkillRoadmapResponse {
   };
 }
 
+export async function fetchPlayerInfo(username: string): Promise<PlayerInfo> {
+  const normalizedUsername = normalizeBoundedText(
+    username.trim(),
+    USERNAME_MAX_LENGTH,
+  );
+  if (!normalizedUsername) throw new Error("OSRS username is required");
+
+  const res = await apiFetch(toApiUrl("/player/info").toString(), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username: normalizedUsername }),
+  });
+  if (!res.ok) {
+    throw await buildApiRequestError(
+      res,
+      `HTTP ${res.status} - Error fetching player info`,
+    );
+  }
+  return (await res.json()) as PlayerInfo;
+}
+
 export async function fetchItems(ids: number[]): Promise<Record<number, Item>> {
   const url = toApiUrl("/items");
   url.searchParams.set("ids", ids.join(","));
