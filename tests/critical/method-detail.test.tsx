@@ -27,7 +27,7 @@ function renderMethodDetail(route: string) {
 describe("critical flow: method detail load + error", () => {
   it("loads and renders method detail", async () => {
     server.use(
-      http.get("*/methods/slug/:slug", ({ params }) =>
+      http.post("*/methods/slug/:slug", ({ params }) =>
         HttpResponse.json({
           data: {
             method: {
@@ -171,7 +171,7 @@ describe("critical flow: method detail load + error", () => {
 
   it("shows the hourly explanation for good market impact", async () => {
     server.use(
-      http.get("*/methods/slug/:slug", ({ params }) =>
+      http.post("*/methods/slug/:slug", ({ params }) =>
         HttpResponse.json({
           data: {
             method: {
@@ -258,7 +258,7 @@ describe("critical flow: method detail load + error", () => {
           },
         }),
       ),
-      http.get("*/methods/slug/:slug", ({ params }) =>
+      http.post("*/methods/slug/:slug", ({ params }) =>
         HttpResponse.json({
           data: {
             method: {
@@ -308,7 +308,7 @@ describe("critical flow: method detail load + error", () => {
 
   it("shows an error state when detail request fails", async () => {
     server.use(
-      http.get("*/methods/slug/:slug", () =>
+      http.post("*/methods/slug/:slug", () =>
         HttpResponse.json({ message: "boom" }, { status: 500 })
       )
     );
@@ -324,7 +324,7 @@ describe("critical flow: method detail load + error", () => {
     const lowTimeUnix = nowUnixSeconds - (1 * 60 * 60 + 6 * 60);
 
     server.use(
-      http.get("*/methods/slug/:slug", ({ params }) =>
+      http.post("*/methods/slug/:slug", ({ params }) =>
         HttpResponse.json({
           data: {
             method: {
@@ -471,7 +471,7 @@ describe("critical flow: method detail load + error", () => {
 
   it("shows the view weights toggle only for io groups with more than one item", async () => {
     server.use(
-      http.get("*/methods/slug/:slug", ({ params }) =>
+      http.post("*/methods/slug/:slug", ({ params }) =>
         HttpResponse.json({
           data: {
             method: {
@@ -540,7 +540,7 @@ describe("critical flow: method detail load + error", () => {
 
   it("hides the view weights toggle when inputs and outputs have one item each", async () => {
     server.use(
-      http.get("*/methods/slug/:slug", ({ params }) =>
+      http.post("*/methods/slug/:slug", ({ params }) =>
         HttpResponse.json({
           data: {
             method: {

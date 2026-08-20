@@ -24,7 +24,7 @@ describe("api account username requirement handling", () => {
     const unsubscribe = subscribeToAccountUsernameRequired(listener);
 
     server.use(
-      http.get("*/methods/skills/summary", () =>
+      http.post("*/methods/skills/summary", () =>
         HttpResponse.json(
           {
             status: "error",
@@ -39,7 +39,7 @@ describe("api account username requirement handling", () => {
       ),
     );
 
-    await expect(fetchMethodsSkillsSummary("zezima")).rejects.toMatchObject({
+    await expect(fetchMethodsSkillsSummary()).rejects.toMatchObject({
       code: ACCOUNT_USERNAME_REQUIRED_ERROR_CODE,
       message: expect.stringContaining(
         "You must set an account username before using this service.",
@@ -58,7 +58,7 @@ describe("api account username requirement handling", () => {
     const unsubscribe = subscribeToTermsAcceptanceRequired(listener);
 
     server.use(
-      http.get("*/methods/skills/summary", () =>
+      http.post("*/methods/skills/summary", () =>
         HttpResponse.json(
           {
             status: "error",
@@ -73,7 +73,7 @@ describe("api account username requirement handling", () => {
       ),
     );
 
-    await expect(fetchMethodsSkillsSummary("zezima")).rejects.toMatchObject({
+    await expect(fetchMethodsSkillsSummary()).rejects.toMatchObject({
       code: TERMS_ACCEPTANCE_REQUIRED_ERROR_CODE,
       message: expect.stringContaining(
         "You must accept the current Terms of Service before using this service.",

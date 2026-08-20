@@ -15,7 +15,7 @@ describe("RoadmapsPage", () => {
     let capturedIgnoredTags: string[] = [];
 
     server.use(
-      http.get("*/methods/skills/roadmap", ({ request }) => {
+      http.post("*/methods/skills/roadmap", ({ request }) => {
         const url = new URL(request.url);
         capturedIgnoredTags = url.searchParams.getAll("ignoredTags");
 
@@ -76,7 +76,7 @@ describe("RoadmapsPage", () => {
 
   it("renders the timeline layout with variant icons and xp left", async () => {
     server.use(
-      http.get("*/methods/skills/roadmap", () =>
+      http.post("*/methods/skills/roadmap", () =>
         HttpResponse.json({
           data: {
             roadmap: {
@@ -213,7 +213,7 @@ describe("RoadmapsPage", () => {
 
   it("commits target level on blur and keeps it above the current skill level", async () => {
     server.use(
-      http.get("*/methods/skills/roadmap", () =>
+      http.post("*/methods/skills/roadmap", () =>
         HttpResponse.json({
           data: {
             roadmap: {
@@ -322,7 +322,7 @@ describe("RoadmapsPage", () => {
 
   it("shows roadmap material warnings when totals are unavailable", async () => {
     server.use(
-      http.get("*/methods/skills/roadmap", () =>
+      http.post("*/methods/skills/roadmap", () =>
         HttpResponse.json({
           data: {
             roadmap: {
@@ -424,7 +424,7 @@ describe("RoadmapsPage", () => {
 
   it("deduplicates roadmap requirements across steps", async () => {
     server.use(
-      http.get("*/methods/skills/roadmap", () =>
+      http.post("*/methods/skills/roadmap", () =>
         HttpResponse.json({
           data: {
             roadmap: {
