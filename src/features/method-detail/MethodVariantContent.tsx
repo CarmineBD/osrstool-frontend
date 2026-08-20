@@ -1,9 +1,4 @@
-import {
-  lazy,
-  Suspense,
-  useState,
-  type ReactNode,
-} from "react";
+import { lazy, Suspense, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import {
   IconClick,
@@ -46,14 +41,10 @@ import {
   getStrategyRecommendation,
   type StrategyRecommendation,
 } from "@/features/method-detail/marketImpactStrategy";
-import {
-  cn,
-  formatNumber,
-  formatPercent,
-  getUrlByType,
-} from "@/lib/utils";
-import type { Item, Variant } from "@/lib/api";
+import { cn, formatNumber, formatPercent, getUrlByType } from "@/lib/utils";
+import type { Item, Method, Variant } from "@/lib/api";
 import { LikeButton } from "@/features/methods/LikeButton";
+import { MethodDetailFooter } from "@/features/method-detail/MethodDetailFooter";
 
 const LazyVariantHistoryChart = lazy(
   () => import("@/components/VariantHistoryChart"),
@@ -63,10 +54,12 @@ const POSITIVE_TEXT_CLASS = "text-[var(--method-detail-positive)]";
 const NEGATIVE_TEXT_CLASS = "text-[var(--method-detail-negative)]";
 
 interface MethodVariantContentProps {
+  method?: Method;
   methodId: string;
   variant: Variant;
   itemsMap: Record<number, Item>;
   username?: string;
+  creatorAvatarUrl?: string;
   iconUrl?: string;
   inputsTotal?: number;
   outputsTotal?: number;
@@ -456,7 +449,7 @@ function MetricsCards({ variant }: { variant: Variant }) {
     "text-right text-sm font-medium tabular-nums text-foreground";
 
   return (
-    <Card className="@container/card gap-0 overflow-hidden rounded-xl border-border/70">
+    <Card className="@container/card gap-0 overflow-hidden rounded-xl border-border/70 mb-6">
       <CardHeader className="border-b border-border/60 pb-6">
         <SectionHeader
           title="Summary"
@@ -723,10 +716,12 @@ function RequirementsAndRecommendationsSection({
 }
 
 export function MethodVariantContent({
+  method,
   methodId,
   variant,
   itemsMap,
   username,
+  creatorAvatarUrl,
   iconUrl,
   inputsTotal,
   outputsTotal,
@@ -746,7 +741,7 @@ export function MethodVariantContent({
   );
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-6 mb-6">
       <MissingRequirementsNotice variant={variant} username={username} />
 
       <section
@@ -861,6 +856,11 @@ export function MethodVariantContent({
             <EmptySelectionState description="History data is not available for this variant yet." />
           )}
         </EditorSubsection>
+
+        <MethodDetailFooter
+          method={method}
+          creatorAvatarUrl={creatorAvatarUrl}
+        />
       </section>
     </div>
   );

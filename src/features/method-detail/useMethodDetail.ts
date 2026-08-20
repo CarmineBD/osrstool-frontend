@@ -26,6 +26,7 @@ export interface UseMethodDetailResult {
   methodParam: string;
   variantSlug?: string;
   method?: Method;
+  creatorAvatarUrl?: string;
   error: Error | null;
   isLoading: boolean;
   isItemsLoading: boolean;
@@ -82,6 +83,13 @@ export function useMethodDetail(): UseMethodDetailResult {
   }, [error, setUserError]);
 
   const method = data?.method;
+  const creatorAvatarUrl =
+    method?.created_by?.id &&
+    session?.user?.id &&
+    method.created_by.id === session.user.id &&
+    typeof session.user.user_metadata?.avatar_url === "string"
+      ? session.user.user_metadata.avatar_url
+      : undefined;
 
   const itemIds = useMemo(() => getMethodItemIds(method), [method]);
 
@@ -118,6 +126,7 @@ export function useMethodDetail(): UseMethodDetailResult {
     methodParam,
     variantSlug,
     method,
+    creatorAvatarUrl,
     error,
     isLoading,
     isItemsLoading,
