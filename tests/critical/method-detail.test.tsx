@@ -7,6 +7,11 @@ import { MethodDetail } from "@/pages/MethodDetail";
 import { server } from "../msw/server";
 import { renderWithProviders } from "../utils/render";
 
+const methodAuditDateFormatter = new Intl.DateTimeFormat("en-US", {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
+
 function renderMethodDetail(route: string) {
   return renderWithProviders(
     <Routes>
@@ -175,6 +180,12 @@ describe("critical flow: method detail load + error", () => {
               name: "Vorkath farming",
               category: "combat",
               description: "Consistent dragon loot.",
+              created_by: {
+                id: "creator-1",
+                username: "carmi",
+              },
+              created_at: "2026-08-19T13:45:00.000Z",
+              updated_at: "2026-08-19T18:30:00.000Z",
               likes: 7,
               likedByMe: false,
               variants: [
@@ -218,6 +229,83 @@ describe("critical flow: method detail load + error", () => {
     ).toHaveAttribute("href", "/wiki");
   });
 
+  it("shows the creator avatar image when the authenticated creator has one", async () => {
+    const authProviderModule = await import("@/auth/AuthProvider");
+    authProviderModule.__setAuthMockState({
+      session: {
+        user: {
+          id: "creator-1",
+          email: "creator@example.com",
+          user_metadata: {
+            avatar_url: "https://example.com/avatar.png",
+          },
+        },
+      },
+      user: {
+        id: "creator-1",
+        email: "creator@example.com",
+      },
+    });
+
+    server.use(
+      http.get("*/users/me", () =>
+        HttpResponse.json({
+          data: {
+            id: "creator-1",
+            email: "creator@example.com",
+            username: "carmi",
+            role: "user",
+          },
+        }),
+      ),
+      http.get("*/methods/slug/:slug", ({ params }) =>
+        HttpResponse.json({
+          data: {
+            method: {
+              id: "method-1",
+              slug: params.slug,
+              name: "Vorkath farming",
+              category: "combat",
+              description: "Consistent dragon loot.",
+              created_by: {
+                id: "creator-1",
+                username: "carmi",
+              },
+              created_at: "2026-08-19T13:45:00.000Z",
+              updated_at: "2026-08-19T18:30:00.000Z",
+              variants: [
+                {
+                  slug: "main",
+                  label: "Main",
+                  description: "Use dragon hunter lance.",
+                  requirements: {},
+                  inputs: [],
+                  outputs: [],
+                },
+              ],
+            },
+          },
+        }),
+      ),
+    );
+
+    renderMethodDetail("/moneyMakingMethod/vorkath-farming");
+
+    expect(await screen.findByLabelText("carmi avatar")).toBeInTheDocument();
+    expect(screen.getByText("Created by")).toBeInTheDocument();
+    expect(screen.getByText("carmi")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        methodAuditDateFormatter.format(new Date("2026-08-19T13:45:00.000Z")),
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        methodAuditDateFormatter.format(new Date("2026-08-19T18:30:00.000Z")),
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("shows an error state when detail request fails", async () => {
     server.use(
       http.get("*/methods/slug/:slug", () =>
@@ -245,6 +333,12 @@ describe("critical flow: method detail load + error", () => {
               name: "Vorkath farming",
               category: "combat",
               description: "Consistent dragon loot.",
+              created_by: {
+                id: "creator-1",
+                username: "carmi",
+              },
+              created_at: "2026-08-19T13:45:00.000Z",
+              updated_at: "2026-08-19T18:30:00.000Z",
               likes: 7,
               likedByMe: false,
               variants: [
@@ -386,6 +480,12 @@ describe("critical flow: method detail load + error", () => {
               name: "Vorkath farming",
               category: "combat",
               description: "Consistent dragon loot.",
+              created_by: {
+                id: "creator-1",
+                username: "carmi",
+              },
+              created_at: "2026-08-19T13:45:00.000Z",
+              updated_at: "2026-08-19T18:30:00.000Z",
               likes: 7,
               likedByMe: false,
               variants: [
@@ -449,6 +549,12 @@ describe("critical flow: method detail load + error", () => {
               name: "Vorkath farming",
               category: "combat",
               description: "Consistent dragon loot.",
+              created_by: {
+                id: "creator-1",
+                username: "carmi",
+              },
+              created_at: "2026-08-19T13:45:00.000Z",
+              updated_at: "2026-08-19T18:30:00.000Z",
               likes: 7,
               likedByMe: false,
               variants: [

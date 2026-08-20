@@ -9,6 +9,9 @@ type AuthSession = {
   user?: {
     id?: string;
     email?: string;
+    user_metadata?: {
+      avatar_url?: string;
+    };
   };
 };
 
