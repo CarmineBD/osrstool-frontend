@@ -57,6 +57,13 @@ export interface Method {
   description?: string;
   icon_id?: number | null;
   enabled?: boolean;
+  is_official?: boolean;
+  created_by?: {
+    id: string;
+    username: string | null;
+  } | null;
+  created_at?: string;
+  updated_at?: string;
   likes?: number;
   likedByMe?: boolean;
   variants: Variant[];
