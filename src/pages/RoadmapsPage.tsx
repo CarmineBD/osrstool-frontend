@@ -46,6 +46,7 @@ import {
   fetchSkillRoadmap,
   type MethodVariantTagKey,
   type Item,
+  type PlayerInfo,
   type RoadmapRange,
   type RoadmapStrategy,
   type SkillRoadmap,
@@ -942,6 +943,7 @@ export function RoadmapsPage() {
     DEFAULT_ROADMAP_IGNORED_TAGS,
   );
   const [formError, setFormError] = useState<string | null>(null);
+  const [roadmapUsername, setRoadmapUsername] = useState<string | null>(null);
 
   useEffect(() => {
     setUsernameInput(username);
@@ -962,8 +964,15 @@ export function RoadmapsPage() {
     retry: false,
   });
 
-  const roadmapResponse = roadmapMutation.data as
-    SkillRoadmapResponse | undefined;
+  const normalizedUsername = normalizeBoundedText(
+    usernameInput.trim(),
+    USERNAME_MAX_LENGTH,
+  );
+  const isRoadmapForCurrentUsername =
+    roadmapUsername?.toLowerCase() === normalizedUsername.toLowerCase();
+  const roadmapResponse = isRoadmapForCurrentUsername
+    ? (roadmapMutation.data as SkillRoadmapResponse | undefined)
+    : undefined;
   const roadmap = roadmapResponse?.data.roadmap;
   const roadmapIntroKey = useMemo(
     () =>
@@ -1069,20 +1078,18 @@ export function RoadmapsPage() {
     };
   }, [roadmapIntroKey]);
 
-  const normalizedUsername = normalizeBoundedText(
-    usernameInput.trim(),
-    USERNAME_MAX_LENGTH,
-  );
-  const currentSkillLevel =
-    roadmapResponse?.data.user.levels[
-      skill.charAt(0).toUpperCase() + skill.slice(1)
-    ];
+  const getSkillLevel = (playerInfo: PlayerInfo | null | undefined) =>
+    playerInfo?.levels[skill.charAt(0).toUpperCase() + skill.slice(1)];
+  const currentPlayerSkillLevel =
+    player && normalizedUsername.toLowerCase() === username.toLowerCase()
+      ? getSkillLevel(player)
+      : undefined;
 
-  const commitTargetLevelInput = () => {
+  const commitTargetLevelInput = (skillLevel = currentPlayerSkillLevel) => {
     const parsedTargetLevel = Number.parseInt(targetLevelInput, 10);
     const minimumTargetLevel = Math.min(
       MAX_SKILL_LEVEL,
-      Math.max(2, (currentSkillLevel ?? 1) + 1),
+      Math.max(2, (skillLevel ?? 1) + 1),
     );
 
     const normalizedTargetLevel = Number.isFinite(parsedTargetLevel)
@@ -1098,8 +1105,6 @@ export function RoadmapsPage() {
   };
 
   const handleCalculate = async () => {
-    const normalizedTargetLevel = commitTargetLevelInput();
-
     if (!normalizedUsername) {
       setFormError("Enter your OSRS username before generating a roadmap.");
       return;
@@ -1114,6 +1119,9 @@ export function RoadmapsPage() {
       setFormError("Unable to fetch OSRS player data for this roadmap.");
       return;
     }
+    const normalizedTargetLevel = commitTargetLevelInput(
+      getSkillLevel(playerForRoadmap),
+    );
     roadmapMutation.mutate({
       player: playerForRoadmap,
       skill,
@@ -1121,6 +1129,8 @@ export function RoadmapsPage() {
       targetLevel: normalizedTargetLevel,
       showOnlyFreeToPlay,
       ignoredTags,
+    }, {
+      onSuccess: () => setRoadmapUsername(normalizedUsername),
     });
   };
 
@@ -1246,7 +1256,7 @@ export function RoadmapsPage() {
                       onChange={(event) =>
                         setTargetLevelInput(event.target.value)
                       }
-                      onBlur={commitTargetLevelInput}
+                      onBlur={() => commitTargetLevelInput()}
                     />
                   </FieldContent>
                 </Field>

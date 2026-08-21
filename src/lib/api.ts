@@ -755,6 +755,7 @@ export interface SkillRoadmapQuery {
 
 export interface PlayerInfo {
   levels: Record<string, number>;
+  experience: Record<string, number>;
   quests: Record<string, number>;
   achievement_diaries: Record<
     string,

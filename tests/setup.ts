@@ -68,15 +68,6 @@ const usernameState: UsernameState = {
   userError: null,
 };
 
-const setUsernameSpy = vi.fn((value: string) => {
-  usernameState.username = value.trim();
-  usernameState.player = {
-    levels: {},
-    quests: {},
-    achievement_diaries: {},
-  };
-});
-
 const clearUsernameSpy = vi.fn(() => {
   usernameState.username = "";
   usernameState.userError = null;
@@ -87,6 +78,7 @@ const setUserErrorSpy = vi.fn((value: string | null) => {
 });
 const lookupPlayerSpy = vi.fn(async (): Promise<PlayerInfo> => ({
   levels: {},
+  experience: {},
   quests: {},
   achievement_diaries: {},
 }));
@@ -144,7 +136,6 @@ vi.mock("@/contexts/UsernameContext", () => ({
     refreshPlayer: lookupPlayerSpy,
     isPlayerLookupPending: false,
     manualLookupCooldownRemaining: 0,
-    setUsername: setUsernameSpy,
     clearUsername: clearUsernameSpy,
     userError: usernameState.userError,
     setUserError: setUserErrorSpy,
@@ -155,6 +146,7 @@ vi.mock("@/contexts/UsernameContext", () => ({
     if (partial.username && partial.player === undefined) {
       usernameState.player = {
         levels: {},
+        experience: {},
         quests: {},
         achievement_diaries: {},
       };
@@ -164,13 +156,11 @@ vi.mock("@/contexts/UsernameContext", () => ({
     usernameState.username = "";
     usernameState.player = null;
     usernameState.userError = null;
-    setUsernameSpy.mockClear();
     clearUsernameSpy.mockClear();
     setUserErrorSpy.mockClear();
     lookupPlayerSpy.mockClear();
   },
   __getUsernameMockSpies: () => ({
-    setUsernameSpy,
     clearUsernameSpy,
     setUserErrorSpy,
     lookupPlayerSpy,

@@ -24,7 +24,6 @@ export interface UsernameContextValue {
   username: string;
   player: PlayerInfo | null;
   fetchedAt: number | null;
-  setUsername: (value: string) => void;
   lookupPlayer: (username: string) => Promise<PlayerInfo | null>;
   refreshPlayer: () => Promise<PlayerInfo | null>;
   isPlayerLookupPending: boolean;
@@ -44,11 +43,19 @@ function readStoredPlayer(): StoredOsrsPlayer | null {
     const raw = localStorage.getItem(PLAYER_STORAGE_KEY);
     if (!raw) return null;
     const value = JSON.parse(raw) as Partial<StoredOsrsPlayer>;
+    const player = value.player as Partial<PlayerInfo> | undefined;
     if (
       typeof value.username !== "string" ||
       typeof value.fetchedAt !== "number" ||
-      !value.player ||
-      typeof value.player !== "object"
+      !player ||
+      typeof player.levels !== "object" ||
+      player.levels === null ||
+      typeof player.experience !== "object" ||
+      player.experience === null ||
+      typeof player.quests !== "object" ||
+      player.quests === null ||
+      typeof player.achievement_diaries !== "object" ||
+      player.achievement_diaries === null
     ) {
       return null;
     }
@@ -126,12 +133,6 @@ export function UsernameProvider({ children }: Props) {
     void fetchAndStore(storedPlayer.username, false);
   }, [session, storedPlayer?.fetchedAt, storedPlayer?.username]);
 
-  const setUsername = (value: string) => {
-    const username = normalizeBoundedText(value.trim(), USERNAME_MAX_LENGTH);
-    if (!username) return;
-    localStorage.setItem("username", username);
-  };
-
   const clearUsername = () => {
     setStoredPlayer(null);
     setUserError(null);
@@ -145,7 +146,6 @@ export function UsernameProvider({ children }: Props) {
       username: storedPlayer?.username ?? "",
       player: storedPlayer?.player ?? null,
       fetchedAt: storedPlayer?.fetchedAt ?? null,
-      setUsername,
       lookupPlayer: (username) => fetchAndStore(username, true),
       refreshPlayer: () => fetchAndStore(storedPlayer?.username ?? "", true),
       isPlayerLookupPending,
