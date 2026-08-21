@@ -28,6 +28,7 @@ import {
   latestChangelogEntries,
 } from "@/content/changelog";
 import { useSeo } from "@/hooks/useSeo";
+import { useUsername } from "@/contexts/UsernameContext";
 import {
   fetchItems,
   fetchTrendingProfitMethods,
@@ -207,9 +208,10 @@ function TrendingMethodCard({
 }
 
 function TrendingMethodsCarousel() {
+  const { player } = useUsername();
   const { data, error, isLoading, isFetching } = useQuery<Method[], Error>({
-    queryKey: TRENDING_PROFIT_QUERY_KEY,
-    queryFn: fetchTrendingProfitMethods,
+    queryKey: [...TRENDING_PROFIT_QUERY_KEY, player],
+    queryFn: () => fetchTrendingProfitMethods(player ?? undefined),
     staleTime: QUERY_STALE_TIME_MS,
     refetchInterval: QUERY_REFETCH_INTERVAL_MS,
     retry: false,
@@ -349,8 +351,8 @@ export function LandingPage() {
             Make money and train efficiently with real-time data.
           </h1>
           <p className="mt-6 max-w-3xl text-lg leading-relaxed text-muted-foreground sm:text-2xl">
-            RSMethods is a real-time decision tool for exploring money making and
-            training methods that fit each account&apos;s stats.
+            RSMethods is a real-time decision tool for exploring money making
+            and training methods that fit each account&apos;s stats.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Button
@@ -451,8 +453,8 @@ export function LandingPage() {
               2. Apply filters for category, skill, and risk level.
             </li>
             <li className={`${PUBLIC_SUBPANEL_CLASS} p-4`}>
-              3. Compare methods and open the detail view to review
-              requirements and variants.
+              3. Compare methods and open the detail view to review requirements
+              and variants.
             </li>
             <li className={`${PUBLIC_SUBPANEL_CLASS} p-4`}>
               4. Check the changelog to see recent product improvements.

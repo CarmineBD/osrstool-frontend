@@ -109,7 +109,7 @@ export const server = setupServer(
       },
     }),
   ),
-  http.get("*/methods/trending-profit", ({ request }) => {
+  http.post("*/methods/trending-profit", ({ request }) => {
     const url = new URL(request.url);
     if (url.searchParams.get("window") !== "1h") {
       return HttpResponse.json(

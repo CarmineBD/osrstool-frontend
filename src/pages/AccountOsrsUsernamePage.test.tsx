@@ -9,7 +9,7 @@ import { AccountOsrsUsernamePage } from "./AccountOsrsUsernamePage";
 type UsernameContextTestModule = typeof import("@/contexts/UsernameContext") & {
   __setUsernameMockState: (partial: Record<string, unknown>) => void;
   __getUsernameMockSpies: () => {
-    setUsernameSpy: ReturnType<typeof vi.fn>;
+    lookupPlayerSpy: ReturnType<typeof vi.fn>;
   };
 };
 
@@ -53,7 +53,8 @@ describe("AccountOsrsUsernamePage", () => {
       username: "",
       userError: null,
     });
-    const { setUsernameSpy } = usernameContextModule.__getUsernameMockSpies();
+    const { lookupPlayerSpy } =
+      usernameContextModule.__getUsernameMockSpies();
 
     renderPage({
       pathname: "/account/osrs-username",
@@ -68,7 +69,7 @@ describe("AccountOsrsUsernamePage", () => {
     await user.type(await screen.findByLabelText("OSRS username"), "CarmiX");
     await user.click(screen.getByRole("button", { name: "Save username" }));
 
-    expect(setUsernameSpy).toHaveBeenCalledWith("CarmiX");
+    expect(lookupPlayerSpy).toHaveBeenCalledWith("CarmiX");
     expect(
       await screen.findByText("Roadmaps destination"),
     ).toBeInTheDocument();
@@ -81,16 +82,41 @@ describe("AccountOsrsUsernamePage", () => {
       username: "",
       userError: null,
     });
-    const { setUsernameSpy } = usernameContextModule.__getUsernameMockSpies();
+    const { lookupPlayerSpy } =
+      usernameContextModule.__getUsernameMockSpies();
 
     renderPage();
 
     const user = userEvent.setup();
     await user.click(await screen.findByRole("button", { name: "Skip for now" }));
 
-    expect(setUsernameSpy).not.toHaveBeenCalled();
+    expect(lookupPlayerSpy).not.toHaveBeenCalled();
     expect(
       await screen.findByText("Account destination"),
     ).toBeInTheDocument();
+  });
+
+  it("stays on the page when the player lookup fails", async () => {
+    const usernameContextModule =
+      (await import("@/contexts/UsernameContext")) as UsernameContextTestModule;
+    usernameContextModule.__setUsernameMockState({
+      username: "",
+      userError: null,
+    });
+    const { lookupPlayerSpy } =
+      usernameContextModule.__getUsernameMockSpies();
+    lookupPlayerSpy.mockResolvedValueOnce(null);
+
+    renderPage({
+      pathname: "/account/osrs-username",
+      state: { from: { pathname: "/roadmaps" } },
+    });
+
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText("OSRS username"), "Missing");
+    await user.click(screen.getByRole("button", { name: "Save username" }));
+
+    expect(lookupPlayerSpy).toHaveBeenCalledWith("Missing");
+    expect(screen.queryByText("Roadmaps destination")).not.toBeInTheDocument();
   });
 });

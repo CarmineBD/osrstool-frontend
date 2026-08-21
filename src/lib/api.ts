@@ -390,19 +390,13 @@ export interface MethodsFilters {
 }
 
 export async function fetchMethods(
-  username?: string,
+  player?: PlayerInfo,
   page?: number,
   name?: string,
   filters?: MethodsFilters,
   cursor?: string,
 ): Promise<MethodsResponse> {
-  const url = toApiUrl("/methods");
-  if (username) {
-    url.searchParams.set(
-      "username",
-      normalizeBoundedText(username.trim(), USERNAME_MAX_LENGTH),
-    );
-  }
+  const url = toApiUrl("/methods/search");
   if (page !== undefined) url.searchParams.set("page", page.toString());
   if (cursor) url.searchParams.set("cursor", cursor);
   if (name) {
@@ -457,7 +451,11 @@ export async function fetchMethods(
   if (filters?.sortBy) url.searchParams.set("sortBy", filters.sortBy);
   if (filters?.order) url.searchParams.set("order", filters.order);
 
-  const res = await apiFetch(url.toString());
+  const res = await apiFetch(url.toString(), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(player ? { player } : {}),
+  });
   if (!res.ok) {
     throw await buildApiRequestError(
       res,
@@ -584,13 +582,19 @@ export async function fetchMethods(
   };
 }
 
-export async function fetchTrendingProfitMethods(): Promise<Method[]> {
+export async function fetchTrendingProfitMethods(
+  player?: PlayerInfo,
+): Promise<Method[]> {
   const url = toApiUrl("/methods/trending-profit");
   url.searchParams.set("window", "1h");
   url.searchParams.set("mode", "reliable");
   url.searchParams.set("variants", "all");
 
-  const res = await apiFetch(url.toString());
+  const res = await apiFetch(url.toString(), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(player ? { player } : {}),
+  });
   if (!res.ok) {
     throw await buildApiRequestError(
       res,
@@ -740,7 +744,7 @@ export interface MethodsSkillsSummaryResponse {
 export type RoadmapStrategy = "fastest" | "profitable" | "most_afk";
 
 export interface SkillRoadmapQuery {
-  username: string;
+  player: PlayerInfo;
   skill: string;
   strategy: RoadmapStrategy;
   targetLevel?: number;
@@ -751,6 +755,7 @@ export interface SkillRoadmapQuery {
 
 export interface PlayerInfo {
   levels: Record<string, number>;
+  experience: Record<string, number>;
   quests: Record<string, number>;
   achievement_diaries: Record<
     string,
@@ -830,7 +835,6 @@ export interface SkillRoadmapResponse {
   };
   warnings?: string[];
   meta: {
-    username: string;
     skill: string;
     strategy: RoadmapStrategy;
     enabled: boolean;
@@ -839,6 +843,27 @@ export interface SkillRoadmapResponse {
     computedAt: number;
     usesExactSkillExperience: boolean;
   };
+}
+
+export async function fetchPlayerInfo(username: string): Promise<PlayerInfo> {
+  const normalizedUsername = normalizeBoundedText(
+    username.trim(),
+    USERNAME_MAX_LENGTH,
+  );
+  if (!normalizedUsername) throw new Error("OSRS username is required");
+
+  const res = await apiFetch(toApiUrl("/player/info").toString(), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username: normalizedUsername }),
+  });
+  if (!res.ok) {
+    throw await buildApiRequestError(
+      res,
+      `HTTP ${res.status} - Error fetching player info`,
+    );
+  }
+  return (await res.json()) as PlayerInfo;
 }
 
 export async function fetchItems(ids: number[]): Promise<Record<number, Item>> {
@@ -1127,20 +1152,17 @@ export async function fetchSkills(): Promise<SkillOption[]> {
 }
 
 export async function fetchMethodsSkillsSummary(
-  username?: string,
+  player?: PlayerInfo,
   enabled = false,
 ): Promise<MethodsSkillsSummaryResponse> {
   const url = toApiUrl("/methods/skills/summary");
-  const normalizedUsername = username?.trim();
-  if (normalizedUsername) {
-    url.searchParams.set(
-      "username",
-      normalizeBoundedText(normalizedUsername, USERNAME_MAX_LENGTH),
-    );
-  }
   url.searchParams.set("enabled", String(enabled));
 
-  const res = await apiFetch(url.toString());
+  const res = await apiFetch(url.toString(), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(player ? { player } : {}),
+  });
   if (!res.ok) {
     throw await buildApiRequestError(
       res,
@@ -1170,10 +1192,6 @@ export async function fetchSkillRoadmap(
 ): Promise<SkillRoadmapResponse> {
   const url = toApiUrl("/methods/skills/roadmap");
   const targetLevel = clampInteger(query.targetLevel, 2, MAX_SKILL_LEVEL) ?? 99;
-  url.searchParams.set(
-    "username",
-    normalizeBoundedText(query.username.trim(), USERNAME_MAX_LENGTH),
-  );
   url.searchParams.set("skill", query.skill);
   url.searchParams.set("strategy", query.strategy);
   url.searchParams.set("target_level", String(targetLevel));
@@ -1202,7 +1220,11 @@ export async function fetchSkillRoadmap(
     );
   }
 
-  const res = await apiFetch(url.toString());
+  const res = await apiFetch(url.toString(), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ player: query.player }),
+  });
   if (!res.ok) {
     throw await buildApiRequestError(
       res,
@@ -1286,16 +1308,14 @@ export async function fetchVariantHistory(
 
 export async function fetchMethodDetail(
   id: string,
-  username?: string,
+  player?: PlayerInfo,
 ): Promise<MethodDetailResponse> {
   const url = toApiUrl(`/methods/${id}`);
-  if (username) {
-    url.searchParams.set(
-      "username",
-      normalizeBoundedText(username.trim(), USERNAME_MAX_LENGTH),
-    );
-  }
-  const res = await apiFetch(url.toString());
+  const res = await apiFetch(url.toString(), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(player ? { player } : {}),
+  });
   if (!res.ok) {
     throw await buildApiRequestError(
       res,
@@ -1316,20 +1336,18 @@ export async function fetchMethodDetail(
 
 export async function fetchMethodDetailBySlug(
   slug: string,
-  username?: string,
+  player?: PlayerInfo,
 ): Promise<MethodDetailResponse> {
   const normalizedSlug = slug.trim();
   if (!normalizedSlug) {
     throw new Error("Method slug is required");
   }
   const url = toApiUrl(`/methods/slug/${encodeURIComponent(normalizedSlug)}`);
-  if (username) {
-    url.searchParams.set(
-      "username",
-      normalizeBoundedText(username.trim(), USERNAME_MAX_LENGTH),
-    );
-  }
-  const res = await apiFetch(url.toString());
+  const res = await apiFetch(url.toString(), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(player ? { player } : {}),
+  });
   if (!res.ok) {
     if (res.status === 404) {
       throw new Error("Method not found");
@@ -1735,10 +1753,7 @@ function buildVariantUpdatePayload(variant: Variant): UpdateVariantDto {
     typeof actionsPerHour !== "number" ||
     actionsPerHour < 0 ||
     actionsPerHour > MAX_ACTIONS_PER_HOUR ||
-    !hasAtMostDecimalPlaces(
-      actionsPerHour,
-      MAX_ACTIONS_PER_HOUR_DECIMAL_PLACES,
-    )
+    !hasAtMostDecimalPlaces(actionsPerHour, MAX_ACTIONS_PER_HOUR_DECIMAL_PLACES)
   ) {
     throw new Error(
       `Variant actionsPerHour must be between 0 and ${MAX_ACTIONS_PER_HOUR} with up to ${MAX_ACTIONS_PER_HOUR_DECIMAL_PLACES} decimal places`,
@@ -1850,7 +1865,7 @@ export async function createMethodWithVariants(
   variants: Variant[],
 ): Promise<Method> {
   const dto = buildMethodUpdatePayload(values, variants);
-  const url = buildMethodWithVariantsUrl("/methods", dto.variants);
+  const url = buildMethodWithVariantsUrl("/methods/create", dto.variants);
   const res = await apiFetch(url.toString(), {
     method: "POST",
     headers: { "Content-Type": "application/json" },

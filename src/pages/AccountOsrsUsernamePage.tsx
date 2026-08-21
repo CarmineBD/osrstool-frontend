@@ -28,20 +28,21 @@ export function AccountOsrsUsernamePage() {
   const location = useLocation();
   const locationState = location.state as AccountSetupLocationState | null;
   const redirectPath = resolveAccountSetupRedirectPath(locationState);
-  const { username, setUsername } = useUsername();
+  const { username, lookupPlayer, isPlayerLookupPending, userError } =
+    useUsername();
   const [usernameInput, setUsernameInput] = useState(username);
 
   const handleContinue = () => {
     navigate(redirectPath, { replace: true });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const normalizedUsername = normalizeBoundedText(
       usernameInput.trim(),
       USERNAME_MAX_LENGTH,
     );
-    setUsername(normalizedUsername);
-    handleContinue();
+    const player = await lookupPlayer(normalizedUsername);
+    if (player) handleContinue();
   };
 
   return (
@@ -86,11 +87,19 @@ export function AccountOsrsUsernamePage() {
             </Field>
           </AuthSection>
 
+          {userError ? (
+            <p role="alert" className="text-sm text-destructive">
+              {userError}
+            </p>
+          ) : null}
+
           <div className={AUTH_ACTION_ROW_CLASS}>
             <Button
               type="button"
               className="h-10"
-              disabled={usernameInput.trim().length === 0}
+              disabled={
+                usernameInput.trim().length === 0 || isPlayerLookupPending
+              }
               onClick={handleSave}
             >
               Save username

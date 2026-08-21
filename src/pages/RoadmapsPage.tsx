@@ -46,6 +46,7 @@ import {
   fetchSkillRoadmap,
   type MethodVariantTagKey,
   type Item,
+  type PlayerInfo,
   type RoadmapRange,
   type RoadmapStrategy,
   type SkillRoadmap,
@@ -152,7 +153,10 @@ function formatGp(value: number): string {
   return `${formatNumber(value)}`;
 }
 
-function getProfitRangeLabel(low: number, high: number): {
+function getProfitRangeLabel(
+  low: number,
+  high: number,
+): {
   primary: {
     value: number;
     label: string;
@@ -417,7 +421,8 @@ function RoadmapJourneyBar({
           <div className="flex h-6 min-w-full gap-0.5 rounded-lg">
             {ranges.map((range, index) => {
               const stepKey = getRoadmapRangeKey(range);
-              const variantLabel = range.variant.label?.trim() || "Default variant";
+              const variantLabel =
+                range.variant.label?.trim() || "Default variant";
               const secondaryVariantLabel = getRoadmapSecondaryVariantLabel(
                 range.method.name,
                 variantLabel,
@@ -440,7 +445,10 @@ function RoadmapJourneyBar({
                       <span className="sr-only">{range.method.name}</span>
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent sideOffset={8} className="w-[240px] text-left">
+                  <TooltipContent
+                    sideOffset={8}
+                    className="w-[240px] text-left"
+                  >
                     <div className="flex items-start gap-3">
                       {iconUrl ? (
                         <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
@@ -502,10 +510,15 @@ function getRoadmapItemsTotal(
 
 type RoadmapRequirement = Variant["requirements"];
 type RoadmapItemRequirement = NonNullable<RoadmapRequirement["items"]>[number];
-type RoadmapLevelRequirement = NonNullable<RoadmapRequirement["levels"]>[number];
-type RoadmapQuestRequirement = NonNullable<RoadmapRequirement["quests"]>[number];
-type RoadmapDiaryRequirement =
-  NonNullable<RoadmapRequirement["achievement_diaries"]>[number];
+type RoadmapLevelRequirement = NonNullable<
+  RoadmapRequirement["levels"]
+>[number];
+type RoadmapQuestRequirement = NonNullable<
+  RoadmapRequirement["quests"]
+>[number];
+type RoadmapDiaryRequirement = NonNullable<
+  RoadmapRequirement["achievement_diaries"]
+>[number];
 
 function getDiaryTierRank(tier: string | number | undefined): number {
   if (typeof tier === "number" && Number.isFinite(tier)) {
@@ -674,7 +687,9 @@ function RoadmapMaterialsSection({
           <IoItemsGrid
             title="Inputs"
             total={
-              isItemsLoading ? undefined : getRoadmapItemsTotal(totalInputs, itemsMap)
+              isItemsLoading
+                ? undefined
+                : getRoadmapItemsTotal(totalInputs, itemsMap)
             }
             items={totalInputs}
             itemsMap={itemsMap}
@@ -916,7 +931,7 @@ export function RoadmapsPage() {
     keywords: "osrs roadmap, osrs skill planner, osrs 1-99 roadmap",
   });
 
-  const { username, setUsername } = useUsername();
+  const { username, player, lookupPlayer } = useUsername();
   const [usernameInput, setUsernameInput] = useState(username);
   const [skill, setSkill] = useState<OsrsSkill>(DEFAULT_SKILL);
   const [targetLevelInput, setTargetLevelInput] = useState(
@@ -928,6 +943,7 @@ export function RoadmapsPage() {
     DEFAULT_ROADMAP_IGNORED_TAGS,
   );
   const [formError, setFormError] = useState<string | null>(null);
+  const [roadmapUsername, setRoadmapUsername] = useState<string | null>(null);
 
   useEffect(() => {
     setUsernameInput(username);
@@ -948,9 +964,15 @@ export function RoadmapsPage() {
     retry: false,
   });
 
-  const roadmapResponse = roadmapMutation.data as
-    | SkillRoadmapResponse
-    | undefined;
+  const normalizedUsername = normalizeBoundedText(
+    usernameInput.trim(),
+    USERNAME_MAX_LENGTH,
+  );
+  const isRoadmapForCurrentUsername =
+    roadmapUsername?.toLowerCase() === normalizedUsername.toLowerCase();
+  const roadmapResponse = isRoadmapForCurrentUsername
+    ? (roadmapMutation.data as SkillRoadmapResponse | undefined)
+    : undefined;
   const roadmap = roadmapResponse?.data.roadmap;
   const roadmapIntroKey = useMemo(
     () =>
@@ -1056,34 +1078,25 @@ export function RoadmapsPage() {
     };
   }, [roadmapIntroKey]);
 
-  const normalizedUsername = normalizeBoundedText(
-    usernameInput.trim(),
-    USERNAME_MAX_LENGTH,
-  );
-  const normalizedResponseUsername = roadmapResponse?.meta.username
-    ? normalizeBoundedText(roadmapResponse.meta.username, USERNAME_MAX_LENGTH)
-    : "";
-  const currentSkillLevel =
-    normalizedUsername &&
-    normalizedResponseUsername &&
-    normalizedUsername.toLowerCase() === normalizedResponseUsername.toLowerCase()
-      ? roadmapResponse?.data.user.levels[
-          skill.charAt(0).toUpperCase() + skill.slice(1)
-        ]
+  const getSkillLevel = (playerInfo: PlayerInfo | null | undefined) =>
+    playerInfo?.levels[skill.charAt(0).toUpperCase() + skill.slice(1)];
+  const currentPlayerSkillLevel =
+    player && normalizedUsername.toLowerCase() === username.toLowerCase()
+      ? getSkillLevel(player)
       : undefined;
 
-  const commitTargetLevelInput = () => {
+  const commitTargetLevelInput = (skillLevel = currentPlayerSkillLevel) => {
     const parsedTargetLevel = Number.parseInt(targetLevelInput, 10);
     const minimumTargetLevel = Math.min(
       MAX_SKILL_LEVEL,
-      Math.max(2, (currentSkillLevel ?? 1) + 1),
+      Math.max(2, (skillLevel ?? 1) + 1),
     );
 
     const normalizedTargetLevel = Number.isFinite(parsedTargetLevel)
       ? parsedTargetLevel < minimumTargetLevel
         ? minimumTargetLevel
-        : clampInteger(parsedTargetLevel, 2, MAX_SKILL_LEVEL) ??
-          DEFAULT_TARGET_LEVEL
+        : (clampInteger(parsedTargetLevel, 2, MAX_SKILL_LEVEL) ??
+          DEFAULT_TARGET_LEVEL)
       : Math.max(DEFAULT_TARGET_LEVEL, minimumTargetLevel);
 
     setTargetLevelInput(String(normalizedTargetLevel));
@@ -1091,23 +1104,33 @@ export function RoadmapsPage() {
     return normalizedTargetLevel;
   };
 
-  const handleCalculate = () => {
-    const normalizedTargetLevel = commitTargetLevelInput();
-
+  const handleCalculate = async () => {
     if (!normalizedUsername) {
       setFormError("Enter your OSRS username before generating a roadmap.");
       return;
     }
 
     setFormError(null);
-    setUsername(normalizedUsername);
+    const playerForRoadmap =
+      player && normalizedUsername.toLowerCase() === username.toLowerCase()
+        ? player
+        : await lookupPlayer(normalizedUsername);
+    if (!playerForRoadmap) {
+      setFormError("Unable to fetch OSRS player data for this roadmap.");
+      return;
+    }
+    const normalizedTargetLevel = commitTargetLevelInput(
+      getSkillLevel(playerForRoadmap),
+    );
     roadmapMutation.mutate({
-      username: normalizedUsername,
+      player: playerForRoadmap,
       skill,
       strategy,
       targetLevel: normalizedTargetLevel,
       showOnlyFreeToPlay,
       ignoredTags,
+    }, {
+      onSuccess: () => setRoadmapUsername(normalizedUsername),
     });
   };
 
@@ -1233,7 +1256,7 @@ export function RoadmapsPage() {
                       onChange={(event) =>
                         setTargetLevelInput(event.target.value)
                       }
-                      onBlur={commitTargetLevelInput}
+                      onBlur={() => commitTargetLevelInput()}
                     />
                   </FieldContent>
                 </Field>
@@ -1324,7 +1347,8 @@ export function RoadmapsPage() {
                   />
                 </FieldContent>
                 <p className="text-sm text-muted-foreground">
-                  Ignore methods containing any selected tag when calculating the roadmap.
+                  Ignore methods containing any selected tag when calculating
+                  the roadmap.
                 </p>
               </Field>
 
@@ -1369,7 +1393,9 @@ export function RoadmapsPage() {
                   level="h2"
                 />
 
-                {roadmapMutation.isPending ? <RoadmapJourneyBarSkeleton /> : null}
+                {roadmapMutation.isPending ? (
+                  <RoadmapJourneyBarSkeleton />
+                ) : null}
 
                 {!roadmapMutation.isPending && roadmap ? (
                   <RoadmapJourneyBar
@@ -1388,8 +1414,7 @@ export function RoadmapsPage() {
                   />
                 ) : null}
 
-                {!roadmapMutation.isPending &&
-                aggregatedRoadmapRequirements ? (
+                {!roadmapMutation.isPending && aggregatedRoadmapRequirements ? (
                   <RoadmapRequirementsSection
                     requirements={aggregatedRoadmapRequirements}
                     itemsMap={roadmapItemsMap}

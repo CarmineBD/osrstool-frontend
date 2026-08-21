@@ -19,7 +19,7 @@ describe("critical flow: methods list tags", () => {
           },
         }),
       ),
-      http.get("*/methods", () =>
+      http.post("*/methods/search", () =>
         HttpResponse.json({
           data: {
             methods: [

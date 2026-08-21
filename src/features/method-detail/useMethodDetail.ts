@@ -2,7 +2,10 @@ import { useEffect, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { fetchMe } from "@/lib/me";
-import { QUERY_REFETCH_INTERVAL_MS, QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
+import {
+  QUERY_REFETCH_INTERVAL_MS,
+  QUERY_STALE_TIME_MS,
+} from "@/lib/queryRefresh";
 import { useUsername } from "@/contexts/UsernameContext";
 import { useAuth } from "@/auth/AuthProvider";
 import {
@@ -10,7 +13,6 @@ import {
   getMethodDetailQueryKey,
   getMethodItemIds,
   normalizeMethodSlug,
-  normalizeUsername,
 } from "@/lib/queryKeys";
 import {
   fetchItems,
@@ -43,19 +45,17 @@ export function useMethodDetail(): UseMethodDetailResult {
     slug: string;
     variantSlug?: string;
   }>();
-  const { username, setUserError } = useUsername();
+  const { player, setUserError } = useUsername();
   const { session } = useAuth();
   const normalizedMethodSlug = normalizeMethodSlug(methodParam);
-  const normalizedUsername = normalizeUsername(username);
 
-  const {
-    data,
-    error,
-    isLoading,
-  } = useQuery<MethodDetailResponse, Error>({
-    queryKey: getMethodDetailQueryKey(normalizedMethodSlug, normalizedUsername),
+  const { data, error, isLoading } = useQuery<MethodDetailResponse, Error>({
+    queryKey: getMethodDetailQueryKey(
+      normalizedMethodSlug,
+      player ?? undefined,
+    ),
     queryFn: () =>
-      fetchMethodDetailBySlug(normalizedMethodSlug, normalizedUsername),
+      fetchMethodDetailBySlug(normalizedMethodSlug, player ?? undefined),
     enabled: !!normalizedMethodSlug,
     staleTime: QUERY_STALE_TIME_MS,
     refetchInterval: QUERY_REFETCH_INTERVAL_MS,

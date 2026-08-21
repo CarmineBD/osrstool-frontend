@@ -15,7 +15,7 @@ describe("RoadmapsPage", () => {
     let capturedIgnoredTags: string[] = [];
 
     server.use(
-      http.get("*/methods/skills/roadmap", ({ request }) => {
+      http.post("*/methods/skills/roadmap", ({ request }) => {
         const url = new URL(request.url);
         capturedIgnoredTags = url.searchParams.getAll("ignoredTags");
 
@@ -76,7 +76,7 @@ describe("RoadmapsPage", () => {
 
   it("renders the timeline layout with variant icons and xp left", async () => {
     server.use(
-      http.get("*/methods/skills/roadmap", () =>
+      http.post("*/methods/skills/roadmap", () =>
         HttpResponse.json({
           data: {
             roadmap: {
@@ -211,9 +211,9 @@ describe("RoadmapsPage", () => {
     expect(screen.queryByText("XP needed")).not.toBeInTheDocument();
   });
 
-  it("commits target level on blur and keeps it above the current skill level", async () => {
+  it("does not clamp a new account target using a previous roadmap level", async () => {
     server.use(
-      http.get("*/methods/skills/roadmap", () =>
+      http.post("*/methods/skills/roadmap", () =>
         HttpResponse.json({
           data: {
             roadmap: {
@@ -310,19 +310,19 @@ describe("RoadmapsPage", () => {
     await screen.findByText("13.03m xp needed to reach level 99.");
 
     const targetLevelInput = screen.getByLabelText("Target level");
+    const usernameInput = screen.getByLabelText("OSRS username");
+    await user.clear(usernameInput);
+    await user.type(usernameInput, "different-account");
     await user.clear(targetLevelInput);
-    expect(targetLevelInput).toHaveValue("");
-
-    await user.type(targetLevelInput, "10");
-    expect(targetLevelInput).toHaveValue("10");
-
+    await user.type(targetLevelInput, "20");
     targetLevelInput.blur();
-    await waitFor(() => expect(targetLevelInput).toHaveValue("23"));
+
+    await waitFor(() => expect(targetLevelInput).toHaveValue("20"));
   });
 
   it("shows roadmap material warnings when totals are unavailable", async () => {
     server.use(
-      http.get("*/methods/skills/roadmap", () =>
+      http.post("*/methods/skills/roadmap", () =>
         HttpResponse.json({
           data: {
             roadmap: {
@@ -424,7 +424,7 @@ describe("RoadmapsPage", () => {
 
   it("deduplicates roadmap requirements across steps", async () => {
     server.use(
-      http.get("*/methods/skills/roadmap", () =>
+      http.post("*/methods/skills/roadmap", () =>
         HttpResponse.json({
           data: {
             roadmap: {

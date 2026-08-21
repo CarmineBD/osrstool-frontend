@@ -4,6 +4,11 @@ import { Menu, X } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Accordion,
@@ -64,7 +69,14 @@ const SKILL_TAB_ORDER = [
 export function Nav({ hideInput }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { username, setUsername, userError, setUserError } = useUsername();
+  const {
+    username,
+    lookupPlayer,
+    isPlayerLookupPending,
+    manualLookupCooldownRemaining,
+    userError,
+    setUserError,
+  } = useUsername();
   const { session } = useAuth();
   const { data: meData } = useQuery({
     queryKey: ["me"],
@@ -150,15 +162,14 @@ export function Nav({ hideInput }: Props) {
     };
   }, [focusInputById, hideInput]);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!session) {
       setUserError(LOGIN_REQUIRED_MESSAGE);
       return;
     }
-    setUserError(null);
-    setUsername(input.trim());
-    setIsMobileMenuOpen(false);
+    const didLookup = await lookupPlayer(input);
+    if (didLookup) setIsMobileMenuOpen(false);
   };
 
   const handleUsernameInputInteraction = () => {
@@ -170,11 +181,7 @@ export function Nav({ hideInput }: Props) {
   return (
     <nav className="sticky top-0 z-50 border-b border-border/60 bg-surface-panel-elevated p-4 shadow-sm backdrop-blur">
       <div className="flex items-center justify-between gap-4">
-        <Link
-          to="/"
-          aria-label="RSMethods home"
-          className="flex items-center"
-        >
+        <Link to="/" aria-label="RSMethods home" className="flex items-center">
           <span className="flex items-baseline gap-2">
             <span className="text-xl font-bold">
               <span className="text-brand ">RSM</span>
@@ -318,7 +325,10 @@ export function Nav({ hideInput }: Props) {
                     );
                   }}
                 />
-                <Button type="submit">Fetch</Button>
+                <LookupButton
+                  isPending={isPlayerLookupPending}
+                  cooldownRemaining={manualLookupCooldownRemaining}
+                />
               </form>
               {userError && (
                 <div className="text-sm text-destructive">
@@ -500,7 +510,10 @@ export function Nav({ hideInput }: Props) {
                           );
                         }}
                       />
-                      <Button type="submit">Fetch</Button>
+                      <LookupButton
+                        isPending={isPlayerLookupPending}
+                        cooldownRemaining={manualLookupCooldownRemaining}
+                      />
                     </form>
                     {userError && (
                       <div className="text-sm text-destructive">
@@ -544,5 +557,30 @@ export function Nav({ hideInput }: Props) {
         </div>
       </div>
     </nav>
+  );
+}
+
+function LookupButton({
+  isPending,
+  cooldownRemaining,
+}: {
+  isPending: boolean;
+  cooldownRemaining: number;
+}) {
+  const isCoolingDown = cooldownRemaining > 0;
+  const disabled = isPending || isCoolingDown;
+  const tooltip = `You can fetch or refresh OSRS player data once per minute. Try again in ${Math.ceil(cooldownRemaining / 1000)} seconds.`;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span>
+          <Button type="submit" disabled={disabled}>
+            {isPending ? "Fetching..." : "Fetch"}
+          </Button>
+        </span>
+      </TooltipTrigger>
+      {isCoolingDown ? <TooltipContent>{tooltip}</TooltipContent> : null}
+    </Tooltip>
   );
 }

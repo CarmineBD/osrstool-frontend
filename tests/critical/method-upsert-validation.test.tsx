@@ -39,7 +39,7 @@ describe("critical flow: create/edit form validations", () => {
     let updateRequests = 0;
 
     server.use(
-      http.get("*/methods/slug/:slug", ({ params }) =>
+      http.post("*/methods/slug/:slug", ({ params }) =>
         HttpResponse.json({
           data: {
             method: {
@@ -128,7 +128,7 @@ describe("critical flow: create/edit form validations", () => {
     const updateBodies: unknown[] = [];
 
     server.use(
-      http.get("*/methods/slug/:slug", ({ params }) =>
+      http.post("*/methods/slug/:slug", ({ params }) =>
         HttpResponse.json({
           data: {
             method: {

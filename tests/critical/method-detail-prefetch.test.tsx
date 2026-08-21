@@ -17,7 +17,7 @@ describe("critical flow: method detail prefetch", () => {
     let detailRequests = 0;
 
     server.use(
-      http.get("*/methods", () =>
+      http.post("*/methods/search", () =>
         HttpResponse.json({
           data: {
             methods: [
@@ -45,7 +45,7 @@ describe("critical flow: method detail prefetch", () => {
           },
         })
       ),
-      http.get("*/methods/slug/:slug", ({ params }) => {
+      http.post("*/methods/slug/:slug", ({ params }) => {
         detailRequests += 1;
 
         return HttpResponse.json({
