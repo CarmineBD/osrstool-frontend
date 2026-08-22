@@ -31,7 +31,7 @@ import {
 import { formatSkillName } from "@/lib/skills";
 import { cn, getUrlByType } from "@/lib/utils";
 import { OPEN_NAV_USERNAME_EVENT } from "@/lib/events";
-import { fetchMe } from "@/lib/me";
+import { fetchMe, getMeQueryKey } from "@/lib/me";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
 import { getRuntimeEnvironmentLabel } from "@/lib/runtimeEnv";
 import { normalizeBoundedText, USERNAME_MAX_LENGTH } from "@/lib/validation";
@@ -79,7 +79,7 @@ export function Nav({ hideInput }: Props) {
   } = useUsername();
   const { session } = useAuth();
   const { data: meData } = useQuery({
-    queryKey: ["me"],
+    queryKey: getMeQueryKey(session?.user?.id),
     queryFn: fetchMe,
     enabled: !!session,
     staleTime: QUERY_STALE_TIME_MS,
