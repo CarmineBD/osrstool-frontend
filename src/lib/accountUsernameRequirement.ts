@@ -4,6 +4,7 @@ export const ACCOUNT_USERNAME_REQUIRED_FALLBACK_MESSAGE =
 
 type AccountUsernameRequiredPayload = {
   message: string;
+  userId?: string | null;
 };
 
 type AccountUsernameRequiredListener = (
@@ -24,7 +25,7 @@ export function notifyAccountUsernameRequired(
 ) {
   const message =
     payload.message.trim() || ACCOUNT_USERNAME_REQUIRED_FALLBACK_MESSAGE;
-  const notificationKey = `${ACCOUNT_USERNAME_REQUIRED_ERROR_CODE}:${message}`;
+  const notificationKey = `${ACCOUNT_USERNAME_REQUIRED_ERROR_CODE}:${payload.userId ?? "anonymous"}:${message}`;
   const now = Date.now();
 
   if (

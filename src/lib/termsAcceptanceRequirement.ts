@@ -4,6 +4,7 @@ export const TERMS_ACCEPTANCE_REQUIRED_FALLBACK_MESSAGE =
 
 type TermsAcceptanceRequiredPayload = {
   message: string;
+  userId?: string | null;
 };
 
 type TermsAcceptanceRequiredListener = (
@@ -24,7 +25,7 @@ export function notifyTermsAcceptanceRequired(
 ) {
   const message =
     payload.message.trim() || TERMS_ACCEPTANCE_REQUIRED_FALLBACK_MESSAGE;
-  const notificationKey = `${TERMS_ACCEPTANCE_REQUIRED_ERROR_CODE}:${message}`;
+  const notificationKey = `${TERMS_ACCEPTANCE_REQUIRED_ERROR_CODE}:${payload.userId ?? "anonymous"}:${message}`;
   const now = Date.now();
 
   if (

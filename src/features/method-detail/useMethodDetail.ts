@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { fetchMe } from "@/lib/me";
+import { fetchMe, getMeQueryKey } from "@/lib/me";
 import {
   QUERY_REFETCH_INTERVAL_MS,
   QUERY_STALE_TIME_MS,
@@ -68,7 +68,7 @@ export function useMethodDetail(): UseMethodDetailResult {
   });
 
   const { data: meData } = useQuery({
-    queryKey: ["me"],
+    queryKey: getMeQueryKey(session?.user?.id),
     queryFn: fetchMe,
     enabled: !!session,
     staleTime: QUERY_STALE_TIME_MS,

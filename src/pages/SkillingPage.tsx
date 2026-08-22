@@ -20,7 +20,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
-import { fetchMe } from "@/lib/me";
+import { fetchMe, getMeQueryKey } from "@/lib/me";
 import {
   PUBLIC_LINK_CLASS,
   PUBLIC_PANEL_CLASS,
@@ -217,7 +217,7 @@ export function SkillingPage() {
   const [enabledFilter, setEnabledFilter] = useState<boolean>(false);
   const effectivePlayer = session ? (player ?? undefined) : undefined;
   const { data: meData } = useQuery({
-    queryKey: ["me"],
+    queryKey: getMeQueryKey(session?.user?.id),
     queryFn: fetchMe,
     enabled: !!session,
     staleTime: QUERY_STALE_TIME_MS,

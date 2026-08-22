@@ -15,17 +15,27 @@ import {
   subscribeToTermsAcceptanceRequired,
   TERMS_ACCEPTANCE_REQUIRED_FALLBACK_MESSAGE,
 } from "@/lib/termsAcceptanceRequirement";
+import { useAuth } from "@/auth/AuthProvider";
 
 export function TermsAcceptanceRequiredDialog() {
+  const { session } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
+  const [notificationUserId, setNotificationUserId] = useState<string | null>(
+    null,
+  );
   const [message, setMessage] = useState(
     TERMS_ACCEPTANCE_REQUIRED_FALLBACK_MESSAGE,
   );
 
   useEffect(() => {
     return subscribeToTermsAcceptanceRequired((payload) => {
+      const activeUserId = session?.user?.id ?? null;
+      if (payload.userId && payload.userId !== activeUserId) {
+        return;
+      }
+
       if (
         location.pathname === "/account/onboarding" ||
         location.pathname === "/accept-terms"
@@ -34,9 +44,16 @@ export function TermsAcceptanceRequiredDialog() {
       }
 
       setMessage(payload.message || TERMS_ACCEPTANCE_REQUIRED_FALLBACK_MESSAGE);
+      setNotificationUserId(payload.userId ?? activeUserId);
       setOpen(true);
     });
-  }, [location.pathname]);
+  }, [location.pathname, session?.user?.id]);
+
+  useEffect(() => {
+    setOpen(false);
+    setNotificationUserId(null);
+    setMessage(TERMS_ACCEPTANCE_REQUIRED_FALLBACK_MESSAGE);
+  }, [session?.user?.id]);
 
   const handleReviewTerms = () => {
     setOpen(false);
@@ -46,7 +63,10 @@ export function TermsAcceptanceRequiredDialog() {
   };
 
   return (
-    <AlertDialog open={open} onOpenChange={setOpen}>
+    <AlertDialog
+      open={open && notificationUserId === (session?.user?.id ?? null)}
+      onOpenChange={setOpen}
+    >
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Terms acceptance required</AlertDialogTitle>

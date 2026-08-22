@@ -38,7 +38,7 @@ import {
   type MethodsFilters,
 } from "@/lib/api";
 import { getUrlByType } from "@/lib/utils";
-import { fetchMe } from "@/lib/me";
+import { fetchMe, getMeQueryKey } from "@/lib/me";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
 import { useSeo } from "@/hooks/useSeo";
 import { OSRS_SKILLS, formatSkillName } from "@/lib/skills";
@@ -132,7 +132,7 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
   const [sortConfig, setSortConfig] = useState<SortConfig>(DEFAULT_SORT_CONFIG);
   const previousUserIdRef = useRef<string | null>(null);
   const { data: meData } = useQuery({
-    queryKey: ["me"],
+    queryKey: getMeQueryKey(session?.user?.id),
     queryFn: fetchMe,
     enabled: !!session,
     staleTime: QUERY_STALE_TIME_MS,

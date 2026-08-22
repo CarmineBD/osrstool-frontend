@@ -26,6 +26,10 @@ export type DeleteMeResponse = {
 
 export const ME_QUERY_KEY = ["me"] as const;
 
+export function getMeQueryKey(userId: string | null | undefined) {
+  return [...ME_QUERY_KEY, userId ?? "anonymous"] as const;
+}
+
 export class MeRequestError extends Error {
   status: number;
 

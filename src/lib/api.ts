@@ -1,5 +1,5 @@
 // src/lib/api.ts
-import { authFetch as apiFetch } from "./http";
+import { authFetch as apiFetch, getAuthFetchUserId } from "./http";
 import {
   isAccountUsernameRequiredErrorCode,
   notifyAccountUsernameRequired,
@@ -1851,13 +1851,17 @@ async function buildApiRequestError(
       freeToPlayVariantConflicts: parseFreeToPlayVariantConflicts(json),
     });
     if (isAccountUsernameRequiredErrorCode(code)) {
+      const userId = getAuthFetchUserId(res);
       notifyAccountUsernameRequired({
         message: apiMessage ?? fallback,
+        ...(userId ? { userId } : {}),
       });
     }
     if (isTermsAcceptanceRequiredErrorCode(code)) {
+      const userId = getAuthFetchUserId(res);
       notifyTermsAcceptanceRequired({
         message: apiMessage ?? fallback,
+        ...(userId ? { userId } : {}),
       });
     }
     return error;
