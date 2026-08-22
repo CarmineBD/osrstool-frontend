@@ -368,7 +368,6 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
       parsedRiskLevel,
       showOnlyFreeToPlay,
       givesExperience,
-      isSuperAdmin,
       enabled,
       normalizedLockedSkill,
       skill,
