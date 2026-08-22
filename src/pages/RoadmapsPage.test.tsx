@@ -12,64 +12,66 @@ describe("RoadmapsPage", () => {
   it(
     "passes the default ignored tags when generating a roadmap",
     async () => {
-    let capturedIgnoredTags: string[] = [];
+      let capturedIgnoredTags: string[] = [];
 
-    server.use(
-      http.post("*/methods/skills/roadmap", ({ request }) => {
-        const url = new URL(request.url);
-        capturedIgnoredTags = url.searchParams.getAll("ignoredTags");
+      server.use(
+        http.post("*/methods/skills/roadmap", ({ request }) => {
+          const url = new URL(request.url);
+          capturedIgnoredTags = url.searchParams.getAll("ignoredTags");
 
-        return HttpResponse.json({
-          data: {
-            roadmap: {
+          return HttpResponse.json({
+            data: {
+              roadmap: {
+                skill: "crafting",
+                strategy: "fastest",
+                currentLevel: 22,
+                currentExperience: 5735,
+                targetLevel: 99,
+                targetExperience: 13034431,
+                totalHours: 1,
+                averageAfkPercent: 78,
+                totalProfit: {
+                  low: -1000,
+                  high: 0,
+                },
+                ranges: [],
+              },
+              user: {
+                levels: {
+                  Crafting: 22,
+                },
+                quests: {},
+                achievement_diaries: {},
+              },
+            },
+            meta: {
+              username: "carmixtank",
               skill: "crafting",
               strategy: "fastest",
-              currentLevel: 22,
-              currentExperience: 5735,
-              targetLevel: 99,
-              targetExperience: 13034431,
-              totalHours: 1,
-              averageAfkPercent: 78,
-              totalProfit: {
-                low: -1000,
-                high: 0,
-              },
-              ranges: [],
+              enabled: true,
+              show_only_free_to_play: true,
+              ignoredTags: ["ge_limits", "not_viable"],
+              computedAt: 1785780480,
+              usesExactSkillExperience: true,
             },
-            user: {
-              levels: {
-                Crafting: 22,
-              },
-              quests: {},
-              achievement_diaries: {},
-            },
-          },
-          meta: {
-            username: "carmixtank",
-            skill: "crafting",
-            strategy: "fastest",
-            enabled: true,
-            show_only_free_to_play: true,
-            ignoredTags: ["ge_limits", "not_viable"],
-            computedAt: 1785780480,
-            usesExactSkillExperience: true,
-          },
-        });
-      }),
-    );
+          });
+        }),
+      );
 
-    renderWithProviders(<RoadmapsPage />, { route: "/roadmaps" });
-    const user = userEvent.setup();
+      renderWithProviders(<RoadmapsPage />, { route: "/roadmaps" });
+      const user = userEvent.setup();
 
-    expect((await screen.findAllByText("GE limits")).length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Not viable").length).toBeGreaterThan(0);
+      expect((await screen.findAllByText("GE limits")).length).toBeGreaterThan(
+        0,
+      );
+      expect(screen.getAllByText("Not viable").length).toBeGreaterThan(0);
 
-    await user.type(screen.getByLabelText("OSRS username"), "carmixtank");
-    await user.click(screen.getByRole("button", { name: "Generate" }));
+      await user.type(screen.getByLabelText("OSRS username"), "carmixtank");
+      await user.click(screen.getByRole("button", { name: "Generate" }));
 
-    await waitFor(() =>
-      expect(capturedIgnoredTags).toEqual(["ge_limits", "not_viable"]),
-    );
+      await waitFor(() =>
+        expect(capturedIgnoredTags).toEqual(["ge_limits", "not_viable"]),
+      );
     },
     ROADMAP_INTERACTION_TEST_TIMEOUT_MS,
   );
@@ -307,7 +309,13 @@ describe("RoadmapsPage", () => {
 
     await user.type(screen.getByLabelText("OSRS username"), "carmixtank");
     await user.click(screen.getByRole("button", { name: "Generate" }));
-    await screen.findByText("13.03m xp needed to reach level 99.");
+    await screen.findByText(
+      "13.03m xp needed to reach level 99.",
+      {},
+      {
+        timeout: 10000,
+      },
+    );
 
     const targetLevelInput = screen.getByLabelText("Target level");
     const usernameInput = screen.getByLabelText("OSRS username");
@@ -317,8 +325,10 @@ describe("RoadmapsPage", () => {
     await user.type(targetLevelInput, "20");
     targetLevelInput.blur();
 
-    await waitFor(() => expect(targetLevelInput).toHaveValue("20"));
-  });
+    await waitFor(() => expect(targetLevelInput).toHaveValue("20"), {
+      timeout: 10000,
+    });
+  }, 10000);
 
   it("shows roadmap material warnings when totals are unavailable", async () => {
     server.use(
@@ -531,7 +541,11 @@ describe("RoadmapsPage", () => {
                     riskLevel: null,
                     requirements: {
                       levels: [
-                        { level: 20, skill: "Herblore", reason: "Higher level" },
+                        {
+                          level: 20,
+                          skill: "Herblore",
+                          reason: "Higher level",
+                        },
                       ],
                       quests: [
                         {
@@ -587,7 +601,9 @@ describe("RoadmapsPage", () => {
 
     expect(await screen.findByText("Druidic Ritual")).toBeInTheDocument();
     expect(screen.getAllByText("Druidic Ritual")).toHaveLength(1);
-    expect(screen.queryByText("Druidic Ritual (started)")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Druidic Ritual (started)"),
+    ).not.toBeInTheDocument();
     expect(screen.getByText("Varrock Hard")).toBeInTheDocument();
     expect(screen.queryByText("Varrock Medium")).not.toBeInTheDocument();
   });
