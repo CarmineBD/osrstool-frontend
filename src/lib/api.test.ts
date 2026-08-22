@@ -50,9 +50,11 @@ describe("api account username requirement handling", () => {
       ),
     });
 
-    expect(listener).toHaveBeenCalledWith({
-      message: "You must set an account username before using this service.",
-    });
+    expect(listener).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "You must set an account username before using this service.",
+      }),
+    );
 
     unsubscribe();
   });
@@ -84,10 +86,12 @@ describe("api account username requirement handling", () => {
       ),
     });
 
-    expect(listener).toHaveBeenCalledWith({
-      message:
-        "You must accept the current Terms of Service before using this service.",
-    });
+    expect(listener).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message:
+          "You must accept the current Terms of Service before using this service.",
+      }),
+    );
 
     unsubscribe();
   });

@@ -13,6 +13,10 @@ describe("CookiesAndLocalStoragePage", () => {
       screen.getByRole("heading", { name: "Cookies and Local Storage" }),
     ).toBeInTheDocument();
     expect(screen.getByText("rsmethods-theme")).toBeInTheDocument();
+    expect(screen.getByText("rsmethods-osrs-player")).toBeInTheDocument();
+    expect(
+      screen.getByText(/complete player profile returned for it/i),
+    ).toBeInTheDocument();
     expect(
       screen.getByText("sb-<supabase-project-ref>-auth-token"),
     ).toBeInTheDocument();

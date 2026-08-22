@@ -39,7 +39,7 @@ export function notifyTermsAcceptanceRequired(
   lastNotificationTimestamp = now;
 
   for (const listener of listeners) {
-    listener({ message });
+    listener({ message, userId: payload.userId });
   }
 }
 
