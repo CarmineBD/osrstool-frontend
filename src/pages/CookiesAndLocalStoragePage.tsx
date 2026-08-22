@@ -47,6 +47,16 @@ const storageRows: readonly StorageRow[] = [
     strictlyNecessary: "No",
   },
   {
+    item: "rsmethods-osrs-player",
+    technology: "localStorage",
+    purpose:
+      "Stores the selected OSRS username, its fetched time, and the complete player profile returned for it: skill levels, experience, quest progress, and achievement diary progress. It lets method filters and roadmaps reuse the selected profile without another lookup.",
+    provider: "RSMethods",
+    duration:
+      "Until a newer lookup replaces it, you clear it, signed-out state is detected, or browser storage is cleared. Profiles older than 24 hours are refreshed after sign-in.",
+    strictlyNecessary: "No",
+  },
+  {
     item: "sb-<supabase-project-ref>-auth-token",
     technology: "localStorage",
     purpose:

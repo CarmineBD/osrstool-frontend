@@ -1,8 +1,10 @@
 import {
   createContext,
   useContext,
+  useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -66,7 +68,7 @@ function readStoredPlayer(): StoredOsrsPlayer | null {
 }
 
 export function UsernameProvider({ children }: Props) {
-  const { session } = useAuth();
+  const { session, isLoading } = useAuth();
   const [storedPlayer, setStoredPlayer] = useState<StoredOsrsPlayer | null>(
     readStoredPlayer,
   );
@@ -74,19 +76,28 @@ export function UsernameProvider({ children }: Props) {
   const [isPlayerLookupPending, setIsPlayerLookupPending] = useState(false);
   const [manualLookupUntil, setManualLookupUntil] = useState(0);
   const [now, setNow] = useState(Date.now());
+  const latestLookupRequest = useRef(0);
 
   useEffect(() => {
     const interval = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(interval);
   }, []);
 
-  const savePlayer = (next: StoredOsrsPlayer) => {
+  const savePlayer = useCallback((next: StoredOsrsPlayer) => {
     setStoredPlayer(next);
     localStorage.setItem(PLAYER_STORAGE_KEY, JSON.stringify(next));
     localStorage.setItem("username", next.username);
-  };
+  }, []);
 
-  const fetchAndStore = async (
+  const clearUsername = useCallback(() => {
+    latestLookupRequest.current += 1;
+    setStoredPlayer(null);
+    setUserError(null);
+    localStorage.removeItem("username");
+    localStorage.removeItem(PLAYER_STORAGE_KEY);
+  }, []);
+
+  const fetchAndStore = useCallback(async (
     candidate: string,
     manual: boolean,
   ): Promise<PlayerInfo | null> => {
@@ -105,40 +116,42 @@ export function UsernameProvider({ children }: Props) {
     if (manual && Date.now() < manualLookupUntil) return null;
 
     if (manual) setManualLookupUntil(Date.now() + MANUAL_LOOKUP_COOLDOWN_MS);
+    const requestId = latestLookupRequest.current + 1;
+    latestLookupRequest.current = requestId;
     setIsPlayerLookupPending(true);
     setUserError(null);
     try {
       const player = await fetchPlayerInfo(username);
+      if (requestId !== latestLookupRequest.current) return null;
       savePlayer({ username, player, fetchedAt: Date.now() });
       return player;
     } catch (error) {
-      setUserError(
-        error instanceof Error
-          ? error.message
-          : "Unable to fetch OSRS player data.",
-      );
+      if (requestId === latestLookupRequest.current) {
+        setUserError(
+          error instanceof Error
+            ? error.message
+            : "Unable to fetch OSRS player data.",
+        );
+      }
       return null;
     } finally {
-      setIsPlayerLookupPending(false);
+      if (requestId === latestLookupRequest.current) {
+        setIsPlayerLookupPending(false);
+      }
     }
-  };
+  }, [manualLookupUntil, savePlayer, session]);
 
   useEffect(() => {
-    if (
-      !session ||
-      !storedPlayer ||
-      Date.now() - storedPlayer.fetchedAt < PLAYER_MAX_AGE_MS
-    )
+    if (isLoading) return;
+    if (!session) {
+      clearUsername();
       return;
+    }
+    if (!storedPlayer || Date.now() - storedPlayer.fetchedAt < PLAYER_MAX_AGE_MS) {
+      return;
+    }
     void fetchAndStore(storedPlayer.username, false);
-  }, [session, storedPlayer?.fetchedAt, storedPlayer?.username]);
-
-  const clearUsername = () => {
-    setStoredPlayer(null);
-    setUserError(null);
-    localStorage.removeItem("username");
-    localStorage.removeItem(PLAYER_STORAGE_KEY);
-  };
+  }, [clearUsername, fetchAndStore, isLoading, session, storedPlayer]);
 
   const manualLookupCooldownRemaining = Math.max(0, manualLookupUntil - now);
   const value = useMemo<UsernameContextValue>(
@@ -159,6 +172,8 @@ export function UsernameProvider({ children }: Props) {
       isPlayerLookupPending,
       manualLookupCooldownRemaining,
       userError,
+      clearUsername,
+      fetchAndStore,
     ],
   );
 
