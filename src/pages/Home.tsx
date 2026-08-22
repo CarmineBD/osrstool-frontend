@@ -351,7 +351,9 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
       riskLevel: parsedRiskLevel,
       showOnlyFreeToPlay,
       givesExperience,
-      enabled: isSuperAdmin ? enabled : undefined,
+      // Keep the public default explicit without retaining an admin-only
+      // disabled selection after the user loses that permission.
+      enabled: isSuperAdmin ? enabled : true,
       skill: normalizedLockedSkill ?? (skill || undefined),
       variants: normalizedLockedSkill ? "all" : undefined,
       showProfitables,
