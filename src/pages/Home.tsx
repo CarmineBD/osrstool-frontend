@@ -351,7 +351,9 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
       riskLevel: parsedRiskLevel,
       showOnlyFreeToPlay,
       givesExperience,
-      enabled: isSuperAdmin ? enabled : undefined,
+      // Keep the public default explicit. Previously this changed from undefined
+      // to true when /users/me finished, triggering an identical second search.
+      enabled,
       skill: normalizedLockedSkill ?? (skill || undefined),
       variants: normalizedLockedSkill ? "all" : undefined,
       showProfitables,
