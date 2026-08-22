@@ -10,7 +10,7 @@ function renderApp() {
   render(
     <QueryClientProvider client={queryClient}>
       <App />
-    </QueryClientProvider>
+    </QueryClientProvider>,
   );
 }
 
@@ -42,7 +42,7 @@ describe("critical flow: Google auth entrypoint", () => {
       name: "Continue with Google",
     });
 
-    expect(screen.getByText("or")).toBeInTheDocument();
+    expect(screen.getByText("Or continue with email")).toBeInTheDocument();
 
     await userEvent.click(googleButton);
 
@@ -70,13 +70,19 @@ describe("critical flow: Google auth entrypoint", () => {
     await userEvent.click(googleButton);
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Connecting..." })).toBeDisabled();
+      expect(
+        screen.getByRole("button", { name: "Connecting..." }),
+      ).toBeDisabled();
     });
 
     expect(screen.getByRole("button", { name: "Sign in" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Create account" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Create account" }),
+    ).toBeDisabled();
 
-    await userEvent.click(screen.getByRole("button", { name: "Connecting..." }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Connecting..." }),
+    );
 
     expect(signInWithGoogle).toHaveBeenCalledTimes(1);
 
@@ -97,15 +103,36 @@ describe("critical flow: Google auth entrypoint", () => {
     renderApp();
 
     await userEvent.click(
-      await screen.findByRole("button", { name: "Continue with Google" })
+      await screen.findByRole("button", { name: "Continue with Google" }),
     );
 
     expect(signInWithGoogle).toHaveBeenCalledTimes(1);
     expect(
-      await screen.findByText("Google OAuth is unavailable.")
+      await screen.findByText("Google OAuth is unavailable."),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Continue with Google" })
+      screen.getByRole("button", { name: "Continue with Google" }),
     ).toBeEnabled();
+  });
+
+  it("navigates to the standalone create account screen", async () => {
+    const authProviderModule = await import("@/auth/AuthProvider");
+    authProviderModule.__setAuthMockState({
+      session: null,
+      user: null,
+      isLoading: false,
+    });
+
+    window.history.pushState({}, "", "/login");
+    renderApp();
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Create account" }),
+    );
+
+    expect(await screen.findByLabelText("Repeat password")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Continue with Google" }),
+    ).not.toBeInTheDocument();
   });
 });

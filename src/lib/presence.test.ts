@@ -17,15 +17,18 @@ describe("presence helpers", () => {
     window.localStorage.clear();
   });
 
-  it("creates and persists a visitor id once", () => {
+  it("creates one in-memory visitor id without persisting it", () => {
+    window.localStorage.setItem(
+      "osrs-tool-presence-visitor-id",
+      "legacy-visitor-id",
+    );
+
     const first = getOrCreatePresenceVisitorId();
     const second = getOrCreatePresenceVisitorId();
 
     expect(first).toBeTruthy();
     expect(second).toBe(first);
-    expect(window.localStorage.getItem("osrs-tool-presence-visitor-id")).toBe(
-      first,
-    );
+    expect(window.localStorage.length).toBe(0);
   });
 
   it("posts the anonymous visitor id to the heartbeat endpoint", async () => {

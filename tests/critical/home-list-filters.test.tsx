@@ -38,131 +38,145 @@ function buildMethod(
 const SLOW_INTERACTION_TEST_TIMEOUT_MS = 20000;
 
 describe("critical flow: list render + filters", () => {
-  it("renders methods and applies method-name filtering", async () => {
-    const seenNames: string[] = [];
-    const seenShowOnlyFreeToPlay: string[] = [];
-    const seenIgnoredTags: string[] = [];
-    const seenSortBy: string[] = [];
-    const seenOrder: string[] = [];
+  it(
+    "renders methods and applies method-name filtering",
+    async () => {
+      const seenNames: string[] = [];
+      const seenShowOnlyFreeToPlay: string[] = [];
+      const seenIgnoredTags: string[] = [];
+      const seenSortBy: string[] = [];
+      const seenOrder: string[] = [];
 
-    server.use(
-      http.get("*/items", ({ request }) => {
-        const requestUrl = new URL(request.url);
-        const ids = (requestUrl.searchParams.get("ids") ?? "")
-          .split(",")
-          .map((value) => Number(value))
-          .filter((value) => Number.isFinite(value));
-        const data = Object.fromEntries(
-          ids.map((id) => [
-            id,
-            id === 1001
-              ? {
-                  name: "Shark fishing icon",
-                  iconUrl: "https://example.com/shark-fishing.png",
-                }
-              : {
-                  name: "Dragon bones run icon",
-                  iconUrl: "https://example.com/dragon-bones-run.png",
-                },
-          ])
-        );
-        return HttpResponse.json({ data });
-      }),
-      http.get("*/methods", ({ request }) => {
-        const requestUrl = new URL(request.url);
-        const name = requestUrl.searchParams.get("name") ?? "";
-        const showOnlyFreeToPlay =
-          requestUrl.searchParams.get("show_only_free_to_play") ?? "";
-        const ignoredTags = requestUrl.searchParams.getAll("ignoredTags").join(",");
-        const sortBy = requestUrl.searchParams.get("sortBy") ?? "";
-        const order = requestUrl.searchParams.get("order") ?? "";
-        seenNames.push(name);
-        seenShowOnlyFreeToPlay.push(showOnlyFreeToPlay);
-        seenIgnoredTags.push(ignoredTags);
-        seenSortBy.push(sortBy);
-        seenOrder.push(order);
+      server.use(
+        http.get("*/items", ({ request }) => {
+          const requestUrl = new URL(request.url);
+          const ids = (requestUrl.searchParams.get("ids") ?? "")
+            .split(",")
+            .map((value) => Number(value))
+            .filter((value) => Number.isFinite(value));
+          const data = Object.fromEntries(
+            ids.map((id) => [
+              id,
+              id === 1001
+                ? {
+                    name: "Shark fishing icon",
+                    iconUrl: "https://example.com/shark-fishing.png",
+                  }
+                : {
+                    name: "Dragon bones run icon",
+                    iconUrl: "https://example.com/dragon-bones-run.png",
+                  },
+            ]),
+          );
+          return HttpResponse.json({ data });
+        }),
+        http.post("*/methods/search", ({ request }) => {
+          const requestUrl = new URL(request.url);
+          const name = requestUrl.searchParams.get("name") ?? "";
+          const showOnlyFreeToPlay =
+            requestUrl.searchParams.get("show_only_free_to_play") ?? "";
+          const ignoredTags = requestUrl.searchParams
+            .getAll("ignoredTags")
+            .join(",");
+          const sortBy = requestUrl.searchParams.get("sortBy") ?? "";
+          const order = requestUrl.searchParams.get("order") ?? "";
+          seenNames.push(name);
+          seenShowOnlyFreeToPlay.push(showOnlyFreeToPlay);
+          seenIgnoredTags.push(ignoredTags);
+          seenSortBy.push(sortBy);
+          seenOrder.push(order);
 
-        const methods = name.toLowerCase().includes("dragon")
-          ? [
-              buildMethod(
-                "method-2",
-                "Dragon bones run",
-                "dragon-bones-run",
-                1002,
-                "Fast route"
-              ),
-            ]
-          : [buildMethod("method-1", "Shark fishing", "shark-fishing", 1001)];
+          const methods = name.toLowerCase().includes("dragon")
+            ? [
+                buildMethod(
+                  "method-2",
+                  "Dragon bones run",
+                  "dragon-bones-run",
+                  1002,
+                  "Fast route",
+                ),
+              ]
+            : [buildMethod("method-1", "Shark fishing", "shark-fishing", 1001)];
 
-        return HttpResponse.json({
-          data: {
-            methods,
-            page: 1,
-            perPage: 10,
-            total: methods.length,
-          },
-        });
-      })
-    );
+          return HttpResponse.json({
+            data: {
+              methods,
+              page: 1,
+              perPage: 10,
+              total: methods.length,
+            },
+          });
+        }),
+      );
 
-    renderWithProviders(<Home />);
+      renderWithProviders(<Home />);
 
-    expect(
-      await screen.findByRole("link", { name: "Shark fishing" })
-    ).toBeInTheDocument();
-    expect(await screen.findByAltText("Shark fishing icon")).toBeInTheDocument();
-    expect(seenShowOnlyFreeToPlay).toContain("false");
-    expect(seenIgnoredTags).toContain("not_viable");
-    expect(seenSortBy).toContain("highProfit");
-    expect(seenOrder).toContain("desc");
+      expect(
+        await screen.findByRole("link", { name: "Shark fishing" }),
+      ).toBeInTheDocument();
+      expect(
+        await screen.findByAltText("Shark fishing icon"),
+      ).toBeInTheDocument();
+      expect(seenShowOnlyFreeToPlay).toContain("false");
+      expect(seenIgnoredTags).toContain("not_viable");
+      expect(seenSortBy).toContain("highProfit");
+      expect(seenOrder).toContain("desc");
 
-    const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: /show filters/i }));
-    expect((await screen.findAllByText("Not viable")).length).toBeGreaterThan(0);
-    await user.click(screen.getByLabelText("Ignored tags"));
-    expect(screen.queryByText("No tags found.")).not.toBeInTheDocument();
-    await user.hover(
-      screen.getByRole("button", { name: /ge limits explanation/i }),
-    );
-    expect(
-      (
-        await screen.findAllByText(
-          /some required inputs exceed grand exchange buy limits at the one-hour scale/i,
-        )
-      ).length,
-    ).toBeGreaterThan(0);
-    await user.keyboard("{Escape}");
-    await user.click(screen.getByRole("button", { name: /clear/i }));
-    await user.click(screen.getByRole("switch", { name: /f2p only/i }));
-    await user.type(
-      screen.getByPlaceholderText("Search by method name"),
-      "dragon"
-    );
+      const user = userEvent.setup();
+      await user.click(screen.getByRole("button", { name: /show filters/i }));
+      expect((await screen.findAllByText("Not viable")).length).toBeGreaterThan(
+        0,
+      );
+      await user.click(screen.getByLabelText("Ignored tags"));
+      expect(screen.queryByText("No tags found.")).not.toBeInTheDocument();
+      await user.hover(
+        screen.getByRole("button", { name: /ge limits explanation/i }),
+      );
+      expect(
+        (
+          await screen.findAllByText(
+            /some required inputs exceed grand exchange buy limits at the one-hour scale/i,
+          )
+        ).length,
+      ).toBeGreaterThan(0);
+      await user.keyboard("{Escape}");
+      await user.click(screen.getByRole("button", { name: /clear/i }));
+      await user.click(screen.getByRole("switch", { name: /f2p only/i }));
+      await user.type(
+        screen.getByPlaceholderText("Search by method name"),
+        "dragon",
+      );
 
-    expect(
-      await screen.findByRole("link", { name: "Dragon bones run" })
-    ).toBeInTheDocument();
-    expect(await screen.findByAltText("Dragon bones run icon")).toBeInTheDocument();
-    expect(screen.getByText("Fast route")).toBeInTheDocument();
-    expect(seenNames).toContain("dragon");
-    expect(seenShowOnlyFreeToPlay).toContain("true");
-    expect(seenIgnoredTags).toContain("");
-    expect(seenSortBy).toContain("highProfit");
-    expect(seenOrder).toContain("desc");
-  }, SLOW_INTERACTION_TEST_TIMEOUT_MS);
+      expect(
+        await screen.findByRole("link", { name: "Dragon bones run" }),
+      ).toBeInTheDocument();
+      expect(
+        await screen.findByAltText("Dragon bones run icon"),
+      ).toBeInTheDocument();
+      expect(screen.getByText("Fast route")).toBeInTheDocument();
+      expect(seenNames).toContain("dragon");
+      expect(seenShowOnlyFreeToPlay).toContain("true");
+      expect(seenIgnoredTags).toContain("");
+      expect(seenSortBy).toContain("highProfit");
+      expect(seenOrder).toContain("desc");
+    },
+    SLOW_INTERACTION_TEST_TIMEOUT_MS,
+  );
 
   it("disables the username-data switch when no username is available", async () => {
     server.use(
-      http.get("*/methods", () =>
+      http.post("*/methods/search", () =>
         HttpResponse.json({
           data: {
-            methods: [buildMethod("method-1", "Shark fishing", "shark-fishing", 1001)],
+            methods: [
+              buildMethod("method-1", "Shark fishing", "shark-fishing", 1001),
+            ],
             page: 1,
             perPage: 10,
             total: 1,
           },
-        })
-      )
+        }),
+      ),
     );
 
     const user = userEvent.setup();
@@ -177,37 +191,42 @@ describe("critical flow: list render + filters", () => {
     expect(usernameDataSwitch).toBeDisabled();
     expect(usernameDataSwitch).toHaveAttribute("aria-checked", "false");
     expect(
-      screen.getByText("Enter your username to enable stat-based method filtering."),
+      screen.getByText(
+        "Enter your username to enable stat-based method filtering.",
+      ),
     ).toBeInTheDocument();
   });
 
   it("lets users toggle username-based filtering on and off", async () => {
-    const seenUsernames: string[] = [];
+    const seenPlayerBodies: unknown[] = [];
     const usernameContextModule = await import("@/contexts/UsernameContext");
     usernameContextModule.__setUsernameMockState({ username: "Zezima" });
 
     server.use(
       http.get("*/items", () => HttpResponse.json({ data: {} })),
-      http.get("*/methods", ({ request }) => {
-        const requestUrl = new URL(request.url);
-        seenUsernames.push(requestUrl.searchParams.get("username") ?? "");
+      http.post("*/methods/search", async ({ request }) => {
+        seenPlayerBodies.push(
+          ((await request.json()) as { player?: unknown }).player,
+        );
 
         return HttpResponse.json({
           data: {
-            methods: [buildMethod("method-1", "Shark fishing", "shark-fishing", 1001)],
+            methods: [
+              buildMethod("method-1", "Shark fishing", "shark-fishing", 1001),
+            ],
             page: 1,
             perPage: 10,
             total: 1,
           },
         });
-      })
+      }),
     );
 
     const user = userEvent.setup();
     renderWithProviders(<Home />);
 
     await screen.findByRole("link", { name: "Shark fishing" });
-    expect(seenUsernames).toContain("Zezima");
+    expect(seenPlayerBodies.some((player) => player !== undefined)).toBe(true);
 
     await user.click(screen.getByRole("button", { name: /show filters/i }));
     const usernameDataSwitch = screen.getByRole("switch", {
@@ -222,7 +241,7 @@ describe("critical flow: list render + filters", () => {
     await user.click(usernameDataSwitch);
 
     await waitFor(() => {
-      expect(seenUsernames).toContain("");
+      expect(seenPlayerBodies).toContain(undefined);
     });
     expect(usernameDataSwitch).toHaveAttribute("aria-checked", "false");
     expect(
@@ -252,11 +271,11 @@ describe("critical flow: list render + filters", () => {
               name: `Method icon ${id}`,
               iconUrl: `https://example.com/icon-${id}.png`,
             },
-          ])
+          ]),
         );
         return HttpResponse.json({ data });
       }),
-      http.get("*/methods", () =>
+      http.post("*/methods/search", () =>
         HttpResponse.json({
           data: {
             methods: [
@@ -265,32 +284,32 @@ describe("critical flow: list render + filters", () => {
                 "Shark fishing",
                 "shark-fishing",
                 1001,
-                "Tick manipulation"
+                "Tick manipulation",
               ),
               buildMethod(
                 "method-2",
                 "Rune Dragons",
                 "rune-dragons",
                 1002,
-                "Rune Dragons"
+                "Rune Dragons",
               ),
             ],
             page: 1,
             perPage: 10,
             total: 2,
           },
-        })
-      )
+        }),
+      ),
     );
 
     renderWithProviders(<Home />);
 
     expect(
-      await screen.findByRole("link", { name: "Shark fishing" })
+      await screen.findByRole("link", { name: "Shark fishing" }),
     ).toBeInTheDocument();
     expect(screen.getByText("Tick manipulation")).toBeInTheDocument();
     expect(
-      screen.queryByText("Rune Dragons", { selector: "p" })
+      screen.queryByText("Rune Dragons", { selector: "p" }),
     ).not.toBeInTheDocument();
   });
 
@@ -309,16 +328,18 @@ describe("critical flow: list render + filters", () => {
     });
 
     server.use(
-      http.get("*/methods", () =>
+      http.post("*/methods/search", () =>
         HttpResponse.json({
           data: {
-            methods: [buildMethod("method-1", "Shark fishing", "shark-fishing", 1001)],
+            methods: [
+              buildMethod("method-1", "Shark fishing", "shark-fishing", 1001),
+            ],
             page: 1,
             perPage: 10,
             total: 1,
           },
-        })
-      )
+        }),
+      ),
     );
 
     const storageKey = getMethodsTableColumnStorageKey("user-1", false);
@@ -327,25 +348,23 @@ describe("critical flow: list render + filters", () => {
 
     await screen.findByRole("link", { name: "Shark fishing" });
     expect(
-      screen.getByRole("columnheader", { name: "Members" })
+      screen.getByRole("columnheader", { name: "Members" }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("columnheader", { name: "Market impact" })
+      screen.queryByRole("columnheader", { name: "Market impact" }),
     ).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Table Fields" }));
     expect(
-      screen.getByRole("checkbox", { name: /Method Name/i })
+      screen.getByRole("checkbox", { name: /Method Name/i }),
     ).toBeDisabled();
     expect(
-      screen.getByRole("checkbox", { name: /Market impact/i })
+      screen.getByRole("checkbox", { name: /Market impact/i }),
     ).not.toBeChecked();
     expect(
-      screen.getByRole("checkbox", { name: /Click Intensity/i })
+      screen.getByRole("checkbox", { name: /Click Intensity/i }),
     ).not.toBeChecked();
     const tableFieldsList = screen.getByRole("list", { name: "Table fields" });
-    fireEvent.dragStart(
-      screen.getByRole("button", { name: "Reorder Tags" })
-    );
+    fireEvent.dragStart(screen.getByRole("button", { name: "Reorder Tags" }));
     fireEvent.dragOver(screen.getByRole("listitem", { name: "Gp/Hr" }));
     fireEvent.drop(tableFieldsList);
     fireEvent.dragEnd(screen.getByRole("button", { name: "Reorder Tags" }));
@@ -361,12 +380,14 @@ describe("critical flow: list render + filters", () => {
     ]);
 
     expect(
-      screen.queryByRole("columnheader", { name: "Market impact" })
+      screen.queryByRole("columnheader", { name: "Market impact" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("columnheader", { name: "Members" })
+      screen.queryByRole("columnheader", { name: "Members" }),
     ).not.toBeInTheDocument();
-    const storedState = JSON.parse(window.sessionStorage.getItem(storageKey) ?? "{}");
+    const storedState = JSON.parse(
+      window.sessionStorage.getItem(storageKey) ?? "{}",
+    );
     expect(storedState.orderedColumnIds.slice(0, 3)).toEqual([
       "methodName",
       "tags",
@@ -379,10 +400,10 @@ describe("critical flow: list render + filters", () => {
 
     rerender(<Home />);
     expect(
-      screen.queryByRole("columnheader", { name: "Market impact" })
+      screen.queryByRole("columnheader", { name: "Market impact" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("columnheader", { name: "Members" })
+      screen.queryByRole("columnheader", { name: "Members" }),
     ).not.toBeInTheDocument();
     expect(screen.getAllByRole("columnheader")[1]).toHaveTextContent("Tags");
 
@@ -406,10 +427,10 @@ describe("critical flow: list render + filters", () => {
     rerender(<Home />);
 
     expect(
-      screen.getByRole("columnheader", { name: "Members" })
+      screen.getByRole("columnheader", { name: "Members" }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("columnheader", { name: "Market impact" })
+      screen.queryByRole("columnheader", { name: "Market impact" }),
     ).not.toBeInTheDocument();
   }, 10000);
 
@@ -430,7 +451,7 @@ describe("critical flow: list render + filters", () => {
       });
 
       server.use(
-        http.get("*/methods", () =>
+        http.post("*/methods/search", () =>
           HttpResponse.json({
             data: {
               methods: [
@@ -440,8 +461,8 @@ describe("critical flow: list render + filters", () => {
               perPage: 10,
               total: 1,
             },
-          })
-        )
+          }),
+        ),
       );
 
       const storageKey = getMethodsTableColumnStorageKey("user-1", false);
@@ -451,37 +472,35 @@ describe("critical flow: list render + filters", () => {
 
       await screen.findByRole("link", { name: "Shark fishing" });
       await user.click(screen.getByRole("button", { name: "Table Fields" }));
-      const tableFieldsList = screen.getByRole("list", { name: "Table fields" });
+      const tableFieldsList = screen.getByRole("list", {
+        name: "Table fields",
+      });
 
-      fireEvent.dragStart(
-        screen.getByRole("button", { name: "Reorder Tags" })
-      );
+      fireEvent.dragStart(screen.getByRole("button", { name: "Reorder Tags" }));
       fireEvent.dragOver(screen.getByRole("listitem", { name: "Gp/Hr" }));
       fireEvent.drop(tableFieldsList);
       fireEvent.dragEnd(screen.getByRole("button", { name: "Reorder Tags" }));
 
       await user.click(
-        screen.getByRole("checkbox", { name: /Market impact/i })
+        screen.getByRole("checkbox", { name: /Market impact/i }),
       );
       await user.click(screen.getByRole("checkbox", { name: /Members/i }));
 
       expect(screen.getAllByRole("columnheader")[1]).toHaveTextContent("Tags");
       expect(
-        screen.queryByRole("columnheader", { name: "Members" })
+        screen.queryByRole("columnheader", { name: "Members" }),
       ).not.toBeInTheDocument();
 
       await user.click(
-        screen.getByRole("button", { name: "Reset to default" })
+        screen.getByRole("button", { name: "Reset to default" }),
       );
-      await user.click(
-        screen.getByRole("button", { name: "Confirm" })
-      );
+      await user.click(screen.getByRole("button", { name: "Confirm" }));
 
       expect(
-        await screen.findByRole("columnheader", { name: "Members" })
+        await screen.findByRole("columnheader", { name: "Members" }),
       ).toBeInTheDocument();
       expect(
-        screen.queryByRole("columnheader", { name: "Market impact" })
+        screen.queryByRole("columnheader", { name: "Market impact" }),
       ).not.toBeInTheDocument();
       expect(screen.getAllByRole("columnheader")[1]).toHaveTextContent("Gp/Hr");
 

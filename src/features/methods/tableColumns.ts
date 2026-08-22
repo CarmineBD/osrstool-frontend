@@ -141,6 +141,13 @@ export function getMethodsTableColumnStorageKey(
   userId: string,
   isSkillTable: boolean,
 ): string {
+  return `rsmethods:methods-table-columns:${userId}:${isSkillTable ? "skill" : "default"}`;
+}
+
+export function getLegacyMethodsTableColumnStorageKey(
+  userId: string,
+  isSkillTable: boolean,
+): string {
   return `osrstool:methods-table-columns:${userId}:${isSkillTable ? "skill" : "default"}`;
 }
 
@@ -148,6 +155,8 @@ export function getMethodsTableColumnStorageKeys(userId: string): string[] {
   return [
     getMethodsTableColumnStorageKey(userId, false),
     getMethodsTableColumnStorageKey(userId, true),
+    getLegacyMethodsTableColumnStorageKey(userId, false),
+    getLegacyMethodsTableColumnStorageKey(userId, true),
   ];
 }
 

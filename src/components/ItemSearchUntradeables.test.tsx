@@ -5,13 +5,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ItemIconField } from "@/components/ItemIconField";
 import { IoItemsField } from "@/components/IoItemsField";
 import { RequirementsRecommendationsField } from "@/components/RequirementsRecommendationsField";
-import { fetchItems, searchItems, type Variant } from "@/lib/api";
+import {
+  fetchIconRecords,
+  fetchItems,
+  searchIcons,
+  searchItems,
+  type Variant,
+} from "@/lib/api";
 
 vi.mock("@/lib/api", async () => {
   const actual = await vi.importActual<typeof import("@/lib/api")>("@/lib/api");
   return {
     ...actual,
     fetchItems: vi.fn(),
+    fetchIconRecords: vi.fn(),
+    searchIcons: vi.fn(),
     searchItems: vi.fn(),
   };
 });
@@ -26,6 +34,8 @@ describe("item search untradeables toggle", () => {
       page: 1,
       pageCount: 1,
     });
+    vi.mocked(fetchIconRecords).mockResolvedValue({});
+    vi.mocked(searchIcons).mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -38,7 +48,7 @@ describe("item search untradeables toggle", () => {
     render(<IoItemsField label="Inputs" items={[]} onChange={vi.fn()} />);
 
     await user.click(
-      screen.getByRole("button", { name: "Inputs search options" })
+      screen.getByRole("button", { name: "Inputs search options" }),
     );
 
     const showUntradeablesSwitch = await screen.findByRole("switch", {
@@ -71,11 +81,11 @@ describe("item search untradeables toggle", () => {
         questOptions={[]}
         achievementDiaryOptions={[]}
         onChange={vi.fn()}
-      />
+      />,
     );
 
     await user.click(
-      screen.getByRole("button", { name: "Requirements search options" })
+      screen.getByRole("button", { name: "Requirements search options" }),
     );
 
     const showUntradeablesSwitch = await screen.findByRole("switch", {
@@ -88,7 +98,7 @@ describe("item search untradeables toggle", () => {
     await user.keyboard("{Escape}");
 
     const searchInput = screen.getByPlaceholderText(
-      "Search items, skills, quests, or achievement diaries"
+      "Search items, skills, quests, or achievement diaries",
     );
     await user.type(searchInput, "coal");
 
@@ -108,14 +118,14 @@ describe("item search untradeables toggle", () => {
         questOptions={[]}
         achievementDiaryOptions={[]}
         onChange={vi.fn()}
-      />
+      />,
     );
 
     expect(screen.getByText("Unified search")).toBeInTheDocument();
     expect(
       screen.getByPlaceholderText(
-        "Search items, skills, quests, or achievement diaries"
-      )
+        "Search items, skills, quests, or achievement diaries",
+      ),
     ).toBeInTheDocument();
     expect(screen.queryByText("Items")).not.toBeInTheDocument();
     expect(screen.queryByText("Quests")).not.toBeInTheDocument();
@@ -123,7 +133,7 @@ describe("item search untradeables toggle", () => {
     expect(screen.queryByText("Skills")).not.toBeInTheDocument();
   });
 
-  it("defaults to false and updates icon item search when enabled", async () => {
+  it("uses the selected icon type and only enables untradeable items for all or items", async () => {
     const user = userEvent.setup();
 
     render(
@@ -133,22 +143,22 @@ describe("item search untradeables toggle", () => {
         onChange={vi.fn()}
         searchAriaLabel="Method icon search"
         optionsAriaLabel="Method icon search options"
-      />
+      />,
     );
 
     await user.click(screen.getByRole("button", { name: "Open Method icon" }));
 
     await user.click(
-      screen.getByRole("button", { name: "Method icon search options" })
+      screen.getByRole("button", { name: "Method icon search options" }),
     );
 
-    const showUntradeablesSwitch = await screen.findByRole("switch", {
-      name: "Show untradeables",
+    const untradeableItemsSwitch = await screen.findByRole("switch", {
+      name: "Untradeable items",
     });
-    expect(showUntradeablesSwitch).toHaveAttribute("aria-checked", "false");
+    expect(untradeableItemsSwitch).toHaveAttribute("aria-checked", "false");
 
-    await user.click(showUntradeablesSwitch);
-    expect(showUntradeablesSwitch).toHaveAttribute("aria-checked", "true");
+    await user.click(untradeableItemsSwitch);
+    expect(untradeableItemsSwitch).toHaveAttribute("aria-checked", "true");
     await user.keyboard("{Escape}");
 
     const searchInput = screen.getByRole("combobox", {
@@ -156,20 +166,40 @@ describe("item search untradeables toggle", () => {
     });
     await user.type(searchInput, "coal");
 
-    await waitFor(() => expect(searchItems).toHaveBeenCalled());
-    expect(vi.mocked(searchItems).mock.calls.at(-1)?.[0]).toBe("coal");
-    expect(vi.mocked(searchItems).mock.calls.at(-1)?.[4]).toEqual({
-      showUntradeables: true,
+    await waitFor(() => expect(searchIcons).toHaveBeenCalled());
+    expect(vi.mocked(searchIcons).mock.calls.at(-1)?.slice(0, 3)).toEqual([
+      "coal",
+      "all",
+      true,
+    ]);
+
+    await user.click(
+      screen.getByRole("button", { name: "Method icon search options" }),
+    );
+    await user.click(screen.getByRole("menuitemradio", { name: "Spell" }));
+    await user.click(
+      screen.getByRole("button", { name: "Method icon search options" }),
+    );
+    const disabledUntradeableItemsSwitch = screen.getByRole("switch", {
+      name: "Untradeable items",
     });
+    expect(disabledUntradeableItemsSwitch).toBeDisabled();
+    expect(disabledUntradeableItemsSwitch).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
   });
 
-  it("prefills the icon search input with the selected item name when opened", async () => {
+  it("prefills the icon search input with the selected icon name when opened", async () => {
     const user = userEvent.setup();
 
-    vi.mocked(fetchItems).mockResolvedValue({
-      1609: {
+    vi.mocked(fetchIconRecords).mockResolvedValue({
+      "game_icon:1609": {
+        id: 1609,
         name: "Opal",
         iconUrl: "/opal.png",
+        source: "game_icon",
+        type: "spell",
       },
     });
 
@@ -177,13 +207,18 @@ describe("item search untradeables toggle", () => {
       <ItemIconField
         label="Method icon"
         value={1609}
+        source="game_icon"
         onChange={vi.fn()}
         searchAriaLabel="Method icon search"
         optionsAriaLabel="Method icon search options"
-      />
+      />,
     );
 
-    await waitFor(() => expect(fetchItems).toHaveBeenCalledWith([1609]));
+    await waitFor(() =>
+      expect(fetchIconRecords).toHaveBeenCalledWith([
+        { id: 1609, source: "game_icon" },
+      ]),
+    );
 
     await user.click(screen.getByRole("button", { name: "Open Method icon" }));
 
@@ -196,9 +231,11 @@ describe("item search untradeables toggle", () => {
     const user = userEvent.setup();
 
     function Wrapper() {
-      const [requirements, setRequirements] = useState<Variant["requirements"]>({
-        levels: [{ skill: "Attack", level: 70 }],
-      });
+      const [requirements, setRequirements] = useState<Variant["requirements"]>(
+        {
+          levels: [{ skill: "Attack", level: 70 }],
+        },
+      );
       const [recommendations, setRecommendations] = useState<
         Variant["recommendations"]
       >({});
@@ -210,7 +247,10 @@ describe("item search untradeables toggle", () => {
           skillOptions={[]}
           questOptions={[]}
           achievementDiaryOptions={[]}
-          onChange={({ requirements: nextRequirements, recommendations: nextRecommendations }) => {
+          onChange={({
+            requirements: nextRequirements,
+            recommendations: nextRecommendations,
+          }) => {
             setRequirements(nextRequirements);
             setRecommendations(nextRecommendations ?? {});
           }}
@@ -223,7 +263,7 @@ describe("item search untradeables toggle", () => {
     const attackRow = screen.getByText("Attack").closest("tr");
     expect(attackRow).not.toBeNull();
     const input = within(attackRow as HTMLTableRowElement).getByPlaceholderText(
-      "Optional"
+      "Optional",
     );
 
     await user.type(input, "main hand ");
@@ -235,10 +275,11 @@ describe("item search untradeables toggle", () => {
     const user = userEvent.setup();
 
     function Wrapper() {
-      const [requirements, setRequirements] = useState<Variant["requirements"]>({});
-      const [recommendations, setRecommendations] = useState<
-        Variant["recommendations"]
-      >();
+      const [requirements, setRequirements] = useState<Variant["requirements"]>(
+        {},
+      );
+      const [recommendations, setRecommendations] =
+        useState<Variant["recommendations"]>();
 
       return (
         <>
@@ -259,7 +300,10 @@ describe("item search untradeables toggle", () => {
             }}
           />
           <pre data-testid="requirements-state">
-            {JSON.stringify({ requirements, recommendations: recommendations ?? null })}
+            {JSON.stringify({
+              requirements,
+              recommendations: recommendations ?? null,
+            })}
           </pre>
         </>
       );
@@ -268,10 +312,12 @@ describe("item search untradeables toggle", () => {
     render(<Wrapper />);
 
     const searchInput = screen.getByPlaceholderText(
-      "Search items, skills, quests, or achievement diaries"
+      "Search items, skills, quests, or achievement diaries",
     );
     const getComboboxItem = () =>
-      document.querySelector("[data-slot='combobox-item']") as HTMLElement | null;
+      document.querySelector(
+        "[data-slot='combobox-item']",
+      ) as HTMLElement | null;
 
     await user.click(searchInput);
     await user.clear(searchInput);
@@ -283,7 +329,7 @@ describe("item search untradeables toggle", () => {
       JSON.stringify({
         requirements: { levels: [{ skill: "Attack", level: 1 }] },
         recommendations: null,
-      })
+      }),
     );
 
     await user.click(searchInput);
@@ -296,7 +342,7 @@ describe("item search untradeables toggle", () => {
       JSON.stringify({
         requirements: { levels: [{ skill: "Attack", level: 1 }] },
         recommendations: { levels: [{ skill: "Attack", level: 1 }] },
-      })
+      }),
     );
 
     await user.clear(searchInput);
@@ -304,106 +350,117 @@ describe("item search untradeables toggle", () => {
     expect(await screen.findByText("Complete")).toBeInTheDocument();
   });
 
-  it("does not allow duplicate quest or achievement diary entries", async () => {
-    const user = userEvent.setup();
+  it(
+    "does not allow duplicate quest or achievement diary entries",
+    async () => {
+      const user = userEvent.setup();
 
-    function Wrapper() {
-      const [requirements, setRequirements] = useState<Variant["requirements"]>({});
-      const [recommendations, setRecommendations] = useState<
-        Variant["recommendations"]
-      >();
+      function Wrapper() {
+        const [requirements, setRequirements] = useState<
+          Variant["requirements"]
+        >({});
+        const [recommendations, setRecommendations] =
+          useState<Variant["recommendations"]>();
 
-      return (
-        <>
-          <RequirementsRecommendationsField
-            requirements={requirements}
-            recommendations={recommendations}
-            skillOptions={[]}
-            questOptions={[
-              {
-                label: "Fairy Tale II",
-                value: "fairy-tale-ii",
-                name: "Fairy Tale II",
-                stage: 2,
-              },
-            ]}
-            achievementDiaryOptions={[
-              {
-                label: "Lumbridge & Draynor - Hard",
-                value: "lumbridge-draynor-hard",
-                name: "Lumbridge & Draynor",
-                tier: "Hard",
-              },
-            ]}
-            onChange={({
-              requirements: nextRequirements,
-              recommendations: nextRecommendations,
-            }) => {
-              setRequirements(nextRequirements);
-              setRecommendations(nextRecommendations);
-            }}
-          />
-          <pre data-testid="requirements-state">
-            {JSON.stringify({ requirements, recommendations: recommendations ?? null })}
-          </pre>
-        </>
+        return (
+          <>
+            <RequirementsRecommendationsField
+              requirements={requirements}
+              recommendations={recommendations}
+              skillOptions={[]}
+              questOptions={[
+                {
+                  label: "Fairy Tale II",
+                  value: "fairy-tale-ii",
+                  name: "Fairy Tale II",
+                  stage: 2,
+                },
+              ]}
+              achievementDiaryOptions={[
+                {
+                  label: "Lumbridge & Draynor - Hard",
+                  value: "lumbridge-draynor-hard",
+                  name: "Lumbridge & Draynor",
+                  tier: "Hard",
+                },
+              ]}
+              onChange={({
+                requirements: nextRequirements,
+                recommendations: nextRecommendations,
+              }) => {
+                setRequirements(nextRequirements);
+                setRecommendations(nextRecommendations);
+              }}
+            />
+            <pre data-testid="requirements-state">
+              {JSON.stringify({
+                requirements,
+                recommendations: recommendations ?? null,
+              })}
+            </pre>
+          </>
+        );
+      }
+
+      render(<Wrapper />);
+
+      const searchInput = screen.getByPlaceholderText(
+        "Search items, skills, quests, or achievement diaries",
       );
-    }
+      const getComboboxItem = () =>
+        document.querySelector(
+          "[data-slot='combobox-item']",
+        ) as HTMLElement | null;
 
-    render(<Wrapper />);
+      await user.click(searchInput);
+      await user.type(searchInput, "fairy");
+      await waitFor(() => expect(getComboboxItem()).not.toBeNull());
+      await user.click(getComboboxItem() as HTMLElement);
 
-    const searchInput = screen.getByPlaceholderText(
-      "Search items, skills, quests, or achievement diaries"
-    );
-    const getComboboxItem = () =>
-      document.querySelector("[data-slot='combobox-item']") as HTMLElement | null;
+      expect(screen.getByTestId("requirements-state")).toHaveTextContent(
+        JSON.stringify({
+          requirements: { quests: [{ name: "Fairy Tale II", stage: 2 }] },
+          recommendations: null,
+        }),
+      );
 
-    await user.click(searchInput);
-    await user.type(searchInput, "fairy");
-    await waitFor(() => expect(getComboboxItem()).not.toBeNull());
-    await user.click(getComboboxItem() as HTMLElement);
+      await user.clear(searchInput);
+      await user.type(searchInput, "fairy");
+      expect(await screen.findByText("Added")).toBeInTheDocument();
 
-    expect(screen.getByTestId("requirements-state")).toHaveTextContent(
-      JSON.stringify({
-        requirements: { quests: [{ name: "Fairy Tale II", stage: 2 }] },
-        recommendations: null,
-      })
-    );
+      await user.clear(searchInput);
+      await user.type(searchInput, "lumb");
+      await waitFor(() => expect(getComboboxItem()).not.toBeNull());
+      await user.click(getComboboxItem() as HTMLElement);
 
-    await user.clear(searchInput);
-    await user.type(searchInput, "fairy");
-    expect(await screen.findByText("Added")).toBeInTheDocument();
+      expect(screen.getByTestId("requirements-state")).toHaveTextContent(
+        JSON.stringify({
+          requirements: {
+            quests: [{ name: "Fairy Tale II", stage: 2 }],
+            achievement_diaries: [
+              { name: "Lumbridge & Draynor", stage: 2, tier: "Hard" },
+            ],
+          },
+          recommendations: null,
+        }),
+      );
 
-    await user.clear(searchInput);
-    await user.type(searchInput, "lumb");
-    await waitFor(() => expect(getComboboxItem()).not.toBeNull());
-    await user.click(getComboboxItem() as HTMLElement);
-
-    expect(screen.getByTestId("requirements-state")).toHaveTextContent(
-      JSON.stringify({
-        requirements: {
-          quests: [{ name: "Fairy Tale II", stage: 2 }],
-          achievement_diaries: [
-            { name: "Lumbridge & Draynor", stage: 2, tier: "Hard" },
-          ],
-        },
-        recommendations: null,
-      })
-    );
-
-    await user.clear(searchInput);
-    await user.type(searchInput, "lumb");
-    expect(await screen.findByText("Added")).toBeInTheDocument();
-  }, SLOW_INTERACTION_TEST_TIMEOUT_MS);
+      await user.clear(searchInput);
+      await user.type(searchInput, "lumb");
+      expect(await screen.findByText("Added")).toBeInTheDocument();
+    },
+    SLOW_INTERACTION_TEST_TIMEOUT_MS,
+  );
 
   it("shows only the matching category table for the selected requirement type", async () => {
     const user = userEvent.setup();
 
     function Wrapper() {
-      const [requirements, setRequirements] = useState<Variant["requirements"]>({});
-      const [recommendations, setRecommendations] = useState<
-        Variant["recommendations"]
-      >();
+      const [requirements, setRequirements] = useState<Variant["requirements"]>(
+        {},
+      );
+      const [recommendations, setRecommendations] =
+        useState<Variant["recommendations"]>();
 
       return (
         <RequirementsRecommendationsField
@@ -419,7 +476,10 @@ describe("item search untradeables toggle", () => {
             },
           ]}
           achievementDiaryOptions={[]}
-          onChange={({ requirements: nextRequirements, recommendations: nextRecommendations }) => {
+          onChange={({
+            requirements: nextRequirements,
+            recommendations: nextRecommendations,
+          }) => {
             setRequirements(nextRequirements);
             setRecommendations(nextRecommendations);
           }}
@@ -430,10 +490,12 @@ describe("item search untradeables toggle", () => {
     render(<Wrapper />);
 
     const searchInput = screen.getByPlaceholderText(
-      "Search items, skills, quests, or achievement diaries"
+      "Search items, skills, quests, or achievement diaries",
     );
     const getComboboxItem = () =>
-      document.querySelector("[data-slot='combobox-item']") as HTMLElement | null;
+      document.querySelector(
+        "[data-slot='combobox-item']",
+      ) as HTMLElement | null;
 
     await user.click(searchInput);
     await user.type(searchInput, "fairy");
@@ -442,13 +504,13 @@ describe("item search untradeables toggle", () => {
 
     expect(screen.getByRole("heading", { name: "Quests" })).toBeInTheDocument();
     expect(
-      screen.queryByRole("heading", { name: "Items" })
+      screen.queryByRole("heading", { name: "Items" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("heading", { name: "Achievement diaries" })
+      screen.queryByRole("heading", { name: "Achievement diaries" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("heading", { name: "Skills" })
+      screen.queryByRole("heading", { name: "Skills" }),
     ).not.toBeInTheDocument();
   });
 });

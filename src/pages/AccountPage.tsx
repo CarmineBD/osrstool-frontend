@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DeleteAccountAction } from "@/components/account/DeleteAccountAction";
 import { Eye, EyeOff } from "lucide-react";
 
 function maskEmail(email: string) {
@@ -70,7 +71,7 @@ export function AccountPage() {
       sortBy: sortConfig.sortBy,
       order: sortConfig.order,
     }),
-    [sortConfig.order, sortConfig.sortBy]
+    [sortConfig.order, sortConfig.sortBy],
   );
 
   return (
@@ -109,16 +110,12 @@ export function AccountPage() {
 
           <div>
             <p className="text-muted-foreground">Account username</p>
-            <p className="font-medium">
-              {accountUsername ?? "Not set yet"}
-            </p>
+            <p className="font-medium">{accountUsername ?? "Not set yet"}</p>
           </div>
 
           <div>
             <p className="text-muted-foreground">User ID</p>
-            <p className="break-all font-mono text-xs">
-              {user?.id ?? "No ID"}
-            </p>
+            <p className="break-all font-mono text-xs">{user?.id ?? "No ID"}</p>
           </div>
 
           <div>
@@ -138,9 +135,14 @@ export function AccountPage() {
             </p>
           ) : null}
 
-          <Button variant="outline" onClick={handleLogout} disabled={isLoggingOut}>
+          <Button
+            variant="outline"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+          >
             {isLoggingOut ? "Signing out..." : "Sign out"}
           </Button>
+          <DeleteAccountAction disabled={isLoggingOut} />
         </CardContent>
       </Card>
 
@@ -149,12 +151,15 @@ export function AccountPage() {
           <CardHeader>
             <CardTitle>Complete your profile</CardTitle>
             <CardDescription>
-              Choose your account username to unlock likes, roadmaps, and other account-only features.
+              Choose your account username to unlock likes, roadmaps, and other
+              account-only features.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Your OSRS character username stays separate and still works as before. This step only sets the username for your OSRS Tool account.
+              Your OSRS character username stays separate and still works as
+              before. This step only sets the username for your RSMethods
+              account.
             </p>
             <Button asChild>
               <Link to="/account/onboarding">Choose account username</Link>
@@ -183,7 +188,8 @@ export function AccountPage() {
               <CardHeader>
                 <CardTitle>Activity summary</CardTitle>
                 <CardDescription>
-                  Your likes sync automatically between the list and detail view.
+                  Your likes sync automatically between the list and detail
+                  view.
                 </CardDescription>
               </CardHeader>
               <CardContent>

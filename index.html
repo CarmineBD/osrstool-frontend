@@ -4,9 +4,12 @@
     <meta charset="UTF-8" />
     <script>
       (() => {
-        const storageKey = "osrstool-theme";
+        const storageKey = "rsmethods-theme";
+        const legacyStorageKey = "osrstool-theme";
         const root = document.documentElement;
-        const storedTheme = window.localStorage.getItem(storageKey);
+        const storedTheme =
+          window.localStorage.getItem(storageKey) ??
+          window.localStorage.getItem(legacyStorageKey);
         const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
           .matches
           ? "dark"
@@ -21,12 +24,29 @@
         root.dataset.theme = theme;
       })();
     </script>
+    <script type="module">
+      (() => {
+        const robotsContent = import.meta.env.VITE_ROBOTS?.trim();
+        if (!robotsContent) {
+          return;
+        }
+
+        let tag = document.head.querySelector('meta[name="robots"]');
+        if (!tag) {
+          tag = document.createElement("meta");
+          tag.setAttribute("name", "robots");
+          document.head.appendChild(tag);
+        }
+
+        tag.setAttribute("content", robotsContent);
+      })();
+    </script>
     <link
       href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
       rel="stylesheet"
     />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OSRSTool</title>
+    <title>RSMethods</title>
   </head>
   <body>
     <div id="root"></div>

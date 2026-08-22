@@ -21,7 +21,7 @@ const SLOW_INTERACTION_TEST_TIMEOUT_MS = 20000;
 describe("critical flow: skilling routes", () => {
   it("renders skills cards with best metric tags and tooltip details", async () => {
     server.use(
-      http.get("*/methods/skills/summary", () =>
+      http.post("*/methods/skills/summary", () =>
         HttpResponse.json({
           data: {
             magic: {
@@ -153,7 +153,7 @@ describe("critical flow: skilling routes", () => {
 
   it("does not dim tags that share the same method", async () => {
     server.use(
-      http.get("*/methods/skills/summary", () =>
+      http.post("*/methods/skills/summary", () =>
         HttpResponse.json({
           data: {
             magic: {
@@ -270,7 +270,7 @@ describe("critical flow: skilling routes", () => {
 
         return HttpResponse.json({ data });
       }),
-      http.get("*/methods", ({ request }) => {
+      http.post("*/methods/search", ({ request }) => {
         const url = new URL(request.url);
         seenSkills.push(url.searchParams.get("skill") ?? "");
         seenVariants.push(url.searchParams.get("variants") ?? "");
@@ -445,7 +445,7 @@ describe("critical flow: skilling routes", () => {
           },
         })
       ),
-      http.get("*/methods/skills/summary", ({ request }) => {
+      http.post("*/methods/skills/summary", ({ request }) => {
         const url = new URL(request.url);
         seenEnabledValues.push(url.searchParams.get("enabled") ?? "");
 
@@ -499,7 +499,7 @@ describe("critical flow: skilling routes", () => {
           },
         })
       ),
-      http.get("*/methods", () =>
+      http.post("*/methods/search", () =>
         HttpResponse.json({
           data: {
             methods: [],

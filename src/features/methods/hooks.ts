@@ -15,6 +15,7 @@ import {
   type MethodDetailResponse,
   type MethodsFilters,
   type MethodsResponse,
+  type PlayerInfo,
   type Variant,
 } from "../../lib/api";
 import { useUsername } from "@/contexts/UsernameContext";
@@ -79,7 +80,7 @@ function updateMethodVariantLikeState(
 }
 
 export function useMethods(
-  username?: string,
+  player?: PlayerInfo,
   page = 1,
   name?: string,
   filters?: MethodsFilters,
@@ -87,8 +88,8 @@ export function useMethods(
 ): UseQueryResult<MethodsResponse, Error> {
   const { setUserError } = useUsername();
   const query = useQuery<MethodsResponse, Error>({
-    queryKey: ["methods", username, name, page, filters, cursor],
-    queryFn: () => fetchMethods(username, page, name, filters, cursor),
+    queryKey: ["methods", player, name, page, filters, cursor],
+    queryFn: () => fetchMethods(player, page, name, filters, cursor),
     placeholderData: (previousData) => previousData,
     staleTime: QUERY_STALE_TIME_MS,
     refetchInterval: QUERY_REFETCH_INTERVAL_MS,
@@ -141,9 +142,10 @@ export function useToggleVariantLike(): UseMutationResult<
         queryClient.cancelQueries({ queryKey: ["me"] }),
       ]);
 
-      const previousMethodDetails = queryClient.getQueriesData<MethodDetailResponse>({
-        queryKey: ["methodDetail"],
-      });
+      const previousMethodDetails =
+        queryClient.getQueriesData<MethodDetailResponse>({
+          queryKey: ["methodDetail"],
+        });
       const previousMe = queryClient.getQueryData<MeResponse>(["me"]);
 
       for (const [queryKey, detail] of previousMethodDetails) {

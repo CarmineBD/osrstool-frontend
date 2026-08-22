@@ -2,14 +2,20 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
-import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  AUTH_ACTION_ROW_CLASS,
+  AUTH_CARD_CLASS,
+  AUTH_CONTROL_CLASS,
+  AUTH_INLINE_LINK_CLASS,
+  AUTH_OUTLINE_BUTTON_CLASS,
+  AuthPageHeader,
+  AuthPageShell,
+  AuthSection,
+  AuthSectionDivider,
+  AuthStatusMessage,
+} from "@/components/auth/AuthPage";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   InputGroup,
@@ -18,21 +24,24 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import {
   buildAuthRedirectPath,
   clearPendingAuthRedirectPath,
+  clearPendingPostAuthSetup,
+  consumePendingPostAuthSetup,
   consumePendingAuthRedirectPath,
   DEFAULT_AUTH_REDIRECT_PATH,
+  markPendingPostAuthSetup,
   persistPendingAuthRedirectPath,
 } from "@/lib/authRedirect";
+import { buildAccountSetupLocationState } from "@/lib/accountSetupFlow";
 import {
   EMAIL_MAX_LENGTH,
   normalizeBoundedText,
   PASSWORD_MAX_LENGTH,
 } from "@/lib/validation";
 
-type PendingAction = "google" | "sign-in" | "sign-up" | null;
+type PendingAction = "google" | "sign-in" | null;
 
 type LocationState = {
   from?: {
@@ -41,6 +50,30 @@ type LocationState = {
     hash?: string;
   };
 };
+
+type SignInErrorKind = "invalid-credentials" | "user-not-found" | "generic";
+
+function classifySignInError(message: string): SignInErrorKind {
+  const normalizedMessage = message.trim().toLowerCase();
+
+  if (
+    normalizedMessage.includes("user not found") ||
+    normalizedMessage.includes("user doesn't exist") ||
+    normalizedMessage.includes("user does not exist") ||
+    normalizedMessage.includes("no account")
+  ) {
+    return "user-not-found";
+  }
+
+  if (
+    normalizedMessage.includes("invalid login credentials") ||
+    normalizedMessage.includes("invalid credentials")
+  ) {
+    return "invalid-credentials";
+  }
+
+  return "generic";
+}
 
 function GoogleIcon() {
   return (
@@ -66,7 +99,7 @@ function GoogleIcon() {
 }
 
 export function LoginPage() {
-  const { signIn, signInWithGoogle, signUp, session } = useAuth();
+  const { signIn, signInWithGoogle, session } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const state = location.state as LocationState | null;
@@ -82,6 +115,26 @@ export function LoginPage() {
 
   useEffect(() => {
     if (!session) return;
+    if (consumePendingPostAuthSetup()) {
+      const postAuthState = (() => {
+        if (stateRedirectPath) {
+          clearPendingAuthRedirectPath();
+          return buildAccountSetupLocationState(stateRedirectPath);
+        }
+
+        const pendingRedirectPath = consumePendingAuthRedirectPath();
+        return pendingRedirectPath
+          ? buildAccountSetupLocationState(pendingRedirectPath)
+          : state;
+      })();
+
+      navigate("/account/authenticated", {
+        replace: true,
+        state: postAuthState,
+      });
+      return;
+    }
+
     if (stateRedirectPath) {
       clearPendingAuthRedirectPath();
       navigate(stateRedirectPath, { replace: true });
@@ -91,7 +144,7 @@ export function LoginPage() {
     const redirectTo =
       consumePendingAuthRedirectPath() ?? DEFAULT_AUTH_REDIRECT_PATH;
     navigate(redirectTo, { replace: true });
-  }, [navigate, session, stateRedirectPath]);
+  }, [navigate, session, state, stateRedirectPath]);
 
   const handleSignIn = async (event: FormEvent) => {
     event.preventDefault();
@@ -113,148 +166,184 @@ export function LoginPage() {
     navigate(redirectTo, { replace: true });
   };
 
-  const handleSignUp = async () => {
-    if (isSubmitting) return;
-
-    setError(null);
-    setInfo(null);
-    setPendingAction("sign-up");
-    const result = await signUp(email.trim(), password);
-    setPendingAction(null);
-
-    if (result.error) {
-      setError(result.error);
-      return;
-    }
-
-    if (result.needsEmailConfirmation) {
-      setInfo("Account created. Check your email to confirm registration.");
-      return;
-    }
-
-    setInfo("Account created and signed in.");
-    clearPendingAuthRedirectPath();
-    navigate("/account", { replace: true });
-  };
-
   const handleGoogleSignIn = async () => {
     if (isSubmitting) return;
 
     setError(null);
     setInfo(null);
     persistPendingAuthRedirectPath(stateRedirectPath);
+    markPendingPostAuthSetup();
     setPendingAction("google");
 
     const oauthError = await signInWithGoogle();
 
     if (oauthError) {
       clearPendingAuthRedirectPath();
+      clearPendingPostAuthSetup();
       setPendingAction(null);
       setError(oauthError);
     }
   };
 
+  const handleCreateAccount = () => {
+    if (isSubmitting) return;
+    navigate("/create-account", {
+      state,
+    });
+  };
+
+  const renderErrorMessage = () => {
+    if (!error) return null;
+
+    switch (classifySignInError(error)) {
+      case "invalid-credentials":
+        return "The email or password is incorrect.";
+      case "user-not-found":
+        return (
+          <>
+            No account exists for that email.{" "}
+            <button
+              type="button"
+              onClick={handleCreateAccount}
+              className={AUTH_INLINE_LINK_CLASS}
+            >
+              Create an account
+            </button>
+            .
+          </>
+        );
+      default:
+        return error;
+    }
+  };
+
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col px-4 py-10">
-      <Card>
-        <CardHeader>
-          <CardTitle>Access</CardTitle>
-          <CardDescription>
-            Sign in or create an account with email and password.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+    <AuthPageShell>
+      <Card className={`w-full ${AUTH_CARD_CLASS}`}>
+        <AuthPageHeader
+          eyebrow="Account access"
+          title="Sign in or create your account"
+          description={
+            <p>
+              Continue with Google or use your email and password to access
+              RSMethods.
+            </p>
+          }
+        />
+        <CardContent className="space-y-6 px-6">
           <Button
             type="button"
             variant="outline"
             disabled={isSubmitting}
             onClick={handleGoogleSignIn}
-            className="w-full"
+            className={AUTH_OUTLINE_BUTTON_CLASS}
           >
             <GoogleIcon />
-            {pendingAction === "google" ? "Connecting..." : "Continue with Google"}
+            {pendingAction === "google"
+              ? "Connecting..."
+              : "Continue with Google"}
           </Button>
 
-          <div className="flex items-center gap-3 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-            <Separator className="flex-1" />
-            <span>or</span>
-            <Separator className="flex-1" />
-          </div>
+          <AuthSectionDivider label="Or continue with email" />
 
-          <form className="space-y-4" onSubmit={handleSignIn}>
-            <div className="space-y-2">
-              <Label htmlFor="auth-email">Email</Label>
-              <Input
-                id="auth-email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                maxLength={EMAIL_MAX_LENGTH}
-                onChange={(event) =>
-                  setEmail(
-                    normalizeBoundedText(
-                      event.target.value,
-                      EMAIL_MAX_LENGTH,
-                    ),
-                  )
-                }
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-3">
-                <Label htmlFor="auth-password">Password</Label>
-                <Link
-                  to="/forgot-password"
-                  className="text-sm font-medium text-primary hover:underline"
-                >
-                  Forgot your password?
-                </Link>
+          <form onSubmit={handleSignIn}>
+            <AuthSection
+              title="Email sign in"
+              description="Enter your account email and password to continue."
+            >
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="auth-email" className="leading-5">
+                    Email
+                  </Label>
+                  <Input
+                    id="auth-email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    maxLength={EMAIL_MAX_LENGTH}
+                    onChange={(event) =>
+                      setEmail(
+                        normalizeBoundedText(event.target.value, EMAIL_MAX_LENGTH),
+                      )
+                    }
+                    className={AUTH_CONTROL_CLASS}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <Label htmlFor="auth-password" className="leading-5">
+                      Password
+                    </Label>
+                    <Link
+                      to="/forgot-password"
+                      className={`${AUTH_INLINE_LINK_CLASS} text-sm leading-5`}
+                    >
+                      Forgot your password?
+                    </Link>
+                  </div>
+
+                  <InputGroup className={AUTH_CONTROL_CLASS}>
+                    <InputGroupInput
+                      id="auth-password"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      maxLength={PASSWORD_MAX_LENGTH}
+                      onChange={(event) => setPassword(event.target.value)}
+                      minLength={6}
+                      className="h-10"
+                      required
+                    />
+                    <InputGroupAddon align="inline-end">
+                      <InputGroupButton
+                        aria-label={
+                          showPassword ? "Hide password" : "Show password"
+                        }
+                        size="icon-sm"
+                        onClick={() => setShowPassword((previous) => !previous)}
+                        type="button"
+                        variant="ghost"
+                      >
+                        {showPassword ? <EyeOff /> : <Eye />}
+                      </InputGroupButton>
+                    </InputGroupAddon>
+                  </InputGroup>
+                </div>
               </div>
-              <InputGroup>
-                <InputGroupInput
-                  id="auth-password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  maxLength={PASSWORD_MAX_LENGTH}
-                  onChange={(event) => setPassword(event.target.value)}
-                  minLength={6}
-                  required
-                />
-                <InputGroupAddon align="inline-end">
-                  <InputGroupButton
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    size="icon-xs"
-                    onClick={() => setShowPassword((previous) => !previous)}
-                    type="button"
-                    variant="ghost"
-                  >
-                    {showPassword ? <EyeOff /> : <Eye />}
-                  </InputGroupButton>
-                </InputGroupAddon>
-              </InputGroup>
-            </div>
 
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
-            {info ? <p className="text-sm text-success">{info}</p> : null}
+              {error ? (
+                <AuthStatusMessage tone="error">
+                  {renderErrorMessage()}
+                </AuthStatusMessage>
+              ) : null}
+              {info ? (
+                <AuthStatusMessage tone="success">{info}</AuthStatusMessage>
+              ) : null}
 
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Button type="submit" disabled={isSubmitting} className="sm:flex-1">
-                {pendingAction === "sign-in" ? "Processing..." : "Sign in"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={isSubmitting}
-                onClick={handleSignUp}
-                className="sm:flex-1"
-              >
-                {pendingAction === "sign-up" ? "Processing..." : "Create account"}
-              </Button>
-            </div>
+              <div className={AUTH_ACTION_ROW_CLASS}>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="h-10 shadow-none"
+                >
+                  {pendingAction === "sign-in" ? "Processing..." : "Sign in"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isSubmitting}
+                  onClick={handleCreateAccount}
+                  className={AUTH_OUTLINE_BUTTON_CLASS}
+                >
+                  Create account
+                </Button>
+              </div>
+            </AuthSection>
           </form>
         </CardContent>
       </Card>
-    </div>
+    </AuthPageShell>
   );
 }

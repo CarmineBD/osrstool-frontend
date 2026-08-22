@@ -36,6 +36,7 @@ interface MethodVariantSelectorItem {
   label: string;
   iconUrl?: string;
   sortMetricValue?: number;
+  gpPerXpHigh?: number;
   isNotViable: boolean;
 }
 
@@ -66,7 +67,19 @@ function prefersReducedMotion(): boolean {
 function renderSortMetric(
   sortMode: VariantSortMode,
   metricValue: number | undefined,
+  gpPerXpHigh: number | undefined,
 ) {
+  const formatGpPerXp = (value: number | undefined) => {
+    if (typeof value !== "number" || Number.isNaN(value)) return "N/A";
+    const rounded = Math.round(value * 100) / 100;
+    const normalized = Object.is(rounded, -0) ? 0 : rounded;
+    const prefix = normalized > 0 ? "+" : "";
+    return `${prefix}${normalized.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })} gp/xp`;
+  };
+
   if (sortMode === "profit") {
     const isNegative = typeof metricValue === "number" && metricValue < 0;
     return (
@@ -84,13 +97,33 @@ function renderSortMetric(
 
   if (sortMode === "xp") {
     return (
+      <span className="flex flex-col items-end leading-tight">
+        <span
+          className={cn(
+            "truncate text-sm font-medium",
+            metricValue !== undefined
+              ? "text-foreground"
+              : "text-muted-foreground",
+          )}
+        >
+          {metricValue !== undefined ? `${formatNumber(metricValue)} xp/hr` : "N/A"}
+        </span>
+        <span className="truncate text-xs text-muted-foreground">
+          {formatGpPerXp(gpPerXpHigh)}
+        </span>
+      </span>
+    );
+  }
+
+  if (sortMode === "gpPerXp") {
+    return (
       <span
         className={cn(
           "truncate text-sm font-medium",
           metricValue !== undefined ? "text-foreground" : "text-muted-foreground",
         )}
       >
-        {metricValue !== undefined ? `${formatNumber(metricValue)} xp/hr` : "N/A"}
+        {formatGpPerXp(metricValue)}
       </span>
     );
   }
@@ -205,7 +238,7 @@ export function MethodVariantSelector({
   return (
     <aside
       className={cn(
-        "min-w-0 lg:sticky lg:top-24 lg:z-40 lg:self-start lg:w-[7.5rem] lg:overflow-visible",
+        "min-w-0 lg:sticky lg:top-24 lg:z-40 lg:self-start lg:w-[8.5rem] lg:overflow-visible",
         className,
       )}
     >
@@ -222,8 +255,8 @@ export function MethodVariantSelector({
           }
         }}
         className={cn(
-          "space-y-4 rounded-xl border border-border/70 bg-card p-6 shadow-sm lg:relative lg:z-50 lg:max-h-[calc(100vh-7rem)] lg:w-[7.5rem] lg:overflow-x-hidden lg:overflow-y-hidden lg:transition-[width,box-shadow] lg:duration-200 lg:ease-out",
-          isSelectorExpanded && "lg:w-[19rem] lg:overflow-y-auto lg:shadow-lg",
+          "space-y-4 rounded-xl border border-border/70 bg-card p-6 shadow-sm lg:relative lg:z-50 lg:max-h-[calc(100vh-7rem)] lg:w-[8.5rem] lg:overflow-x-hidden lg:overflow-y-hidden lg:transition-[width,box-shadow] lg:duration-200 lg:ease-out",
+          isSelectorExpanded && "lg:w-[24rem] lg:overflow-y-auto lg:shadow-lg",
         )}
       >
         <div className="space-y-3">
@@ -394,7 +427,11 @@ export function MethodVariantSelector({
                       "inline lg:hidden",
                       isSelectorExpanded && "lg:inline",
                     )}
-                    summary={renderSortMetric(sortMode, item.sortMetricValue)}
+                    summary={renderSortMetric(
+                      sortMode,
+                      item.sortMetricValue,
+                      item.gpPerXpHigh,
+                    )}
                     summaryClassName={cn(
                       "flex lg:hidden",
                       isSelectorExpanded && "lg:flex",

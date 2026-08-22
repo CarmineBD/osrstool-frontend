@@ -38,12 +38,13 @@ import {
   type MethodsFilters,
 } from "@/lib/api";
 import { getUrlByType } from "@/lib/utils";
-import { fetchMe } from "@/lib/me";
+import { fetchMe, getMeQueryKey } from "@/lib/me";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
 import { useSeo } from "@/hooks/useSeo";
 import { OSRS_SKILLS, formatSkillName } from "@/lib/skills";
 import {
   getDefaultMethodsTableFieldsState,
+  getLegacyMethodsTableColumnStorageKey,
   getMethodsTableColumns,
   getMethodsTableColumnStorageKey,
   getMethodsTableColumnStorageKeys,
@@ -83,11 +84,11 @@ const DEFAULT_SORT_CONFIG: SortConfig = {
 const SKILL_OPTIONS = ["combat", ...OSRS_SKILLS] as const;
 const METHOD_SEARCH_DEBOUNCE_MS = 400;
 const DEFAULT_SEO: SeoConfig = {
-  title: "All Methods | OSRSTool",
+  title: "All Methods | RSMethods",
   description:
     "Browse every OSRS method with real data and filter by category, risk, AFK level, and skills.",
   path: "/allMethods",
-  keywords: "all methods osrs, osrs moneymaking list, osrstool methods",
+  keywords: "all methods osrs, osrs moneymaking list, rsmethods methods",
 };
 
 export function Home({ lockedSkill, pageTitle, seo }: Props) {
@@ -131,7 +132,7 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
   const [sortConfig, setSortConfig] = useState<SortConfig>(DEFAULT_SORT_CONFIG);
   const previousUserIdRef = useRef<string | null>(null);
   const { data: meData } = useQuery({
-    queryKey: ["me"],
+    queryKey: getMeQueryKey(session?.user?.id),
     queryFn: fetchMe,
     enabled: !!session,
     staleTime: QUERY_STALE_TIME_MS,
@@ -173,6 +174,9 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
   const currentUserId = user?.id ?? null;
   const tableFieldsStorageKey = currentUserId
     ? getMethodsTableColumnStorageKey(currentUserId, hasLockedSkill)
+    : null;
+  const legacyTableFieldsStorageKey = currentUserId
+    ? getLegacyMethodsTableColumnStorageKey(currentUserId, hasLockedSkill)
     : null;
   const orderedTableColumns = useMemo(() => {
     const columnsById = new Map(tableColumns.map((column) => [column.id, column]));
@@ -218,7 +222,11 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
       return;
     }
 
-    const storedValue = window.sessionStorage.getItem(tableFieldsStorageKey);
+    const storedValue =
+      window.sessionStorage.getItem(tableFieldsStorageKey) ??
+      (legacyTableFieldsStorageKey
+        ? window.sessionStorage.getItem(legacyTableFieldsStorageKey)
+        : null);
     if (!storedValue) {
       setOrderedColumnIds(defaultTableFieldsState.orderedColumnIds);
       setVisibleColumnIds(defaultTableFieldsState.visibleColumnIds);
@@ -240,7 +248,12 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
     }
 
     setHasLoadedTableFields(true);
-  }, [defaultTableFieldsState, hasLockedSkill, tableFieldsStorageKey]);
+  }, [
+    defaultTableFieldsState,
+    hasLockedSkill,
+    legacyTableFieldsStorageKey,
+    tableFieldsStorageKey,
+  ]);
 
   useEffect(() => {
     if (!tableFieldsStorageKey || !hasLoadedTableFields) return;
@@ -252,8 +265,12 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
         visibleColumnIds,
       }),
     );
+    if (legacyTableFieldsStorageKey) {
+      window.sessionStorage.removeItem(legacyTableFieldsStorageKey);
+    }
   }, [
     hasLoadedTableFields,
+    legacyTableFieldsStorageKey,
     orderedColumnIds,
     tableFieldsStorageKey,
     visibleColumnIds,
@@ -334,7 +351,9 @@ export function Home({ lockedSkill, pageTitle, seo }: Props) {
       riskLevel: parsedRiskLevel,
       showOnlyFreeToPlay,
       givesExperience,
-      enabled: isSuperAdmin ? enabled : undefined,
+      // Keep the public default explicit without retaining an admin-only
+      // disabled selection after the user loses that permission.
+      enabled: isSuperAdmin ? enabled : true,
       skill: normalizedLockedSkill ?? (skill || undefined),
       variants: normalizedLockedSkill ? "all" : undefined,
       showProfitables,

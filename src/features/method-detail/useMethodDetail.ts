@@ -1,8 +1,11 @@
 import { useEffect, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { fetchMe } from "@/lib/me";
-import { QUERY_REFETCH_INTERVAL_MS, QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
+import { fetchMe, getMeQueryKey } from "@/lib/me";
+import {
+  QUERY_REFETCH_INTERVAL_MS,
+  QUERY_STALE_TIME_MS,
+} from "@/lib/queryRefresh";
 import { useUsername } from "@/contexts/UsernameContext";
 import { useAuth } from "@/auth/AuthProvider";
 import {
@@ -10,11 +13,14 @@ import {
   getMethodDetailQueryKey,
   getMethodItemIds,
   normalizeMethodSlug,
-  normalizeUsername,
 } from "@/lib/queryKeys";
 import {
+  fetchIconRecords,
   fetchItems,
   fetchMethodDetailBySlug,
+  getIconReferenceKey,
+  normalizeIconSource,
+  type IconRecord,
   type Item,
   type Method,
   type MethodDetailResponse,
@@ -26,10 +32,12 @@ export interface UseMethodDetailResult {
   methodParam: string;
   variantSlug?: string;
   method?: Method;
+  creatorAvatarUrl?: string;
   error: Error | null;
   isLoading: boolean;
   isItemsLoading: boolean;
   itemsMap: Record<number, Item>;
+  iconMap: Record<string, IconRecord>;
   activeSlug: string;
   methodSlug: string;
   hasMultipleVariants: boolean;
@@ -42,19 +50,17 @@ export function useMethodDetail(): UseMethodDetailResult {
     slug: string;
     variantSlug?: string;
   }>();
-  const { username, setUserError } = useUsername();
+  const { player, setUserError } = useUsername();
   const { session } = useAuth();
   const normalizedMethodSlug = normalizeMethodSlug(methodParam);
-  const normalizedUsername = normalizeUsername(username);
 
-  const {
-    data,
-    error,
-    isLoading,
-  } = useQuery<MethodDetailResponse, Error>({
-    queryKey: getMethodDetailQueryKey(normalizedMethodSlug, normalizedUsername),
+  const { data, error, isLoading } = useQuery<MethodDetailResponse, Error>({
+    queryKey: getMethodDetailQueryKey(
+      normalizedMethodSlug,
+      player ?? undefined,
+    ),
     queryFn: () =>
-      fetchMethodDetailBySlug(normalizedMethodSlug, normalizedUsername),
+      fetchMethodDetailBySlug(normalizedMethodSlug, player ?? undefined),
     enabled: !!normalizedMethodSlug,
     staleTime: QUERY_STALE_TIME_MS,
     refetchInterval: QUERY_REFETCH_INTERVAL_MS,
@@ -62,7 +68,7 @@ export function useMethodDetail(): UseMethodDetailResult {
   });
 
   const { data: meData } = useQuery({
-    queryKey: ["me"],
+    queryKey: getMeQueryKey(session?.user?.id),
     queryFn: fetchMe,
     enabled: !!session,
     staleTime: QUERY_STALE_TIME_MS,
@@ -82,6 +88,13 @@ export function useMethodDetail(): UseMethodDetailResult {
   }, [error, setUserError]);
 
   const method = data?.method;
+  const creatorAvatarUrl =
+    method?.created_by?.id &&
+    session?.user?.id &&
+    method.created_by.id === session.user.id &&
+    typeof session.user.user_metadata?.avatar_url === "string"
+      ? session.user.user_metadata.avatar_url
+      : undefined;
 
   const itemIds = useMemo(() => getMethodItemIds(method), [method]);
 
@@ -94,6 +107,28 @@ export function useMethodDetail(): UseMethodDetailResult {
   });
 
   const itemsMap = itemsData ?? {};
+  const iconReferences = useMemo(
+    () =>
+      method?.variants.flatMap((variant) =>
+        Number.isInteger(variant.icon_id)
+          ? [
+              {
+                id: variant.icon_id as number,
+                source: normalizeIconSource(variant.iconSource),
+              },
+            ]
+          : [],
+      ) ?? [],
+    [method],
+  );
+  const { data: iconData } = useQuery<Record<string, IconRecord>>({
+    queryKey: ["iconRecords", iconReferences.map(getIconReferenceKey).sort()],
+    queryFn: () => fetchIconRecords(iconReferences),
+    enabled: iconReferences.length > 0,
+    staleTime: QUERY_STALE_TIME_MS,
+    refetchInterval: QUERY_REFETCH_INTERVAL_MS,
+  });
+  const iconMap = iconData ?? {};
 
   const orderedVariants = useMemo(
     () => getOrderedVariants(method?.variants ?? []),
@@ -118,10 +153,12 @@ export function useMethodDetail(): UseMethodDetailResult {
     methodParam,
     variantSlug,
     method,
+    creatorAvatarUrl,
     error,
     isLoading,
     isItemsLoading,
     itemsMap,
+    iconMap,
     activeSlug,
     methodSlug,
     hasMultipleVariants,

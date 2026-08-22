@@ -28,21 +28,23 @@ import {
   latestChangelogEntries,
 } from "@/content/changelog";
 import { useSeo } from "@/hooks/useSeo";
+import { useUsername } from "@/contexts/UsernameContext";
 import {
-  fetchItems,
+  fetchIconRecords,
   fetchTrendingProfitMethods,
-  type Item,
+  getIconReferenceKey,
+  normalizeIconSource,
+  type IconRecord,
   type Method,
   type Variant,
 } from "@/lib/api";
-import { getItemsQueryKey } from "@/lib/queryKeys";
 import {
   QUERY_REFETCH_INTERVAL_MS,
   QUERY_STALE_TIME_MS,
 } from "@/lib/queryRefresh";
 import { cn, formatPercent } from "@/lib/utils";
 
-const SEO_TITLE = "OSRSTool | OSRS Money Making Methods";
+const SEO_TITLE = "RSMethods | OSRS Money Making Methods";
 const SEO_DESCRIPTION =
   "Find OSRS money making methods with clear filters, fast comparisons, and live product updates.";
 const SEO_KEYWORDS =
@@ -207,9 +209,10 @@ function TrendingMethodCard({
 }
 
 function TrendingMethodsCarousel() {
+  const { player } = useUsername();
   const { data, error, isLoading, isFetching } = useQuery<Method[], Error>({
-    queryKey: TRENDING_PROFIT_QUERY_KEY,
-    queryFn: fetchTrendingProfitMethods,
+    queryKey: [...TRENDING_PROFIT_QUERY_KEY, player],
+    queryFn: () => fetchTrendingProfitMethods(player ?? undefined),
     staleTime: QUERY_STALE_TIME_MS,
     refetchInterval: QUERY_REFETCH_INTERVAL_MS,
     retry: false,
@@ -228,21 +231,27 @@ function TrendingMethodsCarousel() {
       })),
     [methods],
   );
-  const variantIconIds = useMemo(
+  const variantIconReferences = useMemo(
     () =>
-      Array.from(
-        new Set(
-          trendingCards
-            .map(({ variant }) => variant?.icon_id)
-            .filter((iconId): iconId is number => Number.isInteger(iconId)),
-        ),
-      ).sort((a, b) => a - b),
+      trendingCards.flatMap(({ variant }) =>
+        variant && Number.isInteger(variant.icon_id)
+          ? [
+              {
+                id: variant.icon_id as number,
+                source: normalizeIconSource(variant.iconSource),
+              },
+            ]
+          : [],
+      ),
     [trendingCards],
   );
-  const { data: variantIcons = {} } = useQuery<Record<number, Item>>({
-    queryKey: getItemsQueryKey(variantIconIds),
-    queryFn: () => fetchItems(variantIconIds),
-    enabled: variantIconIds.length > 0,
+  const { data: variantIcons = {} } = useQuery<Record<string, IconRecord>>({
+    queryKey: [
+      "iconRecords",
+      variantIconReferences.map(getIconReferenceKey).sort(),
+    ],
+    queryFn: () => fetchIconRecords(variantIconReferences),
+    enabled: variantIconReferences.length > 0,
     staleTime: QUERY_STALE_TIME_MS,
   });
   const isInitialLoading = isLoading || (isFetching && !data);
@@ -311,7 +320,12 @@ function TrendingMethodsCarousel() {
                   index={index}
                   variantIconUrl={
                     variant?.icon_id
-                      ? variantIcons[variant.icon_id]?.iconUrl
+                      ? variantIcons[
+                          getIconReferenceKey({
+                            id: variant.icon_id,
+                            source: normalizeIconSource(variant.iconSource),
+                          })
+                        ]?.iconUrl
                       : undefined
                   }
                 />
@@ -343,14 +357,14 @@ export function LandingPage() {
       <header className="mx-auto grid w-full max-w-6xl items-center gap-10 px-6 py-18 sm:px-10 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand">
-            Welcome to OSRSTool
+            Welcome to RSMethods
           </p>
           <h1 className="mt-3 max-w-4xl text-4xl font-black leading-tight text-foreground sm:text-6xl">
             Make money and train efficiently with real-time data.
           </h1>
           <p className="mt-6 max-w-3xl text-lg leading-relaxed text-muted-foreground sm:text-2xl">
-            OSRSTool is a real-time decision tool for exploring money making and
-            training methods that fit each account&apos;s stats.
+            RSMethods is a real-time decision tool for exploring money making
+            and training methods that fit each account&apos;s stats.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Button
@@ -451,8 +465,8 @@ export function LandingPage() {
               2. Apply filters for category, skill, and risk level.
             </li>
             <li className={`${PUBLIC_SUBPANEL_CLASS} p-4`}>
-              3. Compare methods and open the detail view to review
-              requirements and variants.
+              3. Compare methods and open the detail view to review requirements
+              and variants.
             </li>
             <li className={`${PUBLIC_SUBPANEL_CLASS} p-4`}>
               4. Check the changelog to see recent product improvements.

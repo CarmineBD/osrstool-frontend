@@ -18,7 +18,7 @@ export function SkillMethodsPage() {
       lockedSkill={normalizedSkill}
       pageTitle={`Methods for ${skillName}`}
       seo={{
-        title: `${skillName} Methods | OSRSTool`,
+        title: `${skillName} Methods | RSMethods`,
         description: `OSRS methods filtered by the ${skillName} skill, with the same filters as /allMethods except for the skill selector.`,
         path: `/skilling/${normalizedSkill}`,
         keywords: `osrs ${normalizedSkill} methods, ${normalizedSkill} money making osrs`,

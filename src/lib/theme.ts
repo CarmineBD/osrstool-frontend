@@ -1,4 +1,5 @@
-export const THEME_STORAGE_KEY = "osrstool-theme";
+export const THEME_STORAGE_KEY = "rsmethods-theme";
+export const LEGACY_THEME_STORAGE_KEY = "osrstool-theme";
 
 export type Theme = "light" | "dark";
 
@@ -21,7 +22,9 @@ export function resolveInitialTheme(): Theme {
     return "light";
   }
 
-  const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+  const storedTheme =
+    window.localStorage.getItem(THEME_STORAGE_KEY) ??
+    window.localStorage.getItem(LEGACY_THEME_STORAGE_KEY);
   return isTheme(storedTheme) ? storedTheme : getSystemTheme();
 }
 

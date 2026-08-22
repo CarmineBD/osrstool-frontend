@@ -15,6 +15,7 @@ export const MAX_ITEM_QUANTITY_DECIMAL_PLACES = 6;
 export const MAX_XP_PER_HOUR = 99_999_999;
 export const MAX_XP_HOUR_SKILLS = 24;
 export const MAX_ACTIONS_PER_HOUR = 99_999;
+export const MAX_ACTIONS_PER_HOUR_DECIMAL_PLACES = 2;
 export const MAX_CLICK_INTENSITY = MAX_ACTIONS_PER_HOUR;
 export const MAX_AFKINESS = 100;
 export const MAX_SKILL_LEVEL = 99;

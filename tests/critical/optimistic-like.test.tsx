@@ -26,7 +26,7 @@ describe("critical flow: optimistic variant like", () => {
     let variantLikedByMe = false;
 
     server.use(
-      http.get("*/methods/slug/:slug", ({ params }) =>
+      http.post("*/methods/slug/:slug", ({ params }) =>
         HttpResponse.json({
           data: {
             method: {
@@ -101,7 +101,7 @@ describe("critical flow: optimistic variant like", () => {
 
   it("shows aggregated likes in lists without rendering a like action", async () => {
     server.use(
-      http.get("*/methods", () =>
+      http.post("*/methods/search", () =>
         HttpResponse.json({
           data: {
             methods: [

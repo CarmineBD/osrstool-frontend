@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Variant } from "@/lib/api";
 import {
+  getVariantGpPerXpHigh,
   getOrderedVariants,
   getVariantSortMetricValue,
   getVariantXpTotal,
@@ -77,6 +78,18 @@ describe("variantOrdering", () => {
     ]);
   });
 
+  it("sorts by best-case gp/xp calculated in the frontend", () => {
+    expect(getVariantGpPerXpHigh(variants[0])).toBe(18);
+    expect(getVariantGpPerXpHigh(variants[1])).toBeCloseTo(4.1666666667);
+    expect(getOrderedVariants(variants, "gpPerXp").map(({ variant }) => variant.label)).toEqual([
+      "Profit route",
+      "Unknown afk route",
+      "Idle route",
+      "Training route",
+      "Not viable route",
+    ]);
+  });
+
   it("sorts by afk descending and places missing afk values after defined ones", () => {
     expect(getOrderedVariants(variants, "afk").map(({ variant }) => variant.label)).toEqual([
       "Idle route",
@@ -90,6 +103,7 @@ describe("variantOrdering", () => {
   it("returns the metric used for the selected sort mode", () => {
     expect(getVariantSortMetricValue(variants[0], "profit")).toBe(450000);
     expect(getVariantSortMetricValue(variants[1], "xp")).toBe(42000);
+    expect(getVariantSortMetricValue(variants[0], "gpPerXp")).toBe(18);
     expect(getVariantSortMetricValue(variants[2], "afk")).toBe(75);
   });
 });

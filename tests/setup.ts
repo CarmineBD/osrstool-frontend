@@ -2,6 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterAll, afterEach, beforeAll, vi } from "vitest";
+import type { PlayerInfo } from "@/lib/api";
 import { server } from "./msw/server";
 
 type AuthSession = {
@@ -9,6 +10,9 @@ type AuthSession = {
   user?: {
     id?: string;
     email?: string;
+    user_metadata?: {
+      avatar_url?: string;
+    };
   };
 };
 
@@ -17,14 +21,21 @@ type AuthState = {
   user: AuthSession["user"] | null;
   isLoading: boolean;
   isRecoveryMode: boolean;
-  signUp: (email: string, password: string) => Promise<{
+  signUp: (
+    email: string,
+    password: string,
+    termsVersion: string,
+  ) => Promise<{
     needsEmailConfirmation: boolean;
     error: string | null;
   }>;
   signIn: (email: string, password: string) => Promise<string | null>;
   signInWithGoogle: () => Promise<string | null>;
   signOut: () => Promise<string | null>;
-  requestPasswordReset: (email: string, redirectTo?: string) => Promise<string | null>;
+  requestPasswordReset: (
+    email: string,
+    redirectTo?: string,
+  ) => Promise<string | null>;
   updatePassword: (password: string) => Promise<string | null>;
 };
 
@@ -47,17 +58,15 @@ const authState: AuthState = {
 
 type UsernameState = {
   username: string;
+  player: PlayerInfo | null;
   userError: string | null;
 };
 
 const usernameState: UsernameState = {
   username: "",
+  player: null,
   userError: null,
 };
-
-const setUsernameSpy = vi.fn((value: string) => {
-  usernameState.username = value.trim();
-});
 
 const clearUsernameSpy = vi.fn(() => {
   usernameState.username = "";
@@ -67,6 +76,12 @@ const clearUsernameSpy = vi.fn(() => {
 const setUserErrorSpy = vi.fn((value: string | null) => {
   usernameState.userError = value;
 });
+const lookupPlayerSpy = vi.fn(async (): Promise<PlayerInfo> => ({
+  levels: {},
+  experience: {},
+  quests: {},
+  achievement_diaries: {},
+}));
 
 vi.mock("@/lib/supabaseClient", () => {
   const sessionRef: { current: AuthSession | null } = { current: null };
@@ -79,7 +94,10 @@ vi.mock("@/lib/supabaseClient", () => {
     onAuthStateChange: vi.fn(() => ({
       data: { subscription: { unsubscribe: () => undefined } },
     })),
-    signUp: vi.fn(async () => ({ data: { session: null, user: null }, error: null })),
+    signUp: vi.fn(async () => ({
+      data: { session: null, user: null },
+      error: null,
+    })),
     signInWithPassword: vi.fn(async () => ({ error: null })),
     signInWithOAuth: vi.fn(async () => ({
       data: { provider: "google", url: null },
@@ -112,7 +130,12 @@ vi.mock("@/auth/AuthProvider", () => ({
 vi.mock("@/contexts/UsernameContext", () => ({
   useUsername: () => ({
     username: usernameState.username,
-    setUsername: setUsernameSpy,
+    player: usernameState.player,
+    fetchedAt: null,
+    lookupPlayer: lookupPlayerSpy,
+    refreshPlayer: lookupPlayerSpy,
+    isPlayerLookupPending: false,
+    manualLookupCooldownRemaining: 0,
     clearUsername: clearUsernameSpy,
     userError: usernameState.userError,
     setUserError: setUserErrorSpy,
@@ -120,18 +143,27 @@ vi.mock("@/contexts/UsernameContext", () => ({
   UsernameProvider: ({ children }: { children: ReactNode }) => children,
   __setUsernameMockState: (partial: Partial<UsernameState>) => {
     Object.assign(usernameState, partial);
+    if (partial.username && partial.player === undefined) {
+      usernameState.player = {
+        levels: {},
+        experience: {},
+        quests: {},
+        achievement_diaries: {},
+      };
+    }
   },
   __resetUsernameMockState: () => {
     usernameState.username = "";
+    usernameState.player = null;
     usernameState.userError = null;
-    setUsernameSpy.mockClear();
     clearUsernameSpy.mockClear();
     setUserErrorSpy.mockClear();
+    lookupPlayerSpy.mockClear();
   },
   __getUsernameMockSpies: () => ({
-    setUsernameSpy,
     clearUsernameSpy,
     setUserErrorSpy,
+    lookupPlayerSpy,
   }),
 }));
 
@@ -183,6 +215,7 @@ beforeAll(() => {
 afterEach(async () => {
   cleanup();
   server.resetHandlers();
+  window.localStorage.clear();
   window.sessionStorage.clear();
 
   const authProviderModule = await import("@/auth/AuthProvider");
@@ -190,6 +223,14 @@ afterEach(async () => {
 
   const usernameContextModule = await import("@/contexts/UsernameContext");
   usernameContextModule.__resetUsernameMockState();
+
+  const accountUsernameRequirementModule =
+    await import("@/lib/accountUsernameRequirement");
+  accountUsernameRequirementModule.__resetAccountUsernameRequiredNotifications();
+
+  const termsAcceptanceRequirementModule =
+    await import("@/lib/termsAcceptanceRequirement");
+  termsAcceptanceRequirementModule.__resetTermsAcceptanceRequiredNotifications();
 });
 
 afterAll(() => {

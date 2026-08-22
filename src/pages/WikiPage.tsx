@@ -68,12 +68,12 @@ const WIKI_CATEGORIES: Record<WikiCategorySlug, WikiCategory> = {
       {
         id: "overview",
         label: "What the app does",
-        title: "What OSRSTool does",
+        title: "What RSMethods does",
         description: "The product goal in plain language.",
         content: (
           <div className={WIKI_BODY_TEXT_CLASS}>
             <p>
-              OSRSTool helps you choose methods to earn GP or train skills with
+              RSMethods helps you choose methods to earn GP or train skills with
               recent, comparable data.
             </p>
             <p>
@@ -630,13 +630,13 @@ function WikiContent({
 
   useSeo({
     title: category
-      ? `${category.title} | OSRSTool Wiki`
-      : "Category not found | OSRSTool Wiki",
+      ? `${category.title} | RSMethods Wiki`
+      : "Category not found | RSMethods Wiki",
     description: category
       ? `${category.title}: ${category.shortDescription}`
       : "The requested category does not exist in the wiki.",
     path: category ? categoryPath(category.slug) : "/wiki",
-    keywords: "osrstool wiki, osrs guide",
+    keywords: "rsmethods wiki, osrs guide",
   });
 
   useEffect(() => {
@@ -879,7 +879,7 @@ function WikiContent({
                 isHeaderHighlighted && PUBLIC_HIGHLIGHT_CLASS,
               )}
             >
-              <p className={PUBLIC_SECTION_EYEBROW_CLASS}>OSRSTool Wiki</p>
+              <p className={PUBLIC_SECTION_EYEBROW_CLASS}>RSMethods Wiki</p>
               <h1 className="text-3xl font-black tracking-tight text-foreground sm:text-4xl">
                 {category.title}
               </h1>

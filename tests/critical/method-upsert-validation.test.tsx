@@ -39,7 +39,7 @@ describe("critical flow: create/edit form validations", () => {
     let updateRequests = 0;
 
     server.use(
-      http.get("*/methods/slug/:slug", ({ params }) =>
+      http.post("*/methods/slug/:slug", ({ params }) =>
         HttpResponse.json({
           data: {
             method: {
@@ -113,7 +113,11 @@ describe("critical flow: create/edit form validations", () => {
 
     expect(await screen.findByText("Method icon is required")).toBeInTheDocument();
     expect(await screen.findByText("Variant icon is required")).toBeInTheDocument();
-    expect(await screen.findByText("Actions/hr is required and must be between 0 and 99999.")).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        "Actions/hr is required and must be between 0 and 99999 with up to 2 decimals.",
+      ),
+    ).toBeInTheDocument();
     expect(await screen.findByText("Action type is required.")).toBeInTheDocument();
     expect(createRequests).toBe(0);
   });
@@ -124,7 +128,7 @@ describe("critical flow: create/edit form validations", () => {
     const updateBodies: unknown[] = [];
 
     server.use(
-      http.get("*/methods/slug/:slug", ({ params }) =>
+      http.post("*/methods/slug/:slug", ({ params }) =>
         HttpResponse.json({
           data: {
             method: {
