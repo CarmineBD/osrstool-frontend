@@ -148,7 +148,9 @@ export function VariantForm({
       ? `Actions/hr is required and must be between 0 and ${MAX_ACTIONS_PER_HOUR} with up to ${MAX_ACTIONS_PER_HOUR_DECIMAL_PLACES} decimals.`
       : undefined;
   const actionTypeError =
-    showValidationErrors && !actionType ? "Action type is required." : undefined;
+    showValidationErrors && !actionType
+      ? "Action type is required."
+      : undefined;
 
   return (
     <div className={cn("overflow-hidden", EDITOR_NESTED_SURFACE_CLASS)}>
@@ -204,9 +206,14 @@ export function VariantForm({
         <ItemIconField
           label="Icon"
           value={iconId}
+          source={variant.iconSource}
           onChange={(next) => {
-            setIconId(next);
-            onChange?.({ ...variant, icon_id: next });
+            setIconId(next?.id);
+            onChange?.({
+              ...variant,
+              icon_id: next?.id,
+              iconSource: next?.source,
+            });
           }}
           error={iconError}
           required

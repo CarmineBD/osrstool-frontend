@@ -45,7 +45,12 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { fetchItems, type Item } from "@/lib/api";
+import {
+  fetchIconRecords,
+  getIconReferenceKey,
+  normalizeIconSource,
+  type IconRecord,
+} from "@/lib/api";
 import type {
   AchievementDiaryOption,
   QuestOption,
@@ -57,7 +62,6 @@ import {
   type MethodUpsertFormValues,
   type MethodUpsertSubmitValues,
 } from "@/features/method-upsert/useMethodUpsert";
-import { getItemsQueryKey } from "@/lib/queryKeys";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
 import { cn } from "@/lib/utils";
 import {
@@ -141,22 +145,26 @@ export function MethodUpsertForm({
     submitAttempted && !form.getValues("icon_id")
       ? "Method icon is required"
       : undefined;
-  const variantIconIds = useMemo(
+  const variantIconReferences = useMemo(
     () =>
-      Array.from(
-        new Set(
-          variants
-            .map((variant) => variant.icon_id)
-            .filter((iconId): iconId is number => Number.isInteger(iconId)),
-        ),
-      ).sort((a, b) => a - b),
+      variants
+        .filter((variant): variant is Variant & { icon_id: number } =>
+          Number.isInteger(variant.icon_id),
+        )
+        .map((variant) => ({
+          id: variant.icon_id,
+          source: normalizeIconSource(variant.iconSource),
+        })),
     [variants],
   );
 
-  const { data: variantIcons = {} } = useQuery<Record<number, Item>>({
-    queryKey: getItemsQueryKey(variantIconIds),
-    queryFn: () => fetchItems(variantIconIds),
-    enabled: variantIconIds.length > 0,
+  const { data: variantIcons = {} } = useQuery<Record<string, IconRecord>>({
+    queryKey: [
+      "iconRecords",
+      variantIconReferences.map(getIconReferenceKey).sort(),
+    ],
+    queryFn: () => fetchIconRecords(variantIconReferences),
+    enabled: variantIconReferences.length > 0,
     staleTime: QUERY_STALE_TIME_MS,
   });
 
@@ -225,7 +233,15 @@ export function MethodUpsertForm({
                         <ItemIconField
                           label="Icon"
                           value={field.value}
-                          onChange={field.onChange}
+                          source={form.watch("iconSource")}
+                          onChange={(next) => {
+                            field.onChange(next?.id);
+                            form.setValue(
+                              "iconSource",
+                              next?.source ?? "item",
+                              { shouldDirty: true },
+                            );
+                          }}
                           error={fieldState.error?.message ?? methodIconError}
                           required
                           searchAriaLabel="Method icon search"
@@ -341,7 +357,9 @@ export function MethodUpsertForm({
             <Card className={EDITOR_PRIMARY_CARD_CLASS}>
               {selectorCatalogLoading ? (
                 <>
-                  <CardHeader className={cn(EDITOR_CARD_HEADER_CLASS, "space-y-4")}>
+                  <CardHeader
+                    className={cn(EDITOR_CARD_HEADER_CLASS, "space-y-4")}
+                  >
                     <SectionHeader
                       title="Variants"
                       description="Split the method into clear scenarios with distinct requirements, loot, and XP profiles."
@@ -401,7 +419,9 @@ export function MethodUpsertForm({
                   }}
                   className="w-full gap-0"
                 >
-                  <CardHeader className={cn(EDITOR_CARD_HEADER_CLASS, "space-y-4")}>
+                  <CardHeader
+                    className={cn(EDITOR_CARD_HEADER_CLASS, "space-y-4")}
+                  >
                     <SectionHeader
                       title="Variants"
                       description="Split the method into clear scenarios with distinct requirements, loot, and XP profiles."
@@ -426,7 +446,14 @@ export function MethodUpsertForm({
                             }
                             iconUrl={
                               variant.icon_id
-                                ? variantIcons[variant.icon_id]?.iconUrl
+                                ? variantIcons[
+                                    getIconReferenceKey({
+                                      id: variant.icon_id,
+                                      source: normalizeIconSource(
+                                        variant.iconSource,
+                                      ),
+                                    })
+                                  ]?.iconUrl
                                 : undefined
                             }
                           />
@@ -470,7 +497,9 @@ export function MethodUpsertForm({
                 </Tabs>
               ) : (
                 <>
-                  <CardHeader className={cn(EDITOR_CARD_HEADER_CLASS, "space-y-4")}>
+                  <CardHeader
+                    className={cn(EDITOR_CARD_HEADER_CLASS, "space-y-4")}
+                  >
                     <SectionHeader
                       title="Variants"
                       description="Split the method into clear scenarios with distinct requirements, loot, and XP profiles."
