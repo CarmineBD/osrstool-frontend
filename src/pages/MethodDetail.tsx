@@ -21,7 +21,11 @@ import {
   type VariantSortMode,
 } from "@/features/method-detail/variantOrdering";
 import { useMethodDetail } from "@/features/method-detail/useMethodDetail";
-import type { Variant } from "@/lib/api";
+import {
+  getIconReferenceKey,
+  normalizeIconSource,
+  type Variant,
+} from "@/lib/api";
 
 export type Props = Record<string, never>;
 
@@ -35,8 +39,9 @@ export function MethodDetail(_props: Props) {
   const navigate = useNavigate();
   const { username } = useUsername();
   const state = useMethodDetail();
-  const [variantSortMode, setVariantSortMode] =
-    useState<VariantSortMode>(DEFAULT_VARIANT_SORT_MODE);
+  const [variantSortMode, setVariantSortMode] = useState<VariantSortMode>(
+    DEFAULT_VARIANT_SORT_MODE,
+  );
 
   if (state.isLoading) return <MethodDetailSkeleton />;
 
@@ -75,7 +80,12 @@ export function MethodDetail(_props: Props) {
     value: getVariantTabValue(variant, originalIndex),
     label: variant.label,
     iconUrl: variant.icon_id
-      ? state.itemsMap[variant.icon_id]?.iconUrl
+      ? state.iconMap[
+          getIconReferenceKey({
+            id: variant.icon_id,
+            source: normalizeIconSource(variant.iconSource),
+          })
+        ]?.iconUrl
       : undefined,
     sortMetricValue: getVariantSortMetricValue(variant, variantSortMode),
     gpPerXpHigh: getVariantGpPerXpHigh(variant),
@@ -142,7 +152,14 @@ export function MethodDetail(_props: Props) {
                         creatorAvatarUrl={state.creatorAvatarUrl}
                         iconUrl={
                           activeVariant.icon_id
-                            ? state.itemsMap[activeVariant.icon_id]?.iconUrl
+                            ? state.iconMap[
+                                getIconReferenceKey({
+                                  id: activeVariant.icon_id,
+                                  source: normalizeIconSource(
+                                    activeVariant.iconSource,
+                                  ),
+                                })
+                              ]?.iconUrl
                             : undefined
                         }
                         inputsTotal={

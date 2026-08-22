@@ -15,8 +15,12 @@ import {
   normalizeMethodSlug,
 } from "@/lib/queryKeys";
 import {
+  fetchIconRecords,
   fetchItems,
   fetchMethodDetailBySlug,
+  getIconReferenceKey,
+  normalizeIconSource,
+  type IconRecord,
   type Item,
   type Method,
   type MethodDetailResponse,
@@ -33,6 +37,7 @@ export interface UseMethodDetailResult {
   isLoading: boolean;
   isItemsLoading: boolean;
   itemsMap: Record<number, Item>;
+  iconMap: Record<string, IconRecord>;
   activeSlug: string;
   methodSlug: string;
   hasMultipleVariants: boolean;
@@ -102,6 +107,28 @@ export function useMethodDetail(): UseMethodDetailResult {
   });
 
   const itemsMap = itemsData ?? {};
+  const iconReferences = useMemo(
+    () =>
+      method?.variants.flatMap((variant) =>
+        Number.isInteger(variant.icon_id)
+          ? [
+              {
+                id: variant.icon_id as number,
+                source: normalizeIconSource(variant.iconSource),
+              },
+            ]
+          : [],
+      ) ?? [],
+    [method],
+  );
+  const { data: iconData } = useQuery<Record<string, IconRecord>>({
+    queryKey: ["iconRecords", iconReferences.map(getIconReferenceKey).sort()],
+    queryFn: () => fetchIconRecords(iconReferences),
+    enabled: iconReferences.length > 0,
+    staleTime: QUERY_STALE_TIME_MS,
+    refetchInterval: QUERY_REFETCH_INTERVAL_MS,
+  });
+  const iconMap = iconData ?? {};
 
   const orderedVariants = useMemo(
     () => getOrderedVariants(method?.variants ?? []),
@@ -131,6 +158,7 @@ export function useMethodDetail(): UseMethodDetailResult {
     isLoading,
     isItemsLoading,
     itemsMap,
+    iconMap,
     activeSlug,
     methodSlug,
     hasMultipleVariants,

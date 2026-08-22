@@ -30,13 +30,14 @@ import {
 import { useSeo } from "@/hooks/useSeo";
 import { useUsername } from "@/contexts/UsernameContext";
 import {
-  fetchItems,
+  fetchIconRecords,
   fetchTrendingProfitMethods,
-  type Item,
+  getIconReferenceKey,
+  normalizeIconSource,
+  type IconRecord,
   type Method,
   type Variant,
 } from "@/lib/api";
-import { getItemsQueryKey } from "@/lib/queryKeys";
 import {
   QUERY_REFETCH_INTERVAL_MS,
   QUERY_STALE_TIME_MS,
@@ -230,21 +231,27 @@ function TrendingMethodsCarousel() {
       })),
     [methods],
   );
-  const variantIconIds = useMemo(
+  const variantIconReferences = useMemo(
     () =>
-      Array.from(
-        new Set(
-          trendingCards
-            .map(({ variant }) => variant?.icon_id)
-            .filter((iconId): iconId is number => Number.isInteger(iconId)),
-        ),
-      ).sort((a, b) => a - b),
+      trendingCards.flatMap(({ variant }) =>
+        variant && Number.isInteger(variant.icon_id)
+          ? [
+              {
+                id: variant.icon_id as number,
+                source: normalizeIconSource(variant.iconSource),
+              },
+            ]
+          : [],
+      ),
     [trendingCards],
   );
-  const { data: variantIcons = {} } = useQuery<Record<number, Item>>({
-    queryKey: getItemsQueryKey(variantIconIds),
-    queryFn: () => fetchItems(variantIconIds),
-    enabled: variantIconIds.length > 0,
+  const { data: variantIcons = {} } = useQuery<Record<string, IconRecord>>({
+    queryKey: [
+      "iconRecords",
+      variantIconReferences.map(getIconReferenceKey).sort(),
+    ],
+    queryFn: () => fetchIconRecords(variantIconReferences),
+    enabled: variantIconReferences.length > 0,
     staleTime: QUERY_STALE_TIME_MS,
   });
   const isInitialLoading = isLoading || (isFetching && !data);
@@ -313,7 +320,12 @@ function TrendingMethodsCarousel() {
                   index={index}
                   variantIconUrl={
                     variant?.icon_id
-                      ? variantIcons[variant.icon_id]?.iconUrl
+                      ? variantIcons[
+                          getIconReferenceKey({
+                            id: variant.icon_id,
+                            source: normalizeIconSource(variant.iconSource),
+                          })
+                        ]?.iconUrl
                       : undefined
                   }
                 />
