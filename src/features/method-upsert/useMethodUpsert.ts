@@ -84,6 +84,7 @@ export const methodFormSchema = z
       })
       .optional(),
     icon_id: z.number().int().positive().optional(),
+    iconSource: z.enum(["item", "game_icon"]),
   })
   .superRefine((values, ctx) => {
     if (values.icon_id !== undefined) return;
@@ -103,6 +104,7 @@ const createEmptyVariant = (label = "New variant"): Variant => ({
   description: "",
   actionsPerHour: undefined,
   actionType: undefined,
+  iconSource: "item",
   xpHour: [],
   requirements: {},
   inputs: [],
@@ -506,6 +508,7 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
       category: "",
       description: "",
       icon_id: undefined,
+      iconSource: "item",
     },
   });
 
@@ -527,6 +530,7 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
       category: normalizeMethodCategory(method.category),
       description: method.description ?? "",
       icon_id: normalizeIconId(method.icon_id),
+      iconSource: method.iconSource ?? "item",
     });
   }, [form, isEditMode, method]);
 
@@ -628,7 +632,8 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
     const variantsChanged =
       baselineSignature !== getVariantsSignature(variantsToSubmit);
     const methodIconChanged =
-      normalizeIconId(method.icon_id) !== normalizeIconId(values.icon_id);
+      normalizeIconId(method.icon_id) !== normalizeIconId(values.icon_id) ||
+      (method.iconSource ?? "item") !== values.iconSource;
 
     let updatedMethod: Method;
     if (variantsChanged || methodIconChanged) {

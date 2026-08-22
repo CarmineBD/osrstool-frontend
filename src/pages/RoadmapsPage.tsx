@@ -41,9 +41,13 @@ import { useUsername } from "@/contexts/UsernameContext";
 import { useSeo } from "@/hooks/useSeo";
 import {
   ApiRequestError,
+  fetchIconRecords,
   fetchMethodTags,
   fetchItems,
   fetchSkillRoadmap,
+  getIconReferenceKey,
+  normalizeIconSource,
+  type IconRecord,
   type MethodVariantTagKey,
   type Item,
   type PlayerInfo,
@@ -403,7 +407,7 @@ function RoadmapJourneyBar({
   onSelectStep,
 }: {
   ranges: RoadmapRange[];
-  variantIcons: Record<number, Item>;
+  variantIcons: Record<string, IconRecord>;
   onSelectStep: (stepKey: string) => void;
 }) {
   const totalHours = ranges.reduce(
@@ -428,7 +432,12 @@ function RoadmapJourneyBar({
                 variantLabel,
               );
               const iconUrl = range.variant.icon_id
-                ? variantIcons[range.variant.icon_id]?.iconUrl
+                ? variantIcons[
+                    getIconReferenceKey({
+                      id: range.variant.icon_id,
+                      source: normalizeIconSource(range.variant.iconSource),
+                    })
+                  ]?.iconUrl
                 : undefined;
               const flexGrow = totalHours > 0 ? Math.max(range.hours, 0.01) : 1;
 
@@ -1005,7 +1014,6 @@ export function RoadmapsPage() {
       Array.from(
         new Set(
           [
-            ...(roadmap?.ranges ?? []).map((range) => range.variant.icon_id),
             ...(roadmap?.totalInputs ?? []).map((entry) => entry.id),
             ...(roadmap?.totalOutputs ?? []).map((entry) => entry.id),
             ...(aggregatedRoadmapRequirements?.items ?? []).map(
@@ -1029,6 +1037,30 @@ export function RoadmapsPage() {
       enabled: roadmapItemIds.length > 0,
       staleTime: QUERY_STALE_TIME_MS,
     });
+
+  const roadmapIconReferences = useMemo(
+    () =>
+      roadmap?.ranges.flatMap((range) =>
+        Number.isInteger(range.variant.icon_id)
+          ? [
+              {
+                id: range.variant.icon_id as number,
+                source: normalizeIconSource(range.variant.iconSource),
+              },
+            ]
+          : [],
+      ) ?? [],
+    [roadmap],
+  );
+  const { data: roadmapIconMap = {} } = useQuery<Record<string, IconRecord>>({
+    queryKey: [
+      "iconRecords",
+      roadmapIconReferences.map(getIconReferenceKey).sort(),
+    ],
+    queryFn: () => fetchIconRecords(roadmapIconReferences),
+    enabled: roadmapIconReferences.length > 0,
+    staleTime: QUERY_STALE_TIME_MS,
+  });
 
   const roadmapWarnings = roadmapResponse?.warnings ?? [];
 
@@ -1122,16 +1154,19 @@ export function RoadmapsPage() {
     const normalizedTargetLevel = commitTargetLevelInput(
       getSkillLevel(playerForRoadmap),
     );
-    roadmapMutation.mutate({
-      player: playerForRoadmap,
-      skill,
-      strategy,
-      targetLevel: normalizedTargetLevel,
-      showOnlyFreeToPlay,
-      ignoredTags,
-    }, {
-      onSuccess: () => setRoadmapUsername(normalizedUsername),
-    });
+    roadmapMutation.mutate(
+      {
+        player: playerForRoadmap,
+        skill,
+        strategy,
+        targetLevel: normalizedTargetLevel,
+        showOnlyFreeToPlay,
+        ignoredTags,
+      },
+      {
+        onSuccess: () => setRoadmapUsername(normalizedUsername),
+      },
+    );
   };
 
   const handleSelectRoadmapStep = (stepKey: string) => {
@@ -1400,7 +1435,7 @@ export function RoadmapsPage() {
                 {!roadmapMutation.isPending && roadmap ? (
                   <RoadmapJourneyBar
                     ranges={roadmap.ranges}
-                    variantIcons={roadmapItemsMap}
+                    variantIcons={roadmapIconMap}
                     onSelectStep={handleSelectRoadmapStep}
                   />
                 ) : null}
@@ -1435,7 +1470,14 @@ export function RoadmapsPage() {
                           range={range}
                           iconUrl={
                             range.variant.icon_id
-                              ? roadmapItemsMap[range.variant.icon_id]?.iconUrl
+                              ? roadmapIconMap[
+                                  getIconReferenceKey({
+                                    id: range.variant.icon_id,
+                                    source: normalizeIconSource(
+                                      range.variant.iconSource,
+                                    ),
+                                  })
+                                ]?.iconUrl
                               : undefined
                           }
                           isLast={index === roadmap.ranges.length - 1}

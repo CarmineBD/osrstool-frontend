@@ -56,6 +56,7 @@ export interface Method {
   category: string;
   description?: string;
   icon_id?: number | null;
+  iconSource?: IconSource;
   enabled?: boolean;
   is_official?: boolean;
   created_by?: {
@@ -173,6 +174,7 @@ export interface Variant {
   slug?: string;
   label: string;
   icon_id?: number | null;
+  iconSource?: IconSource;
   likes?: number;
   likedByMe?: boolean;
   members: boolean;
@@ -206,6 +208,38 @@ export interface Variant {
   tags?: VariantTag[];
   inputs: IoItem[];
   outputs: IoItem[];
+}
+
+export type IconSource = "item" | "game_icon";
+export type IconSearchType =
+  | "all"
+  | "items"
+  | "item"
+  | "interface"
+  | "spell"
+  | "prayer"
+  | "skill"
+  | "other";
+
+export interface IconReference {
+  id: number;
+  source: IconSource;
+}
+
+export interface IconRecord {
+  id: number;
+  name: string;
+  type: IconSearchType;
+  iconUrl: string;
+  source: IconSource;
+}
+
+export function normalizeIconSource(value: unknown): IconSource {
+  return value === "game_icon" ? "game_icon" : "item";
+}
+
+export function getIconReferenceKey(reference: IconReference): string {
+  return `${reference.source}:${reference.id}`;
 }
 
 export interface ApiWarning {
@@ -317,6 +351,8 @@ function parseMethodsFromResponse(value: unknown): Method[] {
 function normalizeVariant(variant: Variant): Variant {
   return {
     ...variant,
+    icon_id: normalizeIconId(variant.icon_id),
+    iconSource: normalizeIconSource(variant.iconSource),
     members: variant.members ?? false,
   };
 }
@@ -336,6 +372,8 @@ function normalizeMethod(method: Method): Method {
 
   return {
     ...method,
+    icon_id: normalizeIconId(method.icon_id),
+    iconSource: normalizeIconSource(method.iconSource),
     ...(typeof method.likes === "number"
       ? { likes: method.likes }
       : typeof aggregatedLikes === "number"
@@ -778,6 +816,7 @@ export interface RoadmapMethodRef {
   name: string;
   slug: string;
   icon_id?: number | null;
+  iconSource?: IconSource;
   category?: string;
   enabled: boolean;
 }
@@ -786,6 +825,7 @@ export interface RoadmapVariantRef {
   id: string;
   slug: string;
   icon_id?: number | null;
+  iconSource?: IconSource;
   label?: string;
   description?: string | null;
   xpPerHour: number;
@@ -879,6 +919,103 @@ export async function fetchItems(ids: number[]): Promise<Record<number, Item>> {
   }
   const json = await res.json();
   return json.data ?? json;
+}
+
+function parseIconRecords(value: unknown): IconRecord[] {
+  const data = (value as { data?: unknown })?.data ?? value;
+  if (!Array.isArray(data)) return [];
+  return data
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return null;
+      const record = entry as Record<string, unknown>;
+      const id = Number(record.id);
+      if (
+        !Number.isSafeInteger(id) ||
+        id <= 0 ||
+        typeof record.name !== "string"
+      ) {
+        return null;
+      }
+      const iconUrl = record.iconUrl;
+      if (typeof iconUrl !== "string") return null;
+      const source = normalizeIconSource(record.iconSource);
+      const type =
+        typeof record.type === "string"
+          ? record.type
+          : source === "item"
+            ? "item"
+            : "other";
+      return {
+        id,
+        name: record.name,
+        iconUrl,
+        source,
+        type: type as IconSearchType,
+      };
+    })
+    .filter((icon): icon is IconRecord => icon !== null);
+}
+
+export async function searchIcons(
+  query: string,
+  type?: IconSearchType,
+  showUntradeables = false,
+  signal?: AbortSignal,
+): Promise<IconRecord[]> {
+  const trimmed = normalizeBoundedText(query.trim(), SEARCH_QUERY_MAX_LENGTH);
+  if (!trimmed) return [];
+  const url = toApiUrl("/icons");
+  url.searchParams.set("q", trimmed);
+  if (type && type !== "all") url.searchParams.set("type", type);
+  if (showUntradeables) url.searchParams.set("showUntradeables", "true");
+  const res = await apiFetch(url.toString(), signal ? { signal } : undefined);
+  if (!res.ok) throw new Error(`HTTP ${res.status} - Error searching icons`);
+  return parseIconRecords(await res.json());
+}
+
+async function fetchGameIcons(ids: number[]): Promise<IconRecord[]> {
+  if (ids.length === 0) return [];
+  const url = toApiUrl("/icons");
+  url.searchParams.set("ids", Array.from(new Set(ids)).join(","));
+  const res = await apiFetch(url.toString());
+  if (!res.ok) throw new Error(`HTTP ${res.status} - Error fetching icons`);
+  return parseIconRecords(await res.json());
+}
+
+export async function fetchIconRecords(
+  references: IconReference[],
+): Promise<Record<string, IconRecord>> {
+  const valid = references.filter(
+    (reference) => Number.isSafeInteger(reference.id) && reference.id > 0,
+  );
+  const itemIds = valid
+    .filter((reference) => reference.source === "item")
+    .map((reference) => reference.id);
+  const gameIconIds = valid
+    .filter((reference) => reference.source === "game_icon")
+    .map((reference) => reference.id);
+  const [items, gameIcons] = await Promise.all([
+    itemIds.length > 0 ? fetchItems(itemIds) : Promise.resolve({}),
+    fetchGameIcons(gameIconIds),
+  ]);
+  const result: Record<string, IconRecord> = {};
+  Object.entries(items as Record<string, Item>).forEach(
+    ([fallbackId, item]) => {
+      const id = Number(fallbackId);
+      if (!Number.isSafeInteger(id) || id <= 0) return;
+      result[getIconReferenceKey({ id, source: "item" })] = {
+        id,
+        name: item.name,
+        type: "item",
+        iconUrl: item.iconUrl,
+        source: "item",
+      };
+    },
+  );
+  gameIcons.forEach((icon) => {
+    result[getIconReferenceKey({ id: icon.id, source: "game_icon" })] = icon;
+  });
+  return result;
 }
 
 function parseItemSearchResults(value: unknown): ItemSearchResult[] {
@@ -1414,12 +1551,14 @@ export interface UpdateMethodBasicDto {
 
 export interface UpsertMethodValues extends UpdateMethodBasicDto {
   icon_id: number;
+  iconSource: IconSource;
 }
 
 export interface UpdateVariantDto {
   id?: string;
   label: string;
   icon_id: number;
+  iconSource: IconSource;
   members: boolean;
   description?: string;
   afkiness?: number;
@@ -1448,9 +1587,15 @@ function mapIoItems(items: IoItem[] | undefined, type: IoItemType): IoItem[] {
   }));
 }
 
-function normalizeIconId(value: number | null | undefined): number | null {
-  return Number.isInteger(value) && (value as number) > 0
-    ? (value as number)
+function normalizeIconId(value: unknown): number | null {
+  const normalized =
+    typeof value === "string" && value.trim().length > 0
+      ? Number(value)
+      : value;
+  return typeof normalized === "number" &&
+    Number.isSafeInteger(normalized) &&
+    normalized > 0
+    ? normalized
     : null;
 }
 
@@ -1726,6 +1871,7 @@ function buildVariantSignaturePayload(variant: Variant) {
     id: variant.id,
     label: variant.label,
     icon_id: normalizeIconId(variant.icon_id),
+    iconSource: normalizeIconSource(variant.iconSource),
     members: variant.members ?? false,
     description: variant.description,
     clickIntensity: variant.clickIntensity,
@@ -1768,6 +1914,7 @@ function buildVariantUpdatePayload(variant: Variant): UpdateVariantDto {
   return {
     ...buildVariantSignaturePayload(variant),
     icon_id,
+    iconSource: normalizeIconSource(variant.iconSource),
     actionsPerHour,
     actionType,
   };
@@ -1797,6 +1944,7 @@ export function buildMethodUpdatePayload(
   return {
     ...values,
     icon_id,
+    iconSource: normalizeIconSource(values.iconSource),
     variants: variants.map(buildVariantUpdatePayload),
   };
 }

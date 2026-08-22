@@ -23,7 +23,11 @@ export function getMethodItemIds(method?: Method): number[] {
   if (!method) return [];
   const ids = new Set<number>();
   method.variants.forEach((variant) => {
-    if (Number.isInteger(variant.icon_id) && (variant.icon_id as number) > 0) {
+    if (
+      variant.iconSource !== "game_icon" &&
+      Number.isInteger(variant.icon_id) &&
+      (variant.icon_id as number) > 0
+    ) {
       ids.add(variant.icon_id as number);
     }
     variant.inputs.forEach((item) => ids.add(item.id));

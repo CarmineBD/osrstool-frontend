@@ -35,8 +35,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
+  fetchIconRecords,
   fetchItems,
   fetchMethodDetailBySlug,
+  getIconReferenceKey,
+  normalizeIconSource,
+  type IconRecord,
   type Method,
   type MethodDetailResponse,
   type MethodsFilters,
@@ -148,6 +152,7 @@ interface Row {
   variantCount: number;
   members: boolean;
   iconId?: number;
+  iconSource: "item" | "game_icon";
   name: string;
   category: string;
   xpHour: { skill: string; experience: number }[];
@@ -428,6 +433,7 @@ export function MethodsList({
         variantCount,
         members: variant.members,
         iconId: variant.icon_id ?? undefined,
+        iconSource: normalizeIconSource(variant.iconSource),
         name: method.name,
         category: method.category,
         xpHour,
@@ -447,22 +453,30 @@ export function MethodsList({
     }),
   );
 
-  const variantIconIds = useMemo(
+  const variantIconReferences = useMemo(
     () =>
       Array.from(
-        new Set(
+        new Map(
           rows
-            .map((row) => row.iconId)
-            .filter((iconId): iconId is number => Number.isInteger(iconId)),
-        ),
-      ).sort((a, b) => a - b),
+            .filter((row): row is Row & { iconId: number } =>
+              Number.isInteger(row.iconId),
+            )
+            .map((row) => {
+              const reference = { id: row.iconId, source: row.iconSource };
+              return [getIconReferenceKey(reference), reference] as const;
+            }),
+        ).values(),
+      ),
     [rows],
   );
 
-  const { data: variantIcons = {} } = useQuery<Record<number, Item>>({
-    queryKey: getItemsQueryKey(variantIconIds),
-    queryFn: () => fetchItems(variantIconIds),
-    enabled: variantIconIds.length > 0,
+  const { data: variantIcons = {} } = useQuery<Record<string, IconRecord>>({
+    queryKey: [
+      "iconRecords",
+      variantIconReferences.map(getIconReferenceKey).sort(),
+    ],
+    queryFn: () => fetchIconRecords(variantIconReferences),
+    enabled: variantIconReferences.length > 0,
     staleTime: QUERY_STALE_TIME_MS,
   });
 
@@ -789,10 +803,20 @@ export function MethodsList({
     return (
       <TableCell className={cn("min-w-0 font-medium", className)}>
         <div className="flex items-start gap-2">
-          {row.iconId && variantIcons[row.iconId]?.iconUrl ? (
+          {row.iconId &&
+          variantIcons[
+            getIconReferenceKey({ id: row.iconId, source: row.iconSource })
+          ]?.iconUrl ? (
             <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
               <img
-                src={variantIcons[row.iconId]?.iconUrl}
+                src={
+                  variantIcons[
+                    getIconReferenceKey({
+                      id: row.iconId,
+                      source: row.iconSource,
+                    })
+                  ]?.iconUrl
+                }
                 alt={`${row.name} icon`}
                 className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
               />
