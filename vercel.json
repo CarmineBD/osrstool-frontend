@@ -1,6 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "https://osrstool-backend-production.up.railway.app/$1"
+    },
     { "handle": "filesystem" },
     { "src": "/.*", "dest": "/index.html" }
   ]
