@@ -1,8 +1,62 @@
 import { render, waitFor } from "@testing-library/react";
 import { AuthApiError } from "@supabase/supabase-js";
 import { describe, expect, it, vi } from "vitest";
+import { CURRENT_TERMS_VERSION } from "@/lib/termsOfUse";
 
 describe("AuthProvider", () => {
+  it("stores the accepted terms version in Supabase Auth metadata during sign-up", async () => {
+    const authProviderModule =
+      await vi.importActual<typeof import("@/auth/AuthProvider")>(
+        "@/auth/AuthProvider"
+      );
+    const { AuthProvider, useAuth } = authProviderModule;
+    const supabaseClientModule = await import("@/lib/supabaseClient");
+    const signUp = vi.mocked(supabaseClientModule.supabase.auth.signUp);
+    let registerWithEmail: ((email: string, password: string, termsVersion: string) => Promise<{
+      needsEmailConfirmation: boolean;
+      error: string | null;
+    }>) | undefined;
+
+    signUp.mockClear();
+
+    function Consumer() {
+      registerWithEmail = useAuth().signUp;
+      return null;
+    }
+
+    render(
+      <AuthProvider>
+        <Consumer />
+      </AuthProvider>
+    );
+
+    await waitFor(() => expect(registerWithEmail).toBeTypeOf("function"));
+    if (!registerWithEmail) {
+      throw new Error("Sign-up method was not exposed.");
+    }
+
+    const result = await registerWithEmail(
+      "user@example.com",
+      "hunter2",
+      CURRENT_TERMS_VERSION
+    );
+
+    expect(result).toEqual({
+      needsEmailConfirmation: false,
+      error: null,
+    });
+    expect(signUp).toHaveBeenCalledWith({
+      email: "user@example.com",
+      password: "hunter2",
+      options: {
+        emailRedirectTo: `${window.location.origin}/login`,
+        data: {
+          termsOfUseVersion: CURRENT_TERMS_VERSION,
+        },
+      },
+    });
+  });
+
   it("starts Google OAuth with the current origin as callback", async () => {
     const authProviderModule =
       await vi.importActual<typeof import("@/auth/AuthProvider")>(

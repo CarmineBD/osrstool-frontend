@@ -1,4 +1,4 @@
-export type RuntimeEnvironmentLabel = "LOCAL" | "TST" | null;
+export type RuntimeEnvironmentLabel = "LOCAL" | "TST" | "BETA" | null;
 
 export function getRuntimeEnvironmentLabel(
   hostname: string,
@@ -25,5 +25,5 @@ export function getRuntimeEnvironmentLabel(
     return "TST";
   }
 
-  return null;
+  return "BETA";
 }

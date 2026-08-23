@@ -55,6 +55,7 @@ vi.mock("@/lib/me", () => ({
       role: "super_admin",
     },
   }),
+  getMeQueryKey: vi.fn(() => ["me", "user-1"]),
 }));
 
 describe("AdminPage", () => {

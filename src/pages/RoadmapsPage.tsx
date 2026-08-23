@@ -16,6 +16,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { UsernameLookupErrorMessage } from "@/components/UsernameLookupErrorMessage";
 import {
   Field,
   FieldContent,
@@ -40,11 +41,16 @@ import { useUsername } from "@/contexts/UsernameContext";
 import { useSeo } from "@/hooks/useSeo";
 import {
   ApiRequestError,
+  fetchIconRecords,
   fetchMethodTags,
   fetchItems,
   fetchSkillRoadmap,
+  getIconReferenceKey,
+  normalizeIconSource,
+  type IconRecord,
   type MethodVariantTagKey,
   type Item,
+  type PlayerInfo,
   type RoadmapRange,
   type RoadmapStrategy,
   type SkillRoadmap,
@@ -151,7 +157,10 @@ function formatGp(value: number): string {
   return `${formatNumber(value)}`;
 }
 
-function getProfitRangeLabel(low: number, high: number): {
+function getProfitRangeLabel(
+  low: number,
+  high: number,
+): {
   primary: {
     value: number;
     label: string;
@@ -398,7 +407,7 @@ function RoadmapJourneyBar({
   onSelectStep,
 }: {
   ranges: RoadmapRange[];
-  variantIcons: Record<number, Item>;
+  variantIcons: Record<string, IconRecord>;
   onSelectStep: (stepKey: string) => void;
 }) {
   const totalHours = ranges.reduce(
@@ -416,13 +425,19 @@ function RoadmapJourneyBar({
           <div className="flex h-6 min-w-full gap-0.5 rounded-lg">
             {ranges.map((range, index) => {
               const stepKey = getRoadmapRangeKey(range);
-              const variantLabel = range.variant.label?.trim() || "Default variant";
+              const variantLabel =
+                range.variant.label?.trim() || "Default variant";
               const secondaryVariantLabel = getRoadmapSecondaryVariantLabel(
                 range.method.name,
                 variantLabel,
               );
               const iconUrl = range.variant.icon_id
-                ? variantIcons[range.variant.icon_id]?.iconUrl
+                ? variantIcons[
+                    getIconReferenceKey({
+                      id: range.variant.icon_id,
+                      source: normalizeIconSource(range.variant.iconSource),
+                    })
+                  ]?.iconUrl
                 : undefined;
               const flexGrow = totalHours > 0 ? Math.max(range.hours, 0.01) : 1;
 
@@ -439,7 +454,10 @@ function RoadmapJourneyBar({
                       <span className="sr-only">{range.method.name}</span>
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent sideOffset={8} className="w-[240px] text-left">
+                  <TooltipContent
+                    sideOffset={8}
+                    className="w-[240px] text-left"
+                  >
                     <div className="flex items-start gap-3">
                       {iconUrl ? (
                         <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
@@ -501,10 +519,15 @@ function getRoadmapItemsTotal(
 
 type RoadmapRequirement = Variant["requirements"];
 type RoadmapItemRequirement = NonNullable<RoadmapRequirement["items"]>[number];
-type RoadmapLevelRequirement = NonNullable<RoadmapRequirement["levels"]>[number];
-type RoadmapQuestRequirement = NonNullable<RoadmapRequirement["quests"]>[number];
-type RoadmapDiaryRequirement =
-  NonNullable<RoadmapRequirement["achievement_diaries"]>[number];
+type RoadmapLevelRequirement = NonNullable<
+  RoadmapRequirement["levels"]
+>[number];
+type RoadmapQuestRequirement = NonNullable<
+  RoadmapRequirement["quests"]
+>[number];
+type RoadmapDiaryRequirement = NonNullable<
+  RoadmapRequirement["achievement_diaries"]
+>[number];
 
 function getDiaryTierRank(tier: string | number | undefined): number {
   if (typeof tier === "number" && Number.isFinite(tier)) {
@@ -673,7 +696,9 @@ function RoadmapMaterialsSection({
           <IoItemsGrid
             title="Inputs"
             total={
-              isItemsLoading ? undefined : getRoadmapItemsTotal(totalInputs, itemsMap)
+              isItemsLoading
+                ? undefined
+                : getRoadmapItemsTotal(totalInputs, itemsMap)
             }
             items={totalInputs}
             itemsMap={itemsMap}
@@ -908,14 +933,14 @@ function RoadmapTimelineSkeleton() {
 
 export function RoadmapsPage() {
   useSeo({
-    title: "Roadmaps | OSRSTool",
+    title: "Roadmaps | RSMethods",
     description:
       "Generate a 1-99 training roadmap from your OSRS username, skill choice, and roadmap strategy.",
     path: "/roadmaps",
     keywords: "osrs roadmap, osrs skill planner, osrs 1-99 roadmap",
   });
 
-  const { username, setUsername } = useUsername();
+  const { username, player, lookupPlayer } = useUsername();
   const [usernameInput, setUsernameInput] = useState(username);
   const [skill, setSkill] = useState<OsrsSkill>(DEFAULT_SKILL);
   const [targetLevelInput, setTargetLevelInput] = useState(
@@ -927,6 +952,7 @@ export function RoadmapsPage() {
     DEFAULT_ROADMAP_IGNORED_TAGS,
   );
   const [formError, setFormError] = useState<string | null>(null);
+  const [roadmapUsername, setRoadmapUsername] = useState<string | null>(null);
 
   useEffect(() => {
     setUsernameInput(username);
@@ -947,9 +973,15 @@ export function RoadmapsPage() {
     retry: false,
   });
 
-  const roadmapResponse = roadmapMutation.data as
-    | SkillRoadmapResponse
-    | undefined;
+  const normalizedUsername = normalizeBoundedText(
+    usernameInput.trim(),
+    USERNAME_MAX_LENGTH,
+  );
+  const isRoadmapForCurrentUsername =
+    roadmapUsername?.toLowerCase() === normalizedUsername.toLowerCase();
+  const roadmapResponse = isRoadmapForCurrentUsername
+    ? (roadmapMutation.data as SkillRoadmapResponse | undefined)
+    : undefined;
   const roadmap = roadmapResponse?.data.roadmap;
   const roadmapIntroKey = useMemo(
     () =>
@@ -982,7 +1014,6 @@ export function RoadmapsPage() {
       Array.from(
         new Set(
           [
-            ...(roadmap?.ranges ?? []).map((range) => range.variant.icon_id),
             ...(roadmap?.totalInputs ?? []).map((entry) => entry.id),
             ...(roadmap?.totalOutputs ?? []).map((entry) => entry.id),
             ...(aggregatedRoadmapRequirements?.items ?? []).map(
@@ -1006,6 +1037,30 @@ export function RoadmapsPage() {
       enabled: roadmapItemIds.length > 0,
       staleTime: QUERY_STALE_TIME_MS,
     });
+
+  const roadmapIconReferences = useMemo(
+    () =>
+      roadmap?.ranges.flatMap((range) =>
+        Number.isInteger(range.variant.icon_id)
+          ? [
+              {
+                id: range.variant.icon_id as number,
+                source: normalizeIconSource(range.variant.iconSource),
+              },
+            ]
+          : [],
+      ) ?? [],
+    [roadmap],
+  );
+  const { data: roadmapIconMap = {} } = useQuery<Record<string, IconRecord>>({
+    queryKey: [
+      "iconRecords",
+      roadmapIconReferences.map(getIconReferenceKey).sort(),
+    ],
+    queryFn: () => fetchIconRecords(roadmapIconReferences),
+    enabled: roadmapIconReferences.length > 0,
+    staleTime: QUERY_STALE_TIME_MS,
+  });
 
   const roadmapWarnings = roadmapResponse?.warnings ?? [];
 
@@ -1055,34 +1110,25 @@ export function RoadmapsPage() {
     };
   }, [roadmapIntroKey]);
 
-  const normalizedUsername = normalizeBoundedText(
-    usernameInput.trim(),
-    USERNAME_MAX_LENGTH,
-  );
-  const normalizedResponseUsername = roadmapResponse?.meta.username
-    ? normalizeBoundedText(roadmapResponse.meta.username, USERNAME_MAX_LENGTH)
-    : "";
-  const currentSkillLevel =
-    normalizedUsername &&
-    normalizedResponseUsername &&
-    normalizedUsername.toLowerCase() === normalizedResponseUsername.toLowerCase()
-      ? roadmapResponse?.data.user.levels[
-          skill.charAt(0).toUpperCase() + skill.slice(1)
-        ]
+  const getSkillLevel = (playerInfo: PlayerInfo | null | undefined) =>
+    playerInfo?.levels[skill.charAt(0).toUpperCase() + skill.slice(1)];
+  const currentPlayerSkillLevel =
+    player && normalizedUsername.toLowerCase() === username.toLowerCase()
+      ? getSkillLevel(player)
       : undefined;
 
-  const commitTargetLevelInput = () => {
+  const commitTargetLevelInput = (skillLevel = currentPlayerSkillLevel) => {
     const parsedTargetLevel = Number.parseInt(targetLevelInput, 10);
     const minimumTargetLevel = Math.min(
       MAX_SKILL_LEVEL,
-      Math.max(2, (currentSkillLevel ?? 1) + 1),
+      Math.max(2, (skillLevel ?? 1) + 1),
     );
 
     const normalizedTargetLevel = Number.isFinite(parsedTargetLevel)
       ? parsedTargetLevel < minimumTargetLevel
         ? minimumTargetLevel
-        : clampInteger(parsedTargetLevel, 2, MAX_SKILL_LEVEL) ??
-          DEFAULT_TARGET_LEVEL
+        : (clampInteger(parsedTargetLevel, 2, MAX_SKILL_LEVEL) ??
+          DEFAULT_TARGET_LEVEL)
       : Math.max(DEFAULT_TARGET_LEVEL, minimumTargetLevel);
 
     setTargetLevelInput(String(normalizedTargetLevel));
@@ -1090,24 +1136,37 @@ export function RoadmapsPage() {
     return normalizedTargetLevel;
   };
 
-  const handleCalculate = () => {
-    const normalizedTargetLevel = commitTargetLevelInput();
-
+  const handleCalculate = async () => {
     if (!normalizedUsername) {
       setFormError("Enter your OSRS username before generating a roadmap.");
       return;
     }
 
     setFormError(null);
-    setUsername(normalizedUsername);
-    roadmapMutation.mutate({
-      username: normalizedUsername,
-      skill,
-      strategy,
-      targetLevel: normalizedTargetLevel,
-      showOnlyFreeToPlay,
-      ignoredTags,
-    });
+    const playerForRoadmap =
+      player && normalizedUsername.toLowerCase() === username.toLowerCase()
+        ? player
+        : await lookupPlayer(normalizedUsername);
+    if (!playerForRoadmap) {
+      setFormError("Unable to fetch OSRS player data for this roadmap.");
+      return;
+    }
+    const normalizedTargetLevel = commitTargetLevelInput(
+      getSkillLevel(playerForRoadmap),
+    );
+    roadmapMutation.mutate(
+      {
+        player: playerForRoadmap,
+        skill,
+        strategy,
+        targetLevel: normalizedTargetLevel,
+        showOnlyFreeToPlay,
+        ignoredTags,
+      },
+      {
+        onSuccess: () => setRoadmapUsername(normalizedUsername),
+      },
+    );
   };
 
   const handleSelectRoadmapStep = (stepKey: string) => {
@@ -1232,7 +1291,7 @@ export function RoadmapsPage() {
                       onChange={(event) =>
                         setTargetLevelInput(event.target.value)
                       }
-                      onBlur={commitTargetLevelInput}
+                      onBlur={() => commitTargetLevelInput()}
                     />
                   </FieldContent>
                 </Field>
@@ -1323,7 +1382,8 @@ export function RoadmapsPage() {
                   />
                 </FieldContent>
                 <p className="text-sm text-muted-foreground">
-                  Ignore methods containing any selected tag when calculating the roadmap.
+                  Ignore methods containing any selected tag when calculating
+                  the roadmap.
                 </p>
               </Field>
 
@@ -1335,7 +1395,10 @@ export function RoadmapsPage() {
 
               {roadmapMutation.error ? (
                 <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-                  {getRoadmapErrorMessage(roadmapMutation.error)}
+                  <UsernameLookupErrorMessage
+                    message={getRoadmapErrorMessage(roadmapMutation.error)}
+                    helperClassName="text-[13px] leading-[18px] text-destructive/85"
+                  />
                 </div>
               ) : null}
 
@@ -1365,12 +1428,14 @@ export function RoadmapsPage() {
                   level="h2"
                 />
 
-                {roadmapMutation.isPending ? <RoadmapJourneyBarSkeleton /> : null}
+                {roadmapMutation.isPending ? (
+                  <RoadmapJourneyBarSkeleton />
+                ) : null}
 
                 {!roadmapMutation.isPending && roadmap ? (
                   <RoadmapJourneyBar
                     ranges={roadmap.ranges}
-                    variantIcons={roadmapItemsMap}
+                    variantIcons={roadmapIconMap}
                     onSelectStep={handleSelectRoadmapStep}
                   />
                 ) : null}
@@ -1384,8 +1449,7 @@ export function RoadmapsPage() {
                   />
                 ) : null}
 
-                {!roadmapMutation.isPending &&
-                aggregatedRoadmapRequirements ? (
+                {!roadmapMutation.isPending && aggregatedRoadmapRequirements ? (
                   <RoadmapRequirementsSection
                     requirements={aggregatedRoadmapRequirements}
                     itemsMap={roadmapItemsMap}
@@ -1406,7 +1470,14 @@ export function RoadmapsPage() {
                           range={range}
                           iconUrl={
                             range.variant.icon_id
-                              ? roadmapItemsMap[range.variant.icon_id]?.iconUrl
+                              ? roadmapIconMap[
+                                  getIconReferenceKey({
+                                    id: range.variant.icon_id,
+                                    source: normalizeIconSource(
+                                      range.variant.iconSource,
+                                    ),
+                                  })
+                                ]?.iconUrl
                               : undefined
                           }
                           isLast={index === roadmap.ranges.length - 1}

@@ -12,7 +12,7 @@ function renderApp() {
   render(
     <QueryClientProvider client={queryClient}>
       <App />
-    </QueryClientProvider>
+    </QueryClientProvider>,
   );
 }
 
@@ -26,35 +26,37 @@ describe("critical flow: landing + all methods routing", () => {
       await screen.findByRole("heading", {
         level: 1,
         name: /make money and train efficiently/i,
-      })
+      }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: /explore money making methods/i })
+      screen.getByRole("link", { name: /explore money making methods/i }),
     ).toHaveAttribute("href", "/allMethods");
     expect(
-      screen.getByRole("heading", { name: "Latest changelog entries" })
+      screen.getByRole("heading", { name: "Latest changelog entries" }),
     ).toBeInTheDocument();
     expect(await screen.findByText("Blast Furnace")).toBeInTheDocument();
     expect(await screen.findByAltText("Steel bars icon")).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: /#1\s+Steel bars icon\s+Blast Furnace/i })
+      screen.getByRole("link", {
+        name: /#1\s+Steel bars icon\s+Blast Furnace/i,
+      }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: /#2\s+Main icon\s+Rune Dragons/i })
+      screen.getByRole("link", { name: /#2\s+Main icon\s+Rune Dragons/i }),
     ).toBeInTheDocument();
     expect(screen.getByText("1.2m")).toBeInTheDocument();
     expect(screen.getByText("+5.4%")).toBeInTheDocument();
     expect(
-      screen.getAllByRole("link", { name: /read the full article/i })
+      screen.getAllByRole("link", { name: /read the full article/i }),
     ).toHaveLength(3);
     expect(
-      screen.getByRole("link", { name: /view all updates/i })
+      screen.getByRole("link", { name: /view all updates/i }),
     ).toHaveAttribute("href", "/changelog");
   });
 
   it("renders all methods page at /allMethods", async () => {
     server.use(
-      http.get("*/methods", () =>
+      http.post("*/methods/search", () =>
         HttpResponse.json({
           data: {
             methods: [],
@@ -62,20 +64,20 @@ describe("critical flow: landing + all methods routing", () => {
             perPage: 10,
             total: 0,
           },
-        })
-      )
+        }),
+      ),
     );
 
     window.history.pushState({}, "", "/allMethods");
     renderApp();
 
     expect(
-      await screen.findByRole("heading", { name: "All Methods" })
+      await screen.findByRole("heading", { name: "All Methods" }),
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        /Browse every currently available in-game method with live data\./i
-      )
+        /Browse every currently available in-game method with live data\./i,
+      ),
     ).toBeInTheDocument();
   });
 
@@ -85,7 +87,7 @@ describe("critical flow: landing + all methods routing", () => {
     renderApp();
 
     expect(
-      await screen.findByRole("heading", { name: "Landing SEO + Changelog" })
+      await screen.findByRole("heading", { name: "Landing SEO + Changelog" }),
     ).toBeInTheDocument();
     expect(await screen.findByText("Main changes")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Back" })).toBeInTheDocument();
@@ -97,13 +99,13 @@ describe("critical flow: landing + all methods routing", () => {
     renderApp();
 
     expect(
-      await screen.findByRole("heading", { name: "All updates" })
+      await screen.findByRole("heading", { name: "All updates" }),
     ).toBeInTheDocument();
     expect(
-      screen.getAllByRole("link", { name: /read update details/i })
+      screen.getAllByRole("link", { name: /read update details/i }),
     ).toHaveLength(5);
     expect(
-      screen.getByRole("button", { name: "Current page, page 1" })
+      screen.getByRole("button", { name: "Current page, page 1" }),
     ).toBeInTheDocument();
   });
 });

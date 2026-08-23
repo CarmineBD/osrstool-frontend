@@ -11,21 +11,25 @@ import type { AuthChangeEvent, Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
 import { getGoogleAuthRedirectTo } from "@/lib/authRedirect";
 
-const RECOVERY_MODE_STORAGE_KEY = "gp-now-recovery-mode";
+const RECOVERY_MODE_STORAGE_KEY = "rsmethods-recovery-mode";
+const LEGACY_RECOVERY_MODE_STORAGE_KEY = "gp-now-recovery-mode";
 
 type AuthContextValue = {
   session: Session | null;
   user: User | null;
   isLoading: boolean;
   isRecoveryMode: boolean;
-  signUp: (email: string, password: string) => Promise<{
+  signUp: (email: string, password: string, termsVersion: string) => Promise<{
     needsEmailConfirmation: boolean;
     error: string | null;
   }>;
   signIn: (email: string, password: string) => Promise<string | null>;
   signInWithGoogle: () => Promise<string | null>;
   signOut: () => Promise<string | null>;
-  requestPasswordReset: (email: string, redirectTo?: string) => Promise<string | null>;
+  requestPasswordReset: (
+    email: string,
+    redirectTo?: string,
+  ) => Promise<string | null>;
   updatePassword: (password: string) => Promise<string | null>;
 };
 
@@ -48,10 +52,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     if (nextValue) {
       window.sessionStorage.setItem(RECOVERY_MODE_STORAGE_KEY, "1");
+      window.sessionStorage.removeItem(LEGACY_RECOVERY_MODE_STORAGE_KEY);
       return;
     }
 
     window.sessionStorage.removeItem(RECOVERY_MODE_STORAGE_KEY);
+    window.sessionStorage.removeItem(LEGACY_RECOVERY_MODE_STORAGE_KEY);
   }, []);
 
   const hasRecoveryParams = useCallback(() => {
@@ -62,13 +68,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return true;
     }
 
-    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const hashParams = new URLSearchParams(
+      window.location.hash.replace(/^#/, ""),
+    );
     return hashParams.get("type") === "recovery";
   }, []);
 
   const isRecoveryModeStored = useCallback(() => {
     if (typeof window === "undefined") return false;
-    return window.sessionStorage.getItem(RECOVERY_MODE_STORAGE_KEY) === "1";
+    return (
+      window.sessionStorage.getItem(RECOVERY_MODE_STORAGE_KEY) === "1" ||
+      window.sessionStorage.getItem(LEGACY_RECOVERY_MODE_STORAGE_KEY) === "1"
+    );
   }, []);
 
   const resolveRecoveryMode = useCallback(
@@ -87,7 +98,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       return isRecoveryModeStored();
     },
-    [hasRecoveryParams, isRecoveryModeStored]
+    [hasRecoveryParams, isRecoveryModeStored],
   );
 
   useEffect(() => {
@@ -122,19 +133,35 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
   }, [resolveRecoveryMode, syncRecoveryMode]);
 
-  const signUp = useCallback(async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) {
-      return { needsEmailConfirmation: false, error: error.message };
-    }
+  const signUp = useCallback(
+    async (email: string, password: string, termsVersion: string) => {
+      const redirectTo = getGoogleAuthRedirectTo();
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          ...(redirectTo ? { emailRedirectTo: redirectTo } : {}),
+          data: {
+            termsOfUseVersion: termsVersion,
+          },
+        },
+      });
+      if (error) {
+        return { needsEmailConfirmation: false, error: error.message };
+      }
 
-    const needsEmailConfirmation =
-      !data.session && Boolean(data.user?.identities?.length);
-    return { needsEmailConfirmation, error: null };
-  }, []);
+      const needsEmailConfirmation =
+        !data.session && Boolean(data.user?.identities?.length);
+      return { needsEmailConfirmation, error: null };
+    },
+    [],
+  );
 
   const signIn = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
     return error ? error.message : null;
   }, []);
 
@@ -168,7 +195,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       return error ? error.message : null;
     },
-    []
+    [],
   );
 
   const updatePassword = useCallback(
@@ -180,7 +207,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       return error ? error.message : null;
     },
-    [syncRecoveryMode]
+    [syncRecoveryMode],
   );
 
   const value = useMemo<AuthContextValue>(
@@ -207,7 +234,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       signUp,
       updatePassword,
       user,
-    ]
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

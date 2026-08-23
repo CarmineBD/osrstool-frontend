@@ -75,7 +75,7 @@ import {
   refreshAdminMethodProfits,
   runAdminItemsSync,
 } from "@/lib/admin";
-import { fetchMe } from "@/lib/me";
+import { fetchMe, getMeQueryKey } from "@/lib/me";
 import { formatSkillName, OSRS_SKILLS } from "@/lib/skills";
 import { getUrlByType } from "@/lib/utils";
 import {
@@ -491,7 +491,7 @@ export function AdminPage() {
   const deferredScriptName = useDeferredValue(scriptNameInput.trim());
 
   const { data: meData } = useQuery({
-    queryKey: ["me"],
+    queryKey: getMeQueryKey(session?.user?.id),
     queryFn: fetchMe,
     enabled: !!session,
     staleTime: QUERY_STALE_TIME_MS,

@@ -1,15 +1,17 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useNavigate, useParams } from "react-router-dom";
 import { useUsername } from "@/contexts/UsernameContext";
-import {
-  getMethodDetailQueryKey,
-  normalizeMethodSlug,
-  normalizeUsername,
-} from "@/lib/queryKeys";
+import { getMethodDetailQueryKey, normalizeMethodSlug } from "@/lib/queryKeys";
 import {
   ApiRequestError,
   createMethodWithVariants,
@@ -35,6 +37,7 @@ import {
   hasAtMostDecimalPlaces,
   INPUTS_MAX_COUNT,
   MAX_ACTIONS_PER_HOUR,
+  MAX_ACTIONS_PER_HOUR_DECIMAL_PLACES,
   MAX_COMBAT_LEVEL,
   MAX_AFKINESS,
   MAX_CLICK_INTENSITY,
@@ -81,6 +84,7 @@ export const methodFormSchema = z
       })
       .optional(),
     icon_id: z.number().int().positive().optional(),
+    iconSource: z.enum(["item", "game_icon"]),
   })
   .superRefine((values, ctx) => {
     if (values.icon_id !== undefined) return;
@@ -100,6 +104,7 @@ const createEmptyVariant = (label = "New variant"): Variant => ({
   description: "",
   actionsPerHour: undefined,
   actionType: undefined,
+  iconSource: "item",
   xpHour: [],
   requirements: {},
   inputs: [],
@@ -121,9 +126,7 @@ function getNextAvailableVariantLabel(baseLabel: string, variants: Variant[]) {
   }
 
   let suffix = 2;
-  while (
-    existingLabels.has(normalizeVariantLabel(`${baseLabel} ${suffix}`))
-  ) {
+  while (existingLabels.has(normalizeVariantLabel(`${baseLabel} ${suffix}`))) {
     suffix += 1;
   }
 
@@ -170,11 +173,14 @@ function validateVariant(variant: Variant, index: number): string | null {
     return `${variantLabel}: actions/hr is required.`;
   }
   if (
-    !Number.isInteger(variant.actionsPerHour) ||
     variant.actionsPerHour < 0 ||
-    variant.actionsPerHour > MAX_ACTIONS_PER_HOUR
+    variant.actionsPerHour > MAX_ACTIONS_PER_HOUR ||
+    !hasAtMostDecimalPlaces(
+      variant.actionsPerHour,
+      MAX_ACTIONS_PER_HOUR_DECIMAL_PLACES,
+    )
   ) {
-    return `${variantLabel}: actions/hr must be an integer between 0 and ${MAX_ACTIONS_PER_HOUR}.`;
+    return `${variantLabel}: actions/hr must be between 0 and ${MAX_ACTIONS_PER_HOUR} with up to ${MAX_ACTIONS_PER_HOUR_DECIMAL_PLACES} decimal places.`;
   }
   if (!variant.actionType) {
     return `${variantLabel}: action type is required.`;
@@ -236,12 +242,14 @@ function validateVariant(variant: Variant, index: number): string | null {
   }
 
   if (
-    countRequirementEntries(variant.requirements) > REQUIREMENT_ENTRIES_MAX_COUNT
+    countRequirementEntries(variant.requirements) >
+    REQUIREMENT_ENTRIES_MAX_COUNT
   ) {
     return `${variantLabel}: requirements can contain at most ${REQUIREMENT_ENTRIES_MAX_COUNT} entries.`;
   }
   if (
-    countRequirementEntries(variant.recommendations) > REQUIREMENT_ENTRIES_MAX_COUNT
+    countRequirementEntries(variant.recommendations) >
+    REQUIREMENT_ENTRIES_MAX_COUNT
   ) {
     return `${variantLabel}: recommendations can contain at most ${REQUIREMENT_ENTRIES_MAX_COUNT} entries.`;
   }
@@ -288,7 +296,9 @@ function validateVariant(variant: Variant, index: number): string | null {
     const maxLevel = isCombatRequirementSkill(entry.skill)
       ? MAX_COMBAT_LEVEL
       : MAX_SKILL_LEVEL;
-    const minLevel = isCombatRequirementSkill(entry.skill) ? MIN_COMBAT_LEVEL : 1;
+    const minLevel = isCombatRequirementSkill(entry.skill)
+      ? MIN_COMBAT_LEVEL
+      : 1;
     if (
       !Number.isInteger(entry.level) ||
       entry.level < minLevel ||
@@ -350,13 +360,15 @@ function variantMatchesConflict(
 
   if (
     conflict.variantSlug &&
-    normalizeVariantKey(variant.slug) === normalizeVariantKey(conflict.variantSlug)
+    normalizeVariantKey(variant.slug) ===
+      normalizeVariantKey(conflict.variantSlug)
   ) {
     return true;
   }
 
   return (
-    normalizeVariantKey(variant.label) === normalizeVariantKey(conflict.variantLabel)
+    normalizeVariantKey(variant.label) ===
+    normalizeVariantKey(conflict.variantLabel)
   );
 }
 
@@ -390,18 +402,16 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { slug: methodParam = "" } = useParams<{ slug: string }>();
-  const { username, setUserError } = useUsername();
+  const { player, setUserError } = useUsername();
   const normalizedMethodSlug = normalizeMethodSlug(methodParam);
-  const normalizedUsername = normalizeUsername(username);
 
-  const {
-    data,
-    error,
-    isLoading,
-  } = useQuery<MethodDetailResponse, Error>({
-    queryKey: getMethodDetailQueryKey(normalizedMethodSlug, normalizedUsername),
+  const { data, error, isLoading } = useQuery<MethodDetailResponse, Error>({
+    queryKey: getMethodDetailQueryKey(
+      normalizedMethodSlug,
+      player ?? undefined,
+    ),
     queryFn: () =>
-      fetchMethodDetailBySlug(normalizedMethodSlug, normalizedUsername),
+      fetchMethodDetailBySlug(normalizedMethodSlug, player ?? undefined),
     enabled: isEditMode && !!normalizedMethodSlug,
     staleTime: QUERY_STALE_TIME_MS,
     retry: false,
@@ -459,7 +469,7 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
 
   const initialCreateVariants = useMemo(() => [createEmptyVariant()], []);
   const [variants, setVariants] = useState<Variant[]>(
-    isEditMode ? [] : initialCreateVariants
+    isEditMode ? [] : initialCreateVariants,
   );
   const [initialVariantsSignature, setInitialVariantsSignature] = useState<
     string | null
@@ -475,8 +485,9 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
     useState<string>("");
   const [pendingSubmitValues, setPendingSubmitValues] =
     useState<MethodUpsertSubmitValues | null>(null);
-  const [submitValidationMessage, setSubmitValidationMessage] =
-    useState<string | null>(null);
+  const [submitValidationMessage, setSubmitValidationMessage] = useState<
+    string | null
+  >(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showVariantValidationErrors, setShowVariantValidationErrors] =
@@ -492,7 +503,13 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
     MethodUpsertSubmitValues
   >({
     resolver: zodResolver(methodFormSchema),
-    defaultValues: { name: "", category: "", description: "", icon_id: undefined },
+    defaultValues: {
+      name: "",
+      category: "",
+      description: "",
+      icon_id: undefined,
+      iconSource: "item",
+    },
   });
 
   useEffect(() => {
@@ -513,6 +530,7 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
       category: normalizeMethodCategory(method.category),
       description: method.description ?? "",
       icon_id: normalizeIconId(method.icon_id),
+      iconSource: method.iconSource ?? "item",
     });
   }, [form, isEditMode, method]);
 
@@ -543,7 +561,7 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
 
   const hasDuplicateVariantLabels = useMemo(
     () => Array.from(labelCounts.values()).some((count) => count > 1),
-    [labelCounts]
+    [labelCounts],
   );
 
   const isVariantLabelDuplicate = (label: string): boolean => {
@@ -568,8 +586,8 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
       new Set(
         maybeSlugs
           .map((slug) => slug?.trim())
-          .filter((slug): slug is string => Boolean(slug))
-      )
+          .filter((slug): slug is string => Boolean(slug)),
+      ),
     );
 
     const invalidations: Array<Promise<unknown>> = [
@@ -580,7 +598,7 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
       invalidations.push(
         queryClient.invalidateQueries({
           queryKey: ["methodDetail", normalizeMethodSlug(slug)],
-        })
+        }),
       );
     }
 
@@ -614,7 +632,8 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
     const variantsChanged =
       baselineSignature !== getVariantsSignature(variantsToSubmit);
     const methodIconChanged =
-      normalizeIconId(method.icon_id) !== normalizeIconId(values.icon_id);
+      normalizeIconId(method.icon_id) !== normalizeIconId(values.icon_id) ||
+      (method.iconSource ?? "item") !== values.iconSource;
 
     let updatedMethod: Method;
     if (variantsChanged || methodIconChanged) {
@@ -655,7 +674,9 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
     }
 
     setUserError(
-      submitError instanceof Error ? submitError.message : "Failed to save method",
+      submitError instanceof Error
+        ? submitError.message
+        : "Failed to save method",
     );
   };
 
@@ -739,7 +760,7 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
       setUserError(
         deleteError instanceof Error
           ? deleteError.message
-          : "Failed to delete method"
+          : "Failed to delete method",
       );
     } finally {
       isDeletingRef.current = false;
@@ -766,14 +787,14 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
 
   const removeVariant = (index: number) =>
     setVariants((currentVariants) =>
-      currentVariants.filter((_, itemIndex) => itemIndex !== index)
+      currentVariants.filter((_, itemIndex) => itemIndex !== index),
     );
 
   const updateVariantAt = (index: number, updated: Variant) =>
     setVariants((currentVariants) =>
       currentVariants.map((item, itemIndex) =>
-        itemIndex === index ? updated : item
-      )
+        itemIndex === index ? updated : item,
+      ),
     );
 
   const duplicateVariantAt = (index: number) =>

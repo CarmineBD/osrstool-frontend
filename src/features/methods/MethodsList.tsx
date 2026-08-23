@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import { useMethods } from "./hooks";
+import { useUsername } from "@/contexts/UsernameContext";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatedProfitValue } from "@/components/AnimatedProfitValue";
@@ -34,8 +35,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
+  fetchIconRecords,
   fetchItems,
   fetchMethodDetailBySlug,
+  getIconReferenceKey,
+  normalizeIconSource,
+  type IconRecord,
   type Method,
   type MethodDetailResponse,
   type MethodsFilters,
@@ -50,7 +55,6 @@ import {
   getMethodDetailQueryKey,
   getMethodItemIds,
   normalizeMethodSlug,
-  normalizeUsername,
 } from "@/lib/queryKeys";
 import { getVariantTags } from "@/lib/variantTags";
 import {
@@ -91,7 +95,10 @@ const COLUMN_VISIBILITY_CLASSNAMES: Record<ColumnVisibilityTier, string> = {
   "2xl": "hidden 2xl:table-cell",
 };
 
-const DEFAULT_COLUMN_PRESENTATION: Record<MethodsTableColumnId, ColumnPresentation> = {
+const DEFAULT_COLUMN_PRESENTATION: Record<
+  MethodsTableColumnId,
+  ColumnPresentation
+> = {
   requirements: { width: "small", visibility: "2xl" },
   methodName: { width: "method", visibility: "always" },
   members: { width: "small", visibility: "md" },
@@ -106,7 +113,10 @@ const DEFAULT_COLUMN_PRESENTATION: Record<MethodsTableColumnId, ColumnPresentati
   likes: { width: "small", visibility: "2xl" },
 };
 
-const SKILL_COLUMN_PRESENTATION: Record<MethodsTableColumnId, ColumnPresentation> = {
+const SKILL_COLUMN_PRESENTATION: Record<
+  MethodsTableColumnId,
+  ColumnPresentation
+> = {
   requirements: { width: "small", visibility: "lg" },
   methodName: { width: "method", visibility: "always" },
   members: { width: "small", visibility: "lg" },
@@ -142,6 +152,7 @@ interface Row {
   variantCount: number;
   members: boolean;
   iconId?: number;
+  iconSource: "item" | "game_icon";
   name: string;
   category: string;
   xpHour: { skill: string; experience: number }[];
@@ -204,7 +215,10 @@ function prefersReducedMotion() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-function buildColumnAnimationKey(rowKey: string, columnId: MethodsTableColumnId) {
+function buildColumnAnimationKey(
+  rowKey: string,
+  columnId: MethodsTableColumnId,
+) {
   return `${rowKey}::${columnId}`;
 }
 
@@ -281,10 +295,7 @@ function animateCellEnter(element: HTMLElement) {
   );
 }
 
-function createExitGhost(
-  source: HTMLElement,
-  previousRect: CellRectSnapshot,
-) {
+function createExitGhost(source: HTMLElement, previousRect: CellRectSnapshot) {
   const ghost = document.createElement("div");
   const computedStyle = window.getComputedStyle(source);
 
@@ -301,7 +312,8 @@ function createExitGhost(
   ghost.style.color = computedStyle.color;
   ghost.style.font = computedStyle.font;
   ghost.style.lineHeight = computedStyle.lineHeight;
-  ghost.style.textAlign = computedStyle.textAlign as typeof ghost.style.textAlign;
+  ghost.style.textAlign =
+    computedStyle.textAlign as typeof ghost.style.textAlign;
   ghost.style.borderTop = computedStyle.borderTop;
   ghost.style.borderRight = computedStyle.borderRight;
   ghost.style.borderBottom = computedStyle.borderBottom;
@@ -366,8 +378,10 @@ export function MethodsList({
   const previousColumnSignatureRef = useRef<string | null>(null);
   const hoveredSlugRef = useRef<string | null>(null);
   const cursor = page > 1 ? cursorByPage[page] : undefined;
+  const { player } = useUsername();
+  const playerContext = username ? (player ?? undefined) : undefined;
   const { data, error, isFetching, isLoading } = useMethods(
-    username,
+    playerContext,
     page,
     name,
     filters,
@@ -379,7 +393,7 @@ export function MethodsList({
   useEffect(() => {
     setPage(1);
     setCursorByPage({ 1: undefined });
-  }, [username, name, filters]);
+  }, [username, playerContext, name, filters]);
 
   useEffect(() => {
     if (data?.hasNext !== true || !data.nextCursor) return;
@@ -419,6 +433,7 @@ export function MethodsList({
         variantCount,
         members: variant.members,
         iconId: variant.icon_id ?? undefined,
+        iconSource: normalizeIconSource(variant.iconSource),
         name: method.name,
         category: method.category,
         xpHour,
@@ -438,22 +453,30 @@ export function MethodsList({
     }),
   );
 
-  const variantIconIds = useMemo(
+  const variantIconReferences = useMemo(
     () =>
       Array.from(
-        new Set(
+        new Map(
           rows
-            .map((row) => row.iconId)
-            .filter((iconId): iconId is number => Number.isInteger(iconId)),
-        ),
-      ).sort((a, b) => a - b),
+            .filter((row): row is Row & { iconId: number } =>
+              Number.isInteger(row.iconId),
+            )
+            .map((row) => {
+              const reference = { id: row.iconId, source: row.iconSource };
+              return [getIconReferenceKey(reference), reference] as const;
+            }),
+        ).values(),
+      ),
     [rows],
   );
 
-  const { data: variantIcons = {} } = useQuery<Record<number, Item>>({
-    queryKey: getItemsQueryKey(variantIconIds),
-    queryFn: () => fetchItems(variantIconIds),
-    enabled: variantIconIds.length > 0,
+  const { data: variantIcons = {} } = useQuery<Record<string, IconRecord>>({
+    queryKey: [
+      "iconRecords",
+      variantIconReferences.map(getIconReferenceKey).sort(),
+    ],
+    queryFn: () => fetchIconRecords(variantIconReferences),
+    enabled: variantIconReferences.length > 0,
     staleTime: QUERY_STALE_TIME_MS,
   });
 
@@ -521,11 +544,8 @@ export function MethodsList({
       const normalizedSlug = normalizeMethodSlug(methodSlug);
       if (!normalizedSlug) return;
 
-      const normalizedUsername = normalizeUsername(username);
-      const queryKey = getMethodDetailQueryKey(
-        normalizedSlug,
-        normalizedUsername,
-      );
+      const playerForDetail = playerContext;
+      const queryKey = getMethodDetailQueryKey(normalizedSlug, playerForDetail);
       const existingState =
         queryClient.getQueryState<MethodDetailResponse>(queryKey);
 
@@ -542,7 +562,7 @@ export function MethodsList({
         .prefetchQuery({
           queryKey,
           queryFn: () =>
-            fetchMethodDetailBySlug(normalizedSlug, normalizedUsername),
+            fetchMethodDetailBySlug(normalizedSlug, playerForDetail),
           staleTime: QUERY_STALE_TIME_MS,
         })
         .then(() => {
@@ -572,7 +592,7 @@ export function MethodsList({
         })
         .catch(() => undefined);
     },
-    [queryClient, username],
+    [queryClient, playerContext],
   );
 
   const scheduleMethodPrefetch = useCallback(
@@ -648,7 +668,9 @@ export function MethodsList({
                     key={`${normalized}-${index}`}
                     variant="secondary"
                   >
-                    {iconUrl ? <img src={iconUrl} alt={`${normalized}_icon`} /> : null}
+                    {iconUrl ? (
+                      <img src={iconUrl} alt={`${normalized}_icon`} />
+                    ) : null}
                     {`${entry.skill}: ${entry.level}`}
                   </Badge>
                 );
@@ -724,7 +746,9 @@ export function MethodsList({
                     key={`${normalized}-${index}`}
                     variant="secondary"
                   >
-                    {iconUrl ? <img src={iconUrl} alt={`${normalized}_icon`} /> : null}
+                    {iconUrl ? (
+                      <img src={iconUrl} alt={`${normalized}_icon`} />
+                    ) : null}
                     {`${entry.skill}: ${formatNumber(entry.experience)}`}
                   </Badge>
                 );
@@ -751,7 +775,10 @@ export function MethodsList({
                   return (
                     <Badge size="lg" key={skill} variant="secondary">
                       {iconUrl ? (
-                        <img src={iconUrl} alt={`${skill.toLowerCase()}_icon`} />
+                        <img
+                          src={iconUrl}
+                          alt={`${skill.toLowerCase()}_icon`}
+                        />
                       ) : null}
                       {level}
                     </Badge>
@@ -776,10 +803,20 @@ export function MethodsList({
     return (
       <TableCell className={cn("min-w-0 font-medium", className)}>
         <div className="flex items-start gap-2">
-          {row.iconId && variantIcons[row.iconId]?.iconUrl ? (
+          {row.iconId &&
+          variantIcons[
+            getIconReferenceKey({ id: row.iconId, source: row.iconSource })
+          ]?.iconUrl ? (
             <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
               <img
-                src={variantIcons[row.iconId]?.iconUrl}
+                src={
+                  variantIcons[
+                    getIconReferenceKey({
+                      id: row.iconId,
+                      source: row.iconSource,
+                    })
+                  ]?.iconUrl
+                }
                 alt={`${row.name} icon`}
                 className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
               />
@@ -896,7 +933,10 @@ export function MethodsList({
                   return (
                     <Badge size="lg" key={skill} variant="secondary">
                       {iconUrl ? (
-                        <img src={iconUrl} alt={`${skill.toLowerCase()}_icon`} />
+                        <img
+                          src={iconUrl}
+                          alt={`${skill.toLowerCase()}_icon`}
+                        />
                       ) : null}
                       {formatNumber(experience)}
                     </Badge>
@@ -988,7 +1028,9 @@ export function MethodsList({
           renderHeader: () => "Method Name",
           renderCell: (row) =>
             renderMethodCell(row, getColumnClassName("methodName")),
-          renderSkeleton: () => <Skeleton className="h-4" style={{ width: "78%" }} />,
+          renderSkeleton: () => (
+            <Skeleton className="h-4" style={{ width: "78%" }} />
+          ),
         },
         {
           id: "variant",
@@ -997,7 +1039,9 @@ export function MethodsList({
           renderHeader: () => "Variant",
           renderCell: (row) =>
             renderVariantCell(row, getColumnClassName("variant")),
-          renderSkeleton: () => <Skeleton className="h-4" style={{ width: "66%" }} />,
+          renderSkeleton: () => (
+            <Skeleton className="h-4" style={{ width: "66%" }} />
+          ),
         },
         {
           id: "members",
@@ -1055,10 +1099,13 @@ export function MethodsList({
           id: "clickIntensity",
           headerClassName: getColumnClassName("clickIntensity"),
           cellClassName: getColumnClassName("clickIntensity"),
-          renderHeader: () => renderSortHeader("Click Intensity", "clickIntensity"),
+          renderHeader: () =>
+            renderSortHeader("Click Intensity", "clickIntensity"),
           renderCell: (row) =>
             renderClickIntensityCell(row, getColumnClassName("clickIntensity")),
-          renderSkeleton: () => <Skeleton className="h-4" style={{ width: "58%" }} />,
+          renderSkeleton: () => (
+            <Skeleton className="h-4" style={{ width: "58%" }} />
+          ),
         },
         {
           id: "afkiness",
@@ -1067,14 +1114,17 @@ export function MethodsList({
           renderHeader: () => renderSortHeader("% AFK", "afkiness"),
           renderCell: (row) =>
             renderAfkinessCell(row, getColumnClassName("afkiness")),
-          renderSkeleton: () => <Skeleton className="h-4" style={{ width: "58%" }} />,
+          renderSkeleton: () => (
+            <Skeleton className="h-4" style={{ width: "58%" }} />
+          ),
         },
         {
           id: "likes",
           headerClassName: getColumnClassName("likes"),
           cellClassName: getColumnClassName("likes"),
           renderHeader: () => renderSortHeader("Likes", "likes"),
-          renderCell: (row) => renderLikesCell(row, getColumnClassName("likes")),
+          renderCell: (row) =>
+            renderLikesCell(row, getColumnClassName("likes")),
           renderSkeleton: () => <Skeleton className="h-8 w-8 rounded-full" />,
         },
       ]
@@ -1086,7 +1136,9 @@ export function MethodsList({
           renderHeader: () => "Method Name",
           renderCell: (row) =>
             renderMethodCell(row, getColumnClassName("methodName")),
-          renderSkeleton: () => <Skeleton className="h-4" style={{ width: "72%" }} />,
+          renderSkeleton: () => (
+            <Skeleton className="h-4" style={{ width: "72%" }} />
+          ),
         },
         {
           id: "members",
@@ -1135,10 +1187,13 @@ export function MethodsList({
           id: "clickIntensity",
           headerClassName: getColumnClassName("clickIntensity"),
           cellClassName: getColumnClassName("clickIntensity"),
-          renderHeader: () => renderSortHeader("Click Intensity", "clickIntensity"),
+          renderHeader: () =>
+            renderSortHeader("Click Intensity", "clickIntensity"),
           renderCell: (row) =>
             renderClickIntensityCell(row, getColumnClassName("clickIntensity")),
-          renderSkeleton: () => <Skeleton className="h-4" style={{ width: "60%" }} />,
+          renderSkeleton: () => (
+            <Skeleton className="h-4" style={{ width: "60%" }} />
+          ),
         },
         {
           id: "afkiness",
@@ -1147,7 +1202,9 @@ export function MethodsList({
           renderHeader: () => renderSortHeader("% AFK", "afkiness"),
           renderCell: (row) =>
             renderAfkinessCell(row, getColumnClassName("afkiness")),
-          renderSkeleton: () => <Skeleton className="h-4" style={{ width: "60%" }} />,
+          renderSkeleton: () => (
+            <Skeleton className="h-4" style={{ width: "60%" }} />
+          ),
         },
         {
           id: "requirements",
@@ -1163,7 +1220,8 @@ export function MethodsList({
           headerClassName: getColumnClassName("likes"),
           cellClassName: getColumnClassName("likes"),
           renderHeader: () => renderSortHeader("Likes", "likes"),
-          renderCell: (row) => renderLikesCell(row, getColumnClassName("likes")),
+          renderCell: (row) =>
+            renderLikesCell(row, getColumnClassName("likes")),
           renderSkeleton: () => <Skeleton className="h-8 w-8 rounded-full" />,
         },
       ];
@@ -1173,16 +1231,17 @@ export function MethodsList({
     orderedColumnIds && orderedColumnIds.length > 0
       ? orderedColumnIds
       : defaultOrderedColumnIds;
-  const defaultVisibleColumnIds = getDefaultMethodsTableFieldsState(
-    isSkillTable,
-  ).visibleColumnIds;
+  const defaultVisibleColumnIds =
+    getDefaultMethodsTableFieldsState(isSkillTable).visibleColumnIds;
   const visibleColumnSet = new Set(visibleColumnIds ?? defaultVisibleColumnIds);
   const columnsById = new Map(allColumns.map((column) => [column.id, column]));
   const activeColumns = effectiveOrderedColumnIds
     .filter((columnId) => visibleColumnSet.has(columnId))
     .map((columnId) => columnsById.get(columnId))
     .filter((column): column is ColumnConfig => !!column);
-  const activeColumnSignature = activeColumns.map((column) => column.id).join("|");
+  const activeColumnSignature = activeColumns
+    .map((column) => column.id)
+    .join("|");
   const tableColumnCount = activeColumns.length;
 
   useLayoutEffect(() => {
@@ -1195,7 +1254,10 @@ export function MethodsList({
     const tableContainer = root.querySelector<HTMLElement>(
       "[data-slot='table-container']",
     );
-    if (!tableContainer || typeof HTMLElement.prototype.animate !== "function") {
+    if (
+      !tableContainer ||
+      typeof HTMLElement.prototype.animate !== "function"
+    ) {
       previousColumnSignatureRef.current = activeColumnSignature;
       return;
     }
@@ -1203,7 +1265,9 @@ export function MethodsList({
     const currentElements = new Map<string, HTMLElement>();
     const currentRects = new Map<string, CellRectSnapshot>();
     const containerRect = tableContainer.getBoundingClientRect();
-    const nodes = root.querySelectorAll<HTMLElement>("[data-column-animation-key]");
+    const nodes = root.querySelectorAll<HTMLElement>(
+      "[data-column-animation-key]",
+    );
 
     for (const node of nodes) {
       const animationKey = node.dataset.columnAnimationKey;
@@ -1273,87 +1337,87 @@ export function MethodsList({
       return node;
     }
 
-    return cloneElement(
-      node as React.ReactElement<Record<string, unknown>>,
-      {
-        "data-column-animation-key": buildColumnAnimationKey(rowKey, columnId),
-        "data-column-id": columnId,
-      },
-    );
+    return cloneElement(node as React.ReactElement<Record<string, unknown>>, {
+      "data-column-animation-key": buildColumnAnimationKey(rowKey, columnId),
+      "data-column-id": columnId,
+    });
   };
 
   return (
     <div className="space-y-4">
       <div ref={tableAnimationRootRef}>
         <Table className="table-fixed">
-        <TableHeader>
-          <TableRow>
-            {activeColumns.map((column) => (
-              <TableHead
-                key={column.id}
-                data-column-animation-key={buildColumnAnimationKey(
-                  "header",
-                  column.id,
-                )}
-                data-column-id={column.id}
-                className={column.headerClassName}
-              >
-                {column.renderHeader()}
-              </TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {isTableLoading ? (
-            Array.from({ length: SKELETON_ROW_COUNT }).map((_, index) => (
-              <TableRow key={`fetching-skeleton-row-${index}`}>
-                {activeColumns.map((column) => (
-                  <TableCell
-                    key={`fetching-skeleton-cell-${index}-${column.id}`}
-                    data-column-animation-key={buildColumnAnimationKey(
-                      `loading-${index}`,
-                      column.id,
-                    )}
-                    data-column-id={column.id}
-                    className={column.cellClassName}
-                  >
-                    {column.renderSkeleton()}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
-          ) : error && !data ? (
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={tableColumnCount} className="text-destructive">
-                Error: {`${error}`}
-              </TableCell>
+              {activeColumns.map((column) => (
+                <TableHead
+                  key={column.id}
+                  data-column-animation-key={buildColumnAnimationKey(
+                    "header",
+                    column.id,
+                  )}
+                  data-column-id={column.id}
+                  className={column.headerClassName}
+                >
+                  {column.renderHeader()}
+                </TableHead>
+              ))}
             </TableRow>
-          ) : rows.length === 0 ? (
-            <TableRow>
-              <TableCell
-                colSpan={tableColumnCount}
-                className="text-muted-foreground"
-              >
-                No methods found.
-              </TableCell>
-            </TableRow>
-          ) : (
-            rows.map((row) => (
-              <TableRow key={row.id}>
-                {activeColumns.map((column) => (
-                  <Fragment key={`${row.id}-${column.id}`}>
-                    {attachColumnAnimationProps(
-                      column.renderCell(row),
-                      row.id,
-                      column.id,
-                    )}
-                  </Fragment>
-                ))}
+          </TableHeader>
+          <TableBody>
+            {isTableLoading ? (
+              Array.from({ length: SKELETON_ROW_COUNT }).map((_, index) => (
+                <TableRow key={`fetching-skeleton-row-${index}`}>
+                  {activeColumns.map((column) => (
+                    <TableCell
+                      key={`fetching-skeleton-cell-${index}-${column.id}`}
+                      data-column-animation-key={buildColumnAnimationKey(
+                        `loading-${index}`,
+                        column.id,
+                      )}
+                      data-column-id={column.id}
+                      className={column.cellClassName}
+                    >
+                      {column.renderSkeleton()}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : error && !data ? (
+              <TableRow>
+                <TableCell
+                  colSpan={tableColumnCount}
+                  className="text-destructive"
+                >
+                  Error: {`${error}`}
+                </TableCell>
               </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+            ) : rows.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={tableColumnCount}
+                  className="text-muted-foreground"
+                >
+                  No methods found.
+                </TableCell>
+              </TableRow>
+            ) : (
+              rows.map((row) => (
+                <TableRow key={row.id}>
+                  {activeColumns.map((column) => (
+                    <Fragment key={`${row.id}-${column.id}`}>
+                      {attachColumnAnimationProps(
+                        column.renderCell(row),
+                        row.id,
+                        column.id,
+                      )}
+                    </Fragment>
+                  ))}
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
       </div>
       {isInitialLoading ? (
         <div className="flex items-center justify-center gap-2">

@@ -1,4 +1,4 @@
-import type { Method } from "@/lib/api";
+import type { Method, PlayerInfo } from "@/lib/api";
 import { normalizeBoundedText, USERNAME_MAX_LENGTH } from "@/lib/validation";
 
 export function normalizeMethodSlug(slug?: string): string {
@@ -7,22 +7,27 @@ export function normalizeMethodSlug(slug?: string): string {
 
 export function normalizeUsername(username?: string): string | undefined {
   const normalized = username?.trim();
-  return normalized ? normalizeBoundedText(normalized, USERNAME_MAX_LENGTH) : undefined;
+  return normalized
+    ? normalizeBoundedText(normalized, USERNAME_MAX_LENGTH)
+    : undefined;
 }
 
-export function getMethodDetailQueryKey(slug: string, username?: string) {
-  return [
-    "methodDetail",
-    normalizeMethodSlug(slug),
-    normalizeUsername(username),
-  ] as const;
+export function getMethodDetailQueryKey(
+  slug: string,
+  player?: PlayerInfo | string,
+) {
+  return ["methodDetail", normalizeMethodSlug(slug), player] as const;
 }
 
 export function getMethodItemIds(method?: Method): number[] {
   if (!method) return [];
   const ids = new Set<number>();
   method.variants.forEach((variant) => {
-    if (Number.isInteger(variant.icon_id) && (variant.icon_id as number) > 0) {
+    if (
+      variant.iconSource !== "game_icon" &&
+      Number.isInteger(variant.icon_id) &&
+      (variant.icon_id as number) > 0
+    ) {
       ids.add(variant.icon_id as number);
     }
     variant.inputs.forEach((item) => ids.add(item.id));

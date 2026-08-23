@@ -1,15 +1,21 @@
 // src/lib/api.ts
-import { authFetch as apiFetch } from "./http";
+import { authFetch as apiFetch, getAuthFetchUserId } from "./http";
 import {
   isAccountUsernameRequiredErrorCode,
   notifyAccountUsernameRequired,
 } from "@/lib/accountUsernameRequirement";
 import {
+  isTermsAcceptanceRequiredErrorCode,
+  notifyTermsAcceptanceRequired,
+} from "@/lib/termsAcceptanceRequirement";
+import {
   MAX_ACTIONS_PER_HOUR,
+  MAX_ACTIONS_PER_HOUR_DECIMAL_PLACES,
   MAX_SKILL_LEVEL,
   SEARCH_QUERY_MAX_LENGTH,
   USERNAME_MAX_LENGTH,
   clampInteger,
+  hasAtMostDecimalPlaces,
   normalizeBoundedText,
 } from "@/lib/validation";
 
@@ -50,7 +56,15 @@ export interface Method {
   category: string;
   description?: string;
   icon_id?: number | null;
+  iconSource?: IconSource;
   enabled?: boolean;
+  is_official?: boolean;
+  created_by?: {
+    id: string;
+    username: string | null;
+  } | null;
+  created_at?: string;
+  updated_at?: string;
   likes?: number;
   likedByMe?: boolean;
   variants: Variant[];
@@ -144,7 +158,9 @@ export interface MethodVariantTagDefinition {
   description?: string;
 }
 
-export const DEFAULT_IGNORED_METHOD_TAGS: MethodVariantTagKey[] = ["not_viable"];
+export const DEFAULT_IGNORED_METHOD_TAGS: MethodVariantTagKey[] = [
+  "not_viable",
+];
 export const VARIANT_ACTION_TYPE_OPTIONS = [
   "items",
   "kills",
@@ -158,6 +174,7 @@ export interface Variant {
   slug?: string;
   label: string;
   icon_id?: number | null;
+  iconSource?: IconSource;
   likes?: number;
   likedByMe?: boolean;
   members: boolean;
@@ -191,6 +208,38 @@ export interface Variant {
   tags?: VariantTag[];
   inputs: IoItem[];
   outputs: IoItem[];
+}
+
+export type IconSource = "item" | "game_icon";
+export type IconSearchType =
+  | "all"
+  | "items"
+  | "item"
+  | "interface"
+  | "spell"
+  | "prayer"
+  | "skill"
+  | "other";
+
+export interface IconReference {
+  id: number;
+  source: IconSource;
+}
+
+export interface IconRecord {
+  id: number;
+  name: string;
+  type: IconSearchType;
+  iconUrl: string;
+  source: IconSource;
+}
+
+export function normalizeIconSource(value: unknown): IconSource {
+  return value === "game_icon" ? "game_icon" : "item";
+}
+
+export function getIconReferenceKey(reference: IconReference): string {
+  return `${reference.source}:${reference.id}`;
 }
 
 export interface ApiWarning {
@@ -251,7 +300,8 @@ function parseWarnings(value: unknown): ApiWarning[] | undefined {
 
 function parseStringWarnings(value: unknown): string[] | undefined {
   if (!value) return undefined;
-  return Array.isArray(value) && value.every((entry) => typeof entry === "string")
+  return Array.isArray(value) &&
+    value.every((entry) => typeof entry === "string")
     ? value
     : undefined;
 }
@@ -301,22 +351,29 @@ function parseMethodsFromResponse(value: unknown): Method[] {
 function normalizeVariant(variant: Variant): Variant {
   return {
     ...variant,
+    icon_id: normalizeIconId(variant.icon_id),
+    iconSource: normalizeIconSource(variant.iconSource),
     members: variant.members ?? false,
   };
 }
 
 function normalizeMethod(method: Method): Method {
   const variants = (method.variants ?? []).map(normalizeVariant);
-  const aggregatedLikes = variants.reduce<number | undefined>((total, variant) => {
-    if (typeof variant.likes !== "number") {
-      return total;
-    }
+  const aggregatedLikes = variants.reduce<number | undefined>(
+    (total, variant) => {
+      if (typeof variant.likes !== "number") {
+        return total;
+      }
 
-    return (total ?? 0) + variant.likes;
-  }, undefined);
+      return (total ?? 0) + variant.likes;
+    },
+    undefined,
+  );
 
   return {
     ...method,
+    icon_id: normalizeIconId(method.icon_id),
+    iconSource: normalizeIconSource(method.iconSource),
     ...(typeof method.likes === "number"
       ? { likes: method.likes }
       : typeof aggregatedLikes === "number"
@@ -371,23 +428,20 @@ export interface MethodsFilters {
 }
 
 export async function fetchMethods(
-  username?: string,
+  player?: PlayerInfo,
   page?: number,
   name?: string,
   filters?: MethodsFilters,
   cursor?: string,
 ): Promise<MethodsResponse> {
-  const url = toApiUrl("/methods");
-  if (username) {
-    url.searchParams.set(
-      "username",
-      normalizeBoundedText(username.trim(), USERNAME_MAX_LENGTH),
-    );
-  }
+  const url = toApiUrl("/methods/search");
   if (page !== undefined) url.searchParams.set("page", page.toString());
   if (cursor) url.searchParams.set("cursor", cursor);
   if (name) {
-    url.searchParams.set("name", normalizeBoundedText(name.trim(), SEARCH_QUERY_MAX_LENGTH));
+    url.searchParams.set(
+      "name",
+      normalizeBoundedText(name.trim(), SEARCH_QUERY_MAX_LENGTH),
+    );
   }
   if (filters?.category) url.searchParams.set("category", filters.category);
   if (filters?.clickIntensity !== undefined) {
@@ -428,16 +482,22 @@ export async function fetchMethods(
           .filter((tag) => tag.length > 0),
       ),
     );
-    uniqueIgnoredTags.forEach((tag) => url.searchParams.append("ignoredTags", tag));
+    uniqueIgnoredTags.forEach((tag) =>
+      url.searchParams.append("ignoredTags", tag),
+    );
   }
   if (filters?.sortBy) url.searchParams.set("sortBy", filters.sortBy);
   if (filters?.order) url.searchParams.set("order", filters.order);
 
-  const res = await apiFetch(url.toString());
+  const res = await apiFetch(url.toString(), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(player ? { player } : {}),
+  });
   if (!res.ok) {
     throw await buildApiRequestError(
       res,
-      `HTTP ${res.status} - Error fetching methods`, 
+      `HTTP ${res.status} - Error fetching methods`,
     );
   }
   const json: unknown = await res.json();
@@ -560,13 +620,19 @@ export async function fetchMethods(
   };
 }
 
-export async function fetchTrendingProfitMethods(): Promise<Method[]> {
+export async function fetchTrendingProfitMethods(
+  player?: PlayerInfo,
+): Promise<Method[]> {
   const url = toApiUrl("/methods/trending-profit");
   url.searchParams.set("window", "1h");
   url.searchParams.set("mode", "reliable");
   url.searchParams.set("variants", "all");
 
-  const res = await apiFetch(url.toString());
+  const res = await apiFetch(url.toString(), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(player ? { player } : {}),
+  });
   if (!res.ok) {
     throw await buildApiRequestError(
       res,
@@ -577,7 +643,9 @@ export async function fetchTrendingProfitMethods(): Promise<Method[]> {
   return normalizeMethods(parseMethodsFromResponse(json));
 }
 
-function parseMethodTagDefinitions(value: unknown): MethodVariantTagDefinition[] {
+function parseMethodTagDefinitions(
+  value: unknown,
+): MethodVariantTagDefinition[] {
   if (!value || typeof value !== "object") return [];
 
   const root = value as Record<string, unknown>;
@@ -609,7 +677,8 @@ function parseMethodTagDefinitions(value: unknown): MethodVariantTagDefinition[]
         ? record.severity
         : null;
     const description =
-      typeof record.description === "string" && record.description.trim().length > 0
+      typeof record.description === "string" &&
+      record.description.trim().length > 0
         ? record.description.trim()
         : undefined;
 
@@ -713,7 +782,7 @@ export interface MethodsSkillsSummaryResponse {
 export type RoadmapStrategy = "fastest" | "profitable" | "most_afk";
 
 export interface SkillRoadmapQuery {
-  username: string;
+  player: PlayerInfo;
   skill: string;
   strategy: RoadmapStrategy;
   targetLevel?: number;
@@ -724,6 +793,7 @@ export interface SkillRoadmapQuery {
 
 export interface PlayerInfo {
   levels: Record<string, number>;
+  experience: Record<string, number>;
   quests: Record<string, number>;
   achievement_diaries: Record<
     string,
@@ -746,6 +816,7 @@ export interface RoadmapMethodRef {
   name: string;
   slug: string;
   icon_id?: number | null;
+  iconSource?: IconSource;
   category?: string;
   enabled: boolean;
 }
@@ -754,6 +825,7 @@ export interface RoadmapVariantRef {
   id: string;
   slug: string;
   icon_id?: number | null;
+  iconSource?: IconSource;
   label?: string;
   description?: string | null;
   xpPerHour: number;
@@ -803,7 +875,6 @@ export interface SkillRoadmapResponse {
   };
   warnings?: string[];
   meta: {
-    username: string;
     skill: string;
     strategy: RoadmapStrategy;
     enabled: boolean;
@@ -812,6 +883,27 @@ export interface SkillRoadmapResponse {
     computedAt: number;
     usesExactSkillExperience: boolean;
   };
+}
+
+export async function fetchPlayerInfo(username: string): Promise<PlayerInfo> {
+  const normalizedUsername = normalizeBoundedText(
+    username.trim(),
+    USERNAME_MAX_LENGTH,
+  );
+  if (!normalizedUsername) throw new Error("OSRS username is required");
+
+  const res = await apiFetch(toApiUrl("/player/info").toString(), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username: normalizedUsername }),
+  });
+  if (!res.ok) {
+    throw await buildApiRequestError(
+      res,
+      `HTTP ${res.status} - Error fetching player info`,
+    );
+  }
+  return (await res.json()) as PlayerInfo;
 }
 
 export async function fetchItems(ids: number[]): Promise<Record<number, Item>> {
@@ -827,6 +919,103 @@ export async function fetchItems(ids: number[]): Promise<Record<number, Item>> {
   }
   const json = await res.json();
   return json.data ?? json;
+}
+
+function parseIconRecords(value: unknown): IconRecord[] {
+  const data = (value as { data?: unknown })?.data ?? value;
+  if (!Array.isArray(data)) return [];
+  return data
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return null;
+      const record = entry as Record<string, unknown>;
+      const id = Number(record.id);
+      if (
+        !Number.isSafeInteger(id) ||
+        id <= 0 ||
+        typeof record.name !== "string"
+      ) {
+        return null;
+      }
+      const iconUrl = record.iconUrl;
+      if (typeof iconUrl !== "string") return null;
+      const source = normalizeIconSource(record.iconSource);
+      const type =
+        typeof record.type === "string"
+          ? record.type
+          : source === "item"
+            ? "item"
+            : "other";
+      return {
+        id,
+        name: record.name,
+        iconUrl,
+        source,
+        type: type as IconSearchType,
+      };
+    })
+    .filter((icon): icon is IconRecord => icon !== null);
+}
+
+export async function searchIcons(
+  query: string,
+  type?: IconSearchType,
+  showUntradeables = false,
+  signal?: AbortSignal,
+): Promise<IconRecord[]> {
+  const trimmed = normalizeBoundedText(query.trim(), SEARCH_QUERY_MAX_LENGTH);
+  if (!trimmed) return [];
+  const url = toApiUrl("/icons");
+  url.searchParams.set("q", trimmed);
+  if (type && type !== "all") url.searchParams.set("type", type);
+  if (showUntradeables) url.searchParams.set("showUntradeables", "true");
+  const res = await apiFetch(url.toString(), signal ? { signal } : undefined);
+  if (!res.ok) throw new Error(`HTTP ${res.status} - Error searching icons`);
+  return parseIconRecords(await res.json());
+}
+
+async function fetchGameIcons(ids: number[]): Promise<IconRecord[]> {
+  if (ids.length === 0) return [];
+  const url = toApiUrl("/icons");
+  url.searchParams.set("ids", Array.from(new Set(ids)).join(","));
+  const res = await apiFetch(url.toString());
+  if (!res.ok) throw new Error(`HTTP ${res.status} - Error fetching icons`);
+  return parseIconRecords(await res.json());
+}
+
+export async function fetchIconRecords(
+  references: IconReference[],
+): Promise<Record<string, IconRecord>> {
+  const valid = references.filter(
+    (reference) => Number.isSafeInteger(reference.id) && reference.id > 0,
+  );
+  const itemIds = valid
+    .filter((reference) => reference.source === "item")
+    .map((reference) => reference.id);
+  const gameIconIds = valid
+    .filter((reference) => reference.source === "game_icon")
+    .map((reference) => reference.id);
+  const [items, gameIcons] = await Promise.all([
+    itemIds.length > 0 ? fetchItems(itemIds) : Promise.resolve({}),
+    fetchGameIcons(gameIconIds),
+  ]);
+  const result: Record<string, IconRecord> = {};
+  Object.entries(items as Record<string, Item>).forEach(
+    ([fallbackId, item]) => {
+      const id = Number(fallbackId);
+      if (!Number.isSafeInteger(id) || id <= 0) return;
+      result[getIconReferenceKey({ id, source: "item" })] = {
+        id,
+        name: item.name,
+        type: "item",
+        iconUrl: item.iconUrl,
+        source: "item",
+      };
+    },
+  );
+  gameIcons.forEach((icon) => {
+    result[getIconReferenceKey({ id: icon.id, source: "game_icon" })] = icon;
+  });
+  return result;
 }
 
 function parseItemSearchResults(value: unknown): ItemSearchResult[] {
@@ -1100,20 +1289,17 @@ export async function fetchSkills(): Promise<SkillOption[]> {
 }
 
 export async function fetchMethodsSkillsSummary(
-  username?: string,
+  player?: PlayerInfo,
   enabled = false,
 ): Promise<MethodsSkillsSummaryResponse> {
   const url = toApiUrl("/methods/skills/summary");
-  const normalizedUsername = username?.trim();
-  if (normalizedUsername) {
-    url.searchParams.set(
-      "username",
-      normalizeBoundedText(normalizedUsername, USERNAME_MAX_LENGTH),
-    );
-  }
   url.searchParams.set("enabled", String(enabled));
 
-  const res = await apiFetch(url.toString());
+  const res = await apiFetch(url.toString(), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(player ? { player } : {}),
+  });
   if (!res.ok) {
     throw await buildApiRequestError(
       res,
@@ -1143,10 +1329,6 @@ export async function fetchSkillRoadmap(
 ): Promise<SkillRoadmapResponse> {
   const url = toApiUrl("/methods/skills/roadmap");
   const targetLevel = clampInteger(query.targetLevel, 2, MAX_SKILL_LEVEL) ?? 99;
-  url.searchParams.set(
-    "username",
-    normalizeBoundedText(query.username.trim(), USERNAME_MAX_LENGTH),
-  );
   url.searchParams.set("skill", query.skill);
   url.searchParams.set("strategy", query.strategy);
   url.searchParams.set("target_level", String(targetLevel));
@@ -1170,10 +1352,16 @@ export async function fetchSkillRoadmap(
           .filter((tag) => tag.length > 0),
       ),
     );
-    uniqueIgnoredTags.forEach((tag) => url.searchParams.append("ignoredTags", tag));
+    uniqueIgnoredTags.forEach((tag) =>
+      url.searchParams.append("ignoredTags", tag),
+    );
   }
 
-  const res = await apiFetch(url.toString());
+  const res = await apiFetch(url.toString(), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ player: query.player }),
+  });
   if (!res.ok) {
     throw await buildApiRequestError(
       res,
@@ -1257,16 +1445,14 @@ export async function fetchVariantHistory(
 
 export async function fetchMethodDetail(
   id: string,
-  username?: string,
+  player?: PlayerInfo,
 ): Promise<MethodDetailResponse> {
   const url = toApiUrl(`/methods/${id}`);
-  if (username) {
-    url.searchParams.set(
-      "username",
-      normalizeBoundedText(username.trim(), USERNAME_MAX_LENGTH),
-    );
-  }
-  const res = await apiFetch(url.toString());
+  const res = await apiFetch(url.toString(), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(player ? { player } : {}),
+  });
   if (!res.ok) {
     throw await buildApiRequestError(
       res,
@@ -1287,20 +1473,18 @@ export async function fetchMethodDetail(
 
 export async function fetchMethodDetailBySlug(
   slug: string,
-  username?: string,
+  player?: PlayerInfo,
 ): Promise<MethodDetailResponse> {
   const normalizedSlug = slug.trim();
   if (!normalizedSlug) {
     throw new Error("Method slug is required");
   }
   const url = toApiUrl(`/methods/slug/${encodeURIComponent(normalizedSlug)}`);
-  if (username) {
-    url.searchParams.set(
-      "username",
-      normalizeBoundedText(username.trim(), USERNAME_MAX_LENGTH),
-    );
-  }
-  const res = await apiFetch(url.toString());
+  const res = await apiFetch(url.toString(), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(player ? { player } : {}),
+  });
   if (!res.ok) {
     if (res.status === 404) {
       throw new Error("Method not found");
@@ -1367,12 +1551,14 @@ export interface UpdateMethodBasicDto {
 
 export interface UpsertMethodValues extends UpdateMethodBasicDto {
   icon_id: number;
+  iconSource: IconSource;
 }
 
 export interface UpdateVariantDto {
   id?: string;
   label: string;
   icon_id: number;
+  iconSource: IconSource;
   members: boolean;
   description?: string;
   afkiness?: number;
@@ -1401,9 +1587,15 @@ function mapIoItems(items: IoItem[] | undefined, type: IoItemType): IoItem[] {
   }));
 }
 
-function normalizeIconId(value: number | null | undefined): number | null {
-  return Number.isInteger(value) && (value as number) > 0
-    ? (value as number)
+function normalizeIconId(value: unknown): number | null {
+  const normalized =
+    typeof value === "string" && value.trim().length > 0
+      ? Number(value)
+      : value;
+  return typeof normalized === "number" &&
+    Number.isSafeInteger(normalized) &&
+    normalized > 0
+    ? normalized
     : null;
 }
 
@@ -1425,9 +1617,7 @@ function parseApiErrorMessage(value: unknown): string | undefined {
   );
 }
 
-function parseConflictItems(
-  values: unknown,
-): Array<{
+function parseConflictItems(values: unknown): Array<{
   id?: number;
   name: string;
 }> {
@@ -1455,8 +1645,9 @@ function parseConflictItems(
           const id = Number.isFinite(numericId) ? numericId : undefined;
           return [name.toLowerCase(), { ...(id ? { id } : {}), name }] as const;
         })
-        .filter((item): item is readonly [string, { id?: number; name: string }] =>
-          item !== null,
+        .filter(
+          (item): item is readonly [string, { id?: number; name: string }] =>
+            item !== null,
         ),
     ).values(),
   );
@@ -1592,9 +1783,7 @@ function parseFreeToPlayVariantConflicts(
     .filter(Array.isArray)
     .flatMap((entries) => entries as unknown[])
     .map(parseFreeToPlayVariantConflictEntry)
-    .filter(
-      (entry): entry is FreeToPlayVariantConflict => entry !== undefined,
-    );
+    .filter((entry): entry is FreeToPlayVariantConflict => entry !== undefined);
 
   if (parsed.length === 0) return undefined;
 
@@ -1662,8 +1851,17 @@ async function buildApiRequestError(
       freeToPlayVariantConflicts: parseFreeToPlayVariantConflicts(json),
     });
     if (isAccountUsernameRequiredErrorCode(code)) {
+      const userId = getAuthFetchUserId(res);
       notifyAccountUsernameRequired({
         message: apiMessage ?? fallback,
+        ...(userId ? { userId } : {}),
+      });
+    }
+    if (isTermsAcceptanceRequiredErrorCode(code)) {
+      const userId = getAuthFetchUserId(res);
+      notifyTermsAcceptanceRequired({
+        message: apiMessage ?? fallback,
+        ...(userId ? { userId } : {}),
       });
     }
     return error;
@@ -1677,6 +1875,7 @@ function buildVariantSignaturePayload(variant: Variant) {
     id: variant.id,
     label: variant.label,
     icon_id: normalizeIconId(variant.icon_id),
+    iconSource: normalizeIconSource(variant.iconSource),
     members: variant.members ?? false,
     description: variant.description,
     clickIntensity: variant.clickIntensity,
@@ -1702,12 +1901,12 @@ function buildVariantUpdatePayload(variant: Variant): UpdateVariantDto {
   const actionType = variant.actionType;
   if (
     typeof actionsPerHour !== "number" ||
-    !Number.isInteger(actionsPerHour) ||
     actionsPerHour < 0 ||
-    actionsPerHour > MAX_ACTIONS_PER_HOUR
+    actionsPerHour > MAX_ACTIONS_PER_HOUR ||
+    !hasAtMostDecimalPlaces(actionsPerHour, MAX_ACTIONS_PER_HOUR_DECIMAL_PLACES)
   ) {
     throw new Error(
-      `Variant actionsPerHour must be an integer between 0 and ${MAX_ACTIONS_PER_HOUR}`,
+      `Variant actionsPerHour must be between 0 and ${MAX_ACTIONS_PER_HOUR} with up to ${MAX_ACTIONS_PER_HOUR_DECIMAL_PLACES} decimal places`,
     );
   }
   if (!actionType || !VARIANT_ACTION_TYPE_OPTIONS.includes(actionType)) {
@@ -1719,6 +1918,7 @@ function buildVariantUpdatePayload(variant: Variant): UpdateVariantDto {
   return {
     ...buildVariantSignaturePayload(variant),
     icon_id,
+    iconSource: normalizeIconSource(variant.iconSource),
     actionsPerHour,
     actionType,
   };
@@ -1748,6 +1948,7 @@ export function buildMethodUpdatePayload(
   return {
     ...values,
     icon_id,
+    iconSource: normalizeIconSource(values.iconSource),
     variants: variants.map(buildVariantUpdatePayload),
   };
 }
@@ -1816,7 +2017,7 @@ export async function createMethodWithVariants(
   variants: Variant[],
 ): Promise<Method> {
   const dto = buildMethodUpdatePayload(values, variants);
-  const url = buildMethodWithVariantsUrl("/methods", dto.variants);
+  const url = buildMethodWithVariantsUrl("/methods/create", dto.variants);
   const res = await apiFetch(url.toString(), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1838,5 +2039,3 @@ export async function createMethodWithVariants(
   }
   return normalizeMethod(method);
 }
-
-

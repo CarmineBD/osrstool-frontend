@@ -1,9 +1,4 @@
-import {
-  lazy,
-  Suspense,
-  useState,
-  type ReactNode,
-} from "react";
+import { lazy, Suspense, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import {
   IconClick,
@@ -46,14 +41,10 @@ import {
   getStrategyRecommendation,
   type StrategyRecommendation,
 } from "@/features/method-detail/marketImpactStrategy";
-import {
-  cn,
-  formatNumber,
-  formatPercent,
-  getUrlByType,
-} from "@/lib/utils";
-import type { Item, Variant } from "@/lib/api";
+import { cn, formatNumber, formatPercent, getUrlByType } from "@/lib/utils";
+import type { Item, Method, Variant } from "@/lib/api";
 import { LikeButton } from "@/features/methods/LikeButton";
+import { MethodDetailFooter } from "@/features/method-detail/MethodDetailFooter";
 
 const LazyVariantHistoryChart = lazy(
   () => import("@/components/VariantHistoryChart"),
@@ -63,10 +54,12 @@ const POSITIVE_TEXT_CLASS = "text-[var(--method-detail-positive)]";
 const NEGATIVE_TEXT_CLASS = "text-[var(--method-detail-negative)]";
 
 interface MethodVariantContentProps {
+  method?: Method;
   methodId: string;
   variant: Variant;
   itemsMap: Record<number, Item>;
   username?: string;
+  creatorAvatarUrl?: string;
   iconUrl?: string;
   inputsTotal?: number;
   outputsTotal?: number;
@@ -430,6 +423,8 @@ function MetricsCards({ variant }: { variant: Variant }) {
     (total, { experience }) => total + experience,
     0,
   );
+  const hasInputs = (variant.inputs?.length ?? 0) > 0;
+  const hasOutputs = (variant.outputs?.length ?? 0) > 0;
   const inputStrategyRecommendation = getStrategyRecommendation(
     "inputs",
     variant.inputMarketImpactInstant,
@@ -454,7 +449,7 @@ function MetricsCards({ variant }: { variant: Variant }) {
     "text-right text-sm font-medium tabular-nums text-foreground";
 
   return (
-    <Card className="@container/card gap-0 overflow-hidden rounded-xl border-border/70">
+    <Card className="@container/card gap-0 overflow-hidden rounded-xl border-border/70 mb-6">
       <CardHeader className="border-b border-border/60 pb-6">
         <SectionHeader
           title="Summary"
@@ -614,29 +609,35 @@ function MetricsCards({ variant }: { variant: Variant }) {
             </div>
           </div>
 
-          <div className={rowClassName}>
-            <MetricLabelWithInfo
-              label="Strategy"
-              tooltip={
-                <p className="m-0">
-                  Strategy compares instant and slow market impact for inputs
-                  and outputs. Lower impact is better because it puts less
-                  pressure on the weighted daily volume behind this variant.
-                </p>
-              }
-            />
-            <div className="w-full max-w-[15rem] rounded-lg border border-border/60 bg-muted/30 p-3">
-              <p className={EDITOR_META_TEXT_CLASS}>It&apos;s better to</p>
-              <div className="mt-2 space-y-3">
-                <StrategyRecommendationLine
-                  recommendation={inputStrategyRecommendation}
-                />
-                <StrategyRecommendationLine
-                  recommendation={outputStrategyRecommendation}
-                />
+          {hasInputs || hasOutputs ? (
+            <div className={rowClassName}>
+              <MetricLabelWithInfo
+                label="Strategy"
+                tooltip={
+                  <p className="m-0">
+                    Strategy compares instant and slow market impact for inputs
+                    and outputs. Lower impact is better because it puts less
+                    pressure on the weighted daily volume behind this variant.
+                  </p>
+                }
+              />
+              <div className="w-full max-w-[15rem] rounded-lg border border-border/60 bg-muted/30 p-3">
+                <p className={EDITOR_META_TEXT_CLASS}>It&apos;s better to</p>
+                <div className="mt-2 space-y-3">
+                  {hasInputs ? (
+                    <StrategyRecommendationLine
+                      recommendation={inputStrategyRecommendation}
+                    />
+                  ) : null}
+                  {hasOutputs ? (
+                    <StrategyRecommendationLine
+                      recommendation={outputStrategyRecommendation}
+                    />
+                  ) : null}
+                </div>
               </div>
             </div>
-          </div>
+          ) : null}
 
           <div className={rowClassName}>
             <span className={labelClassName}>Tags</span>
@@ -715,10 +716,12 @@ function RequirementsAndRecommendationsSection({
 }
 
 export function MethodVariantContent({
+  method,
   methodId,
   variant,
   itemsMap,
   username,
+  creatorAvatarUrl,
   iconUrl,
   inputsTotal,
   outputsTotal,
@@ -738,7 +741,7 @@ export function MethodVariantContent({
   );
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-6 mb-6">
       <MissingRequirementsNotice variant={variant} username={username} />
 
       <section
@@ -853,6 +856,11 @@ export function MethodVariantContent({
             <EmptySelectionState description="History data is not available for this variant yet." />
           )}
         </EditorSubsection>
+
+        <MethodDetailFooter
+          method={method}
+          creatorAvatarUrl={creatorAvatarUrl}
+        />
       </section>
     </div>
   );

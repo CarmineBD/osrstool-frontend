@@ -1,5 +1,7 @@
 import { supabase } from "./supabaseClient";
 
+const authFetchUserIds = new WeakMap<Response, string | null>();
+
 export async function authFetch(
   input: RequestInfo | URL,
   init?: RequestInit
@@ -12,8 +14,14 @@ export async function authFetch(
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  return fetch(input, {
+  const response = await fetch(input, {
     ...init,
     headers,
   });
+  authFetchUserIds.set(response, data.session?.user?.id ?? null);
+  return response;
+}
+
+export function getAuthFetchUserId(response: Response): string | null {
+  return authFetchUserIds.get(response) ?? null;
 }

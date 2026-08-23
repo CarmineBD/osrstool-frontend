@@ -1,0 +1,2 @@
+export const CURRENT_TERMS_VERSION = "2026-08-18";
+export const CURRENT_TERMS_LAST_UPDATED_LABEL = "August 18, 2026";

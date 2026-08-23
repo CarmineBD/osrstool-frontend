@@ -1,7 +1,9 @@
 import { authFetch } from "@/lib/http";
 
-const PRESENCE_VISITOR_ID_STORAGE_KEY = "osrs-tool-presence-visitor-id";
+const LEGACY_PRESENCE_VISITOR_ID_STORAGE_KEY = "osrs-tool-presence-visitor-id";
 export const PRESENCE_HEARTBEAT_INTERVAL_MS = 60_000;
+let ephemeralPresenceVisitorId: string | null = null;
+let hasRemovedLegacyPresenceVisitorId = false;
 
 function resolveApiUrl(): string {
   const directUrl =
@@ -56,24 +58,25 @@ function buildFallbackVisitorId(): string {
 }
 
 export function getOrCreatePresenceVisitorId(): string {
+  if (ephemeralPresenceVisitorId) {
+    return ephemeralPresenceVisitorId;
+  }
+
   if (typeof window === "undefined") {
-    return buildFallbackVisitorId();
+    ephemeralPresenceVisitorId = buildFallbackVisitorId();
+    return ephemeralPresenceVisitorId;
   }
 
-  const existingVisitorId = window.localStorage.getItem(
-    PRESENCE_VISITOR_ID_STORAGE_KEY,
-  );
-  if (existingVisitorId?.trim()) {
-    return existingVisitorId;
+  if (!hasRemovedLegacyPresenceVisitorId) {
+    window.localStorage.removeItem(LEGACY_PRESENCE_VISITOR_ID_STORAGE_KEY);
+    hasRemovedLegacyPresenceVisitorId = true;
   }
 
-  const nextVisitorId =
+  ephemeralPresenceVisitorId =
     typeof window.crypto?.randomUUID === "function"
       ? window.crypto.randomUUID()
       : buildFallbackVisitorId();
-
-  window.localStorage.setItem(PRESENCE_VISITOR_ID_STORAGE_KEY, nextVisitorId);
-  return nextVisitorId;
+  return ephemeralPresenceVisitorId;
 }
 
 export type PresenceOnlineResponse = {

@@ -20,7 +20,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
-import { fetchMe } from "@/lib/me";
+import { fetchMe, getMeQueryKey } from "@/lib/me";
 import {
   PUBLIC_LINK_CLASS,
   PUBLIC_PANEL_CLASS,
@@ -205,7 +205,7 @@ function SkillSummaryTags({
 
 export function SkillingPage() {
   useSeo({
-    title: "Skilling | OSRSTool",
+    title: "Skilling | RSMethods",
     description:
       "Browse every OSRS skill and review the best method for each one by GP/hr, XP/hr, and AFK.",
     path: "/skilling",
@@ -213,13 +213,11 @@ export function SkillingPage() {
   });
 
   const { session } = useAuth();
-  const { username } = useUsername();
+  const { player } = useUsername();
   const [enabledFilter, setEnabledFilter] = useState<boolean>(false);
-  const trimmedUsername = username.trim();
-  const effectiveUsername =
-    session && trimmedUsername ? trimmedUsername : undefined;
+  const effectivePlayer = session ? (player ?? undefined) : undefined;
   const { data: meData } = useQuery({
-    queryKey: ["me"],
+    queryKey: getMeQueryKey(session?.user?.id),
     queryFn: fetchMe,
     enabled: !!session,
     staleTime: QUERY_STALE_TIME_MS,
@@ -229,9 +227,8 @@ export function SkillingPage() {
   const effectiveEnabled = isSuperAdmin ? enabledFilter : false;
 
   const { data, error, isLoading } = useQuery({
-    queryKey: ["methodsSkillsSummary", effectiveUsername, effectiveEnabled],
-    queryFn: () =>
-      fetchMethodsSkillsSummary(effectiveUsername, effectiveEnabled),
+    queryKey: ["methodsSkillsSummary", effectivePlayer, effectiveEnabled],
+    queryFn: () => fetchMethodsSkillsSummary(effectivePlayer, effectiveEnabled),
     staleTime: QUERY_STALE_TIME_MS,
     refetchInterval: QUERY_REFETCH_INTERVAL_MS,
     retry: false,
@@ -317,10 +314,7 @@ export function SkillingPage() {
             ];
 
             return (
-              <article
-                key={skill}
-                className={`${PUBLIC_PANEL_CLASS} p-5`}
-              >
+              <article key={skill} className={`${PUBLIC_PANEL_CLASS} p-5`}>
                 <div className="mb-4 flex items-center gap-3">
                   {iconUrl ? (
                     <img
