@@ -76,6 +76,11 @@ function addRobotsDirective(html) {
   );
 }
 
+function toPositiveNumber(value) {
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
 async function fetchMethodPage(page) {
   const response = await fetch(`${methodsEndpoint}&page=${page}`, {
     method: "POST",
@@ -89,17 +94,21 @@ async function fetchMethodPage(page) {
 
   const payload = await response.json();
   const data = payload?.data;
-  const meta = payload?.meta ?? data?.meta;
-  if (!Array.isArray(data?.methods) || !meta) {
+  const meta = payload?.meta ?? data?.meta ?? {};
+  const total = toPositiveNumber(data?.total ?? meta.total);
+  const perPage = toPositiveNumber(
+    data?.perPage ?? data?.pageSize ?? meta.perPage ?? meta.pageSize,
+  );
+  if (!Array.isArray(data?.methods) || total === undefined || perPage === undefined) {
     throw new Error(`SEO catalog response for page ${page} has an unexpected format.`);
   }
 
-  return { methods: data.methods, meta };
+  return { methods: data.methods, total, perPage };
 }
 
 async function fetchAllMethodRows() {
   const firstPage = await fetchMethodPage(1);
-  const totalPages = Math.ceil(firstPage.meta.total / firstPage.meta.pageSize);
+  const totalPages = Math.ceil(firstPage.total / firstPage.perPage);
   const pageNumbers = Array.from({ length: totalPages - 1 }, (_, index) => index + 2);
   const remainingPages = [];
   const concurrency = 32;
