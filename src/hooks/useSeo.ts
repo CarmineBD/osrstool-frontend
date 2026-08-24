@@ -5,6 +5,8 @@ type SeoConfig = {
   description: string;
   path: string;
   keywords?: string;
+  robots?: string;
+  structuredData?: Record<string, unknown> | Record<string, unknown>[];
 };
 
 function resolveSeoBaseUrl(): string {
@@ -50,7 +52,31 @@ function upsertCanonical(path: string): void {
   tag.setAttribute("href", url);
 }
 
-export function useSeo({ title, description, path, keywords }: SeoConfig): void {
+function upsertStructuredData(
+  structuredData: Record<string, unknown> | Record<string, unknown>[]
+): void {
+  let tag = document.head.querySelector<HTMLScriptElement>(
+    'script[data-rsmethods-seo="structured-data"]'
+  );
+
+  if (!tag) {
+    tag = document.createElement("script");
+    tag.type = "application/ld+json";
+    tag.dataset.rsmethodsSeo = "structured-data";
+    document.head.appendChild(tag);
+  }
+
+  tag.textContent = JSON.stringify(structuredData).replace(/</g, "\\u003c");
+}
+
+export function useSeo({
+  title,
+  description,
+  path,
+  keywords,
+  robots,
+  structuredData,
+}: SeoConfig): void {
   useEffect(() => {
     document.title = title;
     upsertMeta("name", "description", description);
@@ -66,6 +92,14 @@ export function useSeo({ title, description, path, keywords }: SeoConfig): void 
       upsertMeta("name", "keywords", keywords);
     }
 
+    if (robots) {
+      upsertMeta("name", "robots", robots);
+    }
+
+    if (structuredData) {
+      upsertStructuredData(structuredData);
+    }
+
     upsertCanonical(path);
-  }, [description, keywords, path, title]);
+  }, [description, keywords, path, robots, structuredData, title]);
 }

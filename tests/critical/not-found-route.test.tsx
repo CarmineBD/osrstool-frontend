@@ -20,6 +20,11 @@ describe("critical flow: unknown routes", () => {
     expect(
       screen.getByText("The page you are looking for does not exist or was moved.")
     ).toBeInTheDocument();
+    expect(document.title).toBe("404 - Page not found | RSMethods");
+    expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
+      "content",
+      "noindex, follow"
+    );
     expect(screen.getByRole("link", { name: "RSMethods home" })).toBeInTheDocument();
   });
 });
