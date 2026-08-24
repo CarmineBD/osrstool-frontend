@@ -9,6 +9,13 @@ type SeoConfig = {
   structuredData?: Record<string, unknown> | Record<string, unknown>[];
 };
 
+export function getEnvironmentRobotsDirective(): string | undefined {
+  const configuredDirective = (
+    import.meta.env.VITE_ROBOTS as string | undefined
+  )?.trim();
+  return configuredDirective || undefined;
+}
+
 function resolveSeoBaseUrl(): string {
   const configuredSiteUrl = (import.meta.env.VITE_SITE_URL as string | undefined)?.trim();
   if (configuredSiteUrl) {
@@ -52,6 +59,22 @@ function upsertCanonical(path: string): void {
   tag.setAttribute("href", url);
 }
 
+function upsertRobots(content: string, source?: "explicit" | "environment"): void {
+  const selector = 'meta[name="robots"]';
+  let tag = document.head.querySelector<HTMLMetaElement>(selector);
+
+  if (!tag) {
+    tag = document.createElement("meta");
+    tag.name = "robots";
+    document.head.appendChild(tag);
+  }
+
+  tag.content = content;
+  if (source) {
+    tag.dataset.rsmethodsSeoRobots = source;
+  }
+}
+
 function upsertStructuredData(
   structuredData: Record<string, unknown> | Record<string, unknown>[]
 ): void {
@@ -77,6 +100,9 @@ export function useSeo({
   robots,
   structuredData,
 }: SeoConfig): void {
+  const environmentRobots = getEnvironmentRobotsDirective();
+  const effectiveRobots = environmentRobots ?? robots;
+
   useEffect(() => {
     document.title = title;
     upsertMeta("name", "description", description);
@@ -92,8 +118,11 @@ export function useSeo({
       upsertMeta("name", "keywords", keywords);
     }
 
-    if (robots) {
-      upsertMeta("name", "robots", robots);
+    if (effectiveRobots) {
+      upsertRobots(
+        effectiveRobots,
+        environmentRobots ? "environment" : "explicit",
+      );
     }
 
     if (structuredData) {
@@ -101,5 +130,23 @@ export function useSeo({
     }
 
     upsertCanonical(path);
-  }, [description, keywords, path, robots, structuredData, title]);
+    return () => {
+      if (!environmentRobots && robots) {
+        document.head
+          .querySelector<HTMLMetaElement>(
+            'meta[data-rsmethods-seo-robots="explicit"]',
+          )
+          ?.remove();
+      }
+    };
+  }, [
+    description,
+    effectiveRobots,
+    environmentRobots,
+    keywords,
+    path,
+    robots,
+    structuredData,
+    title,
+  ]);
 }

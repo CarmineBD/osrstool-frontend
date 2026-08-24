@@ -7,6 +7,7 @@ const siteUrl = (process.env.SEO_SITE_URL ?? "https://www.rsmethods.com").replac
 );
 const apiUrl = (process.env.SEO_API_URL ??
   "https://osrstool-backend-production.up.railway.app").replace(/\/$/, "");
+const robotsDirective = process.env.VITE_ROBOTS?.trim();
 const outputDirectory = path.resolve("dist");
 const methodsEndpoint = `${apiUrl}/methods/search?enabled=true&variants=all`;
 const staticPaths = [
@@ -65,6 +66,14 @@ function shorten(value, maxLength = 155) {
 
 function xmlEscape(value) {
   return escapeHtml(value);
+}
+
+function addRobotsDirective(html) {
+  if (!robotsDirective) return html;
+  return html.replace(
+    "</head>",
+    `    <meta name="robots" content="${escapeHtml(robotsDirective)}" />\n  </head>`,
+  );
 }
 
 async function fetchMethodPage(page) {
@@ -156,6 +165,9 @@ function buildMethodPage(template, method, variant, pathName) {
     '<meta name="twitter:card" content="summary" />',
     `<meta name="twitter:title" content="${escapeHtml(title)}" />`,
     `<meta name="twitter:description" content="${escapeHtml(description)}" />`,
+    ...(robotsDirective
+      ? [`<meta name="robots" content="${escapeHtml(robotsDirective)}" />`]
+      : []),
     `<script type="application/ld+json">${structuredData}</script>`,
   ].join("\n    ");
   const visibleContent = `<main data-seo-prerendered="true"><article><p>OSRS money making method</p><h1>${escapeHtml(method.name)}${escapeHtml(variantLabel)}</h1><p>${escapeHtml(description)}</p>${guideText ? `<section><h2>Method guide</h2><p>${escapeHtml(guideText)}</p></section>` : ""}<p><a href="/allMethods">Browse all OSRS methods</a></p></article></main>`;
@@ -177,13 +189,16 @@ async function writeMethodPage(template, method, variant, pathName) {
 }
 
 async function main() {
-  const template = await readFile(path.join(outputDirectory, "index.html"), "utf8");
+  const template = addRobotsDirective(
+    await readFile(path.join(outputDirectory, "index.html"), "utf8"),
+  );
+  await writeFile(path.join(outputDirectory, "index.html"), template);
   const rows = await fetchAllMethodRows();
   const methods = new Map();
   const pages = new Map();
 
   for (const row of rows) {
-    if (!row?.enabled || !row.slug || !row.name) continue;
+    if (row?.enabled === false || !row?.slug || !row.name) continue;
     const existing = methods.get(row.slug) ?? { ...row, variants: [] };
     const variant = row.variants?.[0];
     if (variant?.slug && !existing.variants.some((item) => item.slug === variant.slug)) {
@@ -213,6 +228,12 @@ async function main() {
     .map((pathName) => `  <url><loc>${xmlEscape(`${siteUrl}${pathName}`)}</loc></url>`)
     .join("\n")}\n</urlset>\n`;
   await writeFile(path.join(outputDirectory, "sitemap.xml"), sitemap);
+  if (robotsDirective?.toLowerCase().includes("noindex")) {
+    await writeFile(
+      path.join(outputDirectory, "robots.txt"),
+      "User-agent: *\nAllow: /\n",
+    );
+  }
   console.log(`Generated sitemap and ${pages.size} prerendered method pages from ${methods.size} methods.`);
 }
 

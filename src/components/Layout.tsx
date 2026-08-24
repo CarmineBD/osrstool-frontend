@@ -3,6 +3,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import { Footer } from "./Footer";
 import { Nav } from "./Nav";
 import { clearOrphanedScrollLocks } from "@/lib/scrollLock";
+import { getEnvironmentRobotsDirective } from "@/hooks/useSeo";
 
 export type Props = Record<string, never>;
 
@@ -28,6 +29,7 @@ export function Layout(_props: Props) {
     (path) =>
       location.pathname === path || location.pathname.startsWith(`${path}/`),
   ) || location.pathname.endsWith("/edit");
+  const environmentRobots = getEnvironmentRobotsDirective();
 
   useEffect(() => {
     const scheduleCleanup = () => {
@@ -81,6 +83,15 @@ export function Layout(_props: Props) {
     const selector = 'meta[name="robots"]';
     const existing = document.head.querySelector<HTMLMetaElement>(selector);
 
+    if (environmentRobots) {
+      const tag = existing ?? document.createElement("meta");
+      tag.name = "robots";
+      tag.content = environmentRobots;
+      tag.dataset.rsmethodsSeoRobots = "environment";
+      if (!existing) document.head.appendChild(tag);
+      return;
+    }
+
     if (isPrivateRoute) {
       const tag = existing ?? document.createElement("meta");
       tag.name = "robots";
@@ -90,10 +101,10 @@ export function Layout(_props: Props) {
       return;
     }
 
-    document.head
-      .querySelector<HTMLMetaElement>('meta[data-rsmethods-route-robots="private"]')
-      ?.remove();
-  }, [isPrivateRoute]);
+    if (existing?.dataset.rsmethodsSeoRobots !== "explicit") {
+      existing?.remove();
+    }
+  }, [environmentRobots, isPrivateRoute, location.pathname]);
 
   return (
     <div className="min-h-screen flex flex-col">
