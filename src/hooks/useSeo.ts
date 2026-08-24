@@ -5,7 +5,16 @@ type SeoConfig = {
   description: string;
   path: string;
   keywords?: string;
+  robots?: string;
+  structuredData?: Record<string, unknown> | Record<string, unknown>[];
 };
+
+export function getEnvironmentRobotsDirective(): string | undefined {
+  const configuredDirective = (
+    import.meta.env.VITE_ROBOTS as string | undefined
+  )?.trim();
+  return configuredDirective || undefined;
+}
 
 function resolveSeoBaseUrl(): string {
   const configuredSiteUrl = (import.meta.env.VITE_SITE_URL as string | undefined)?.trim();
@@ -50,7 +59,50 @@ function upsertCanonical(path: string): void {
   tag.setAttribute("href", url);
 }
 
-export function useSeo({ title, description, path, keywords }: SeoConfig): void {
+function upsertRobots(content: string, source?: "explicit" | "environment"): void {
+  const selector = 'meta[name="robots"]';
+  let tag = document.head.querySelector<HTMLMetaElement>(selector);
+
+  if (!tag) {
+    tag = document.createElement("meta");
+    tag.name = "robots";
+    document.head.appendChild(tag);
+  }
+
+  tag.content = content;
+  if (source) {
+    tag.dataset.rsmethodsSeoRobots = source;
+  }
+}
+
+function upsertStructuredData(
+  structuredData: Record<string, unknown> | Record<string, unknown>[]
+): void {
+  let tag = document.head.querySelector<HTMLScriptElement>(
+    'script[data-rsmethods-seo="structured-data"]'
+  );
+
+  if (!tag) {
+    tag = document.createElement("script");
+    tag.type = "application/ld+json";
+    tag.dataset.rsmethodsSeo = "structured-data";
+    document.head.appendChild(tag);
+  }
+
+  tag.textContent = JSON.stringify(structuredData).replace(/</g, "\\u003c");
+}
+
+export function useSeo({
+  title,
+  description,
+  path,
+  keywords,
+  robots,
+  structuredData,
+}: SeoConfig): void {
+  const environmentRobots = getEnvironmentRobotsDirective();
+  const effectiveRobots = environmentRobots ?? robots;
+
   useEffect(() => {
     document.title = title;
     upsertMeta("name", "description", description);
@@ -66,6 +118,35 @@ export function useSeo({ title, description, path, keywords }: SeoConfig): void 
       upsertMeta("name", "keywords", keywords);
     }
 
+    if (effectiveRobots) {
+      upsertRobots(
+        effectiveRobots,
+        environmentRobots ? "environment" : "explicit",
+      );
+    }
+
+    if (structuredData) {
+      upsertStructuredData(structuredData);
+    }
+
     upsertCanonical(path);
-  }, [description, keywords, path, title]);
+    return () => {
+      if (!environmentRobots && robots) {
+        document.head
+          .querySelector<HTMLMetaElement>(
+            'meta[data-rsmethods-seo-robots="explicit"]',
+          )
+          ?.remove();
+      }
+    };
+  }, [
+    description,
+    effectiveRobots,
+    environmentRobots,
+    keywords,
+    path,
+    robots,
+    structuredData,
+    title,
+  ]);
 }
