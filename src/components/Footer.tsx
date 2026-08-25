@@ -10,6 +10,7 @@ const navigationLinks = [
   { label: "Training Methods", to: "/skilling" },
   { label: "Wiki", to: "/wiki" },
   { label: "Changelog", to: "/changelog" },
+  { label: "Feedback", to: "/feedback" },
 ] as const;
 
 const legalLinks = [
