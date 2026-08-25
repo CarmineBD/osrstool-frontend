@@ -2,6 +2,7 @@ import { useDeferredValue, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DatabaseZap, RefreshCw, ShieldCheck } from "lucide-react";
 import { AdminPresenceHistoryCard } from "@/components/AdminPresenceHistoryCard";
+import { AdminFeedbackSection } from "@/components/AdminFeedbackSection";
 import {
   formatOsrsItemQuantity,
   OsrsItemSprite,
@@ -792,6 +793,8 @@ export function AdminPage() {
                 range={presenceHistoryRange}
                 onRangeChange={setPresenceHistoryRange}
               />
+
+              <AdminFeedbackSection />
 
               <section className="space-y-4">
                 <SectionHeader
