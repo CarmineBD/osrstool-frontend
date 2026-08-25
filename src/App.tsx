@@ -32,6 +32,7 @@ import { AccountUsernameOnboardingPage } from "./pages/AccountUsernameOnboarding
 import { AcceptTermsPage } from "./pages/AcceptTermsPage";
 import { AccountAuthenticatedPage } from "./pages/AccountAuthenticatedPage";
 import { AccountOsrsUsernamePage } from "./pages/AccountOsrsUsernamePage";
+import { FeedbackPage } from "./pages/FeedbackPage";
 
 const LazyMethodDetail = lazy(() =>
   import("./pages/MethodDetail").then((module) => ({
@@ -87,6 +88,7 @@ function App() {
                   }
                 >
                   <Route path="/account" element={<AccountPage />} />
+                  <Route path="/feedback" element={<FeedbackPage />} />
                 </Route>
                 <Route
                   element={<ProtectedRoute requireIncompleteAccountSetup />}

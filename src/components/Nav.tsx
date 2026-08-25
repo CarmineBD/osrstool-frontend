@@ -288,6 +288,16 @@ export function Nav({ hideInput }: Props) {
                 </Link>
               </NavigationMenuLink>
             </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NavigationMenuLink asChild>
+                <Link
+                  to="/feedback"
+                  className="group inline-flex h-9 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                >
+                  Feedback
+                </Link>
+              </NavigationMenuLink>
+            </NavigationMenuItem>
             {isSuperAdmin ? (
               <NavigationMenuItem>
                 <NavigationMenuLink asChild>
@@ -543,6 +553,14 @@ export function Nav({ hideInput }: Props) {
             onClick={() => setIsMobileMenuOpen(false)}
           >
             Wiki
+          </Link>
+
+          <Link
+            to="/feedback"
+            className="hover:bg-accent/70 focus:bg-accent/70 mt-2 flex w-full items-center rounded-xl bg-surface-panel-elevated px-3 py-3 text-sm font-semibold no-underline outline-hidden transition-colors duration-200"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            Feedback
           </Link>
 
           {isSuperAdmin ? (
