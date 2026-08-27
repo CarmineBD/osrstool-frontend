@@ -20,6 +20,7 @@ import {
   LANDING_PANEL_CLASS,
   LANDING_SUBPANEL_CLASS,
   PUBLIC_BODY_CLASS,
+  PUBLIC_EYEBROW_CLASS,
   PUBLIC_LINK_CLASS,
   PUBLIC_PAGE_BACKGROUND_CLASS,
   PUBLIC_SECTION_EYEBROW_CLASS,
@@ -96,7 +97,7 @@ function FeatureMediaPlaceholder({
 }) {
   return (
     <figure
-      className={`${LANDING_SUBPANEL_CLASS} relative flex aspect-video min-h-52 items-end overflow-hidden p-5 sm:min-h-64`}
+      className={`${LANDING_SUBPANEL_CLASS} relative flex aspect-video items-end overflow-hidden p-4`}
       aria-label={`${title} product preview`}
     >
       {/*
@@ -109,9 +110,9 @@ function FeatureMediaPlaceholder({
         aria-hidden="true"
         className="absolute inset-0 bg-[radial-gradient(circle_at_75%_20%,var(--surface-highlight),transparent_38%),linear-gradient(135deg,transparent_0%,var(--surface-page-accent)_100%)] opacity-70"
       />
-      <figcaption className="relative text-sm font-medium text-muted-foreground">
+      <figcaption className="relative text-sm leading-5 text-muted-foreground">
         Product preview coming soon
-        <span className="mt-1 block text-xs text-brand/80">
+        <span className="mt-1 block text-xs font-medium text-brand">
           {videoFileName}
         </span>
       </figcaption>
@@ -187,9 +188,9 @@ function TrendingMethodCard({
   return (
     <Link
       to={getVariantHref(method, variant)}
-      className={`${LANDING_ELEVATED_PANEL_CLASS} block h-full p-4 text-left transition-[border-color,background-color,box-shadow] hover:border-brand/25 hover:bg-surface-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35 sm:p-5`}
+      className={`${LANDING_ELEVATED_PANEL_CLASS} block h-full p-4 text-left transition-[border-color,background-color,box-shadow] hover:border-brand hover:bg-surface-panel-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35 sm:p-6`}
     >
-      <article className="flex min-h-[108px] flex-col gap-4">
+      <article className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-3">
           <Badge variant="secondary" size="sm" className="font-semibold">
             #{index + 1}
@@ -206,9 +207,9 @@ function TrendingMethodCard({
                 className="mt-0.5 h-[30px] w-[30px]"
               />
               <div className="min-w-0">
-                <h2 className="line-clamp-2 text-base font-medium leading-5 text-link">
+                <p className="line-clamp-2 text-base font-semibold leading-5 text-link">
                   {method.name}
-                </h2>
+                </p>
                 {variant?.label ? (
                   <div className="mt-1">
                     <p className="line-clamp-1 text-xs font-medium leading-4 text-muted-foreground">
@@ -296,7 +297,7 @@ function TrendingMethodsCarousel() {
       aria-labelledby="trending-profit-heading"
       className="mx-auto w-full max-w-md"
     >
-      <div className="mb-4 flex items-center justify-center gap-2 text-center">
+      <div className="mb-3 flex items-center justify-center gap-2 text-center">
         <TrendingUp className="h-5 w-5 text-brand" />
         <h2
           id="trending-profit-heading"
@@ -307,7 +308,7 @@ function TrendingMethodsCarousel() {
       </div>
 
       {isInitialLoading ? (
-        <div className={`${LANDING_ELEVATED_PANEL_CLASS} p-4 sm:p-5`}>
+        <div className={`${LANDING_ELEVATED_PANEL_CLASS} p-4`}>
           <div className="flex items-center justify-between">
             <Skeleton className="h-6 w-10 rounded-md" />
             <Skeleton className="h-5 w-5" />
@@ -332,20 +333,20 @@ function TrendingMethodsCarousel() {
         </div>
       ) : error ? (
         <div
-          className={`${LANDING_ELEVATED_PANEL_CLASS} p-5 text-sm text-muted-foreground`}
+          className={`${LANDING_SUBPANEL_CLASS} p-4 text-sm leading-5 text-muted-foreground`}
         >
           Trending methods are unavailable right now.
         </div>
       ) : methods.length === 0 ? (
         <div
-          className={`${LANDING_ELEVATED_PANEL_CLASS} p-5 text-sm text-muted-foreground`}
+          className={`${LANDING_SUBPANEL_CLASS} p-4 text-sm leading-5 text-muted-foreground`}
         >
           No trending methods are available yet.
         </div>
       ) : (
         <Carousel
           opts={{ align: "center", loop: methods.length > 1 }}
-          className="mx-auto w-full px-12"
+          className="mx-auto w-full px-8"
         >
           <CarouselContent className="-ml-3">
             {trendingCards.map(({ method, index, variant }) => (
@@ -404,28 +405,25 @@ export function LandingPage() {
         className="landing-ambient-gradient__orb landing-ambient-gradient__orb--two landing-scroll-gradient"
       />
 
-      <header className="relative z-10 mx-auto grid min-h-[82svh] w-full max-w-6xl items-center gap-10 px-6 py-24 sm:px-10 lg:min-h-[90svh] lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] lg:py-28">
+      <header className="relative z-10 mx-auto grid min-h-[82svh] w-full max-w-6xl items-center gap-8 px-6 py-24 sm:px-8 lg:min-h-[90svh] lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] lg:py-28">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand">
-            Welcome to RSMethods (Beta)
-          </p>
-          <h1 className="mt-3 max-w-4xl text-4xl font-black leading-tight text-foreground sm:text-6xl">
-            {/* Find your best OSRS method. */}
+          <p className={PUBLIC_EYEBROW_CLASS}>Welcome to RSMethods (Beta)</p>
+          <h1 className="mt-3 max-w-4xl text-4xl font-bold leading-10 tracking-tight text-foreground sm:text-6xl sm:leading-[64px]">
             Play smarter.
-            <br></br>
+            <br />
             Earn more.
           </h1>
-          <p className="mt-6 max-w-3xl text-lg leading-relaxed text-muted-foreground sm:text-2xl">
+          <p className="mt-6 max-w-2xl text-lg leading-7 text-muted-foreground">
             Find the best realistic methods for your account with accurate
             real-time GP & XP rates.
           </p>
-          <div className="mt-8 flex flex-wrap gap-3">
+          <div className="mt-6 flex flex-wrap gap-3">
             <Button
               asChild
               size="lg"
-              className="bg-brand text-brand-foreground shadow-sm ring-1 ring-black/10 hover:bg-brand hover:shadow-md"
+              className="bg-brand text-brand-foreground shadow-none hover:bg-brand/90"
             >
-              <Link to="/allMethods">Explore methods</Link>
+              <a href="#method-finder">Find a method</a>
             </Button>
           </div>
         </div>
@@ -434,30 +432,28 @@ export function LandingPage() {
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 pb-16 sm:px-10">
-        <div className={`${LANDING_PANEL_CLASS} p-8`}>
+      <main className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 pb-8 sm:px-8">
+        <div
+          id="method-finder"
+          className={`${LANDING_PANEL_CLASS} scroll-mt-20 p-6`}
+        >
           <LandingMethodFinder />
         </div>
 
-        <section id="features" className={`${LANDING_PANEL_CLASS} p-8`}>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand">
-            Features
-          </p>
-          {/* <h2 className="mt-2 text-2xl font-bold text-foreground">
-            Choose better methods, faster.
+        <section id="features" className="px-6 py-6">
+          <p className={PUBLIC_EYEBROW_CLASS}>Features</p>
+          <h2 className="mt-2 text-2xl font-semibold leading-8 text-foreground">
+            Discover what you can do with RSMethods
           </h2>
-          <p className={`mt-3 max-w-2xl ${PUBLIC_BODY_CLASS}`}>
-            RSMethods helps you compare methods, spot opportunities and find
-            options that match how you want to play.
-          </p> */}
-          <div className="mt-10 space-y-16">
+
+          <div className="mt-6 space-y-8">
             {FEATURE_ITEMS.map((feature) => (
               <article
                 key={feature.title}
-                className="grid items-center gap-8 lg:grid-cols-2 lg:gap-12"
+                className="grid items-center gap-6 lg:grid-cols-2 lg:gap-8"
               >
                 <div className={feature.reversed ? "lg:order-2" : undefined}>
-                  <h3 className="text-xl font-bold text-foreground sm:text-2xl">
+                  <h3 className="text-lg font-semibold leading-6 text-foreground">
                     {feature.title}
                   </h3>
                   <p className={`mt-3 max-w-lg ${PUBLIC_BODY_CLASS}`}>
@@ -475,24 +471,22 @@ export function LandingPage() {
           </div>
         </section>
 
-        <section id="changelog" className={`${LANDING_PANEL_CLASS} p-8`}>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand">
-            Updates
-          </p>
-          <h2 className="text-2xl font-bold text-foreground">
+        <section id="changelog" className={`${LANDING_PANEL_CLASS} p-6`}>
+          <p className={PUBLIC_EYEBROW_CLASS}>Updates</p>
+          <h2 className="mt-2 text-2xl font-semibold leading-8 text-foreground">
             See what’s new in RSMethods
           </h2>
 
-          <div className="mt-5 grid gap-3 md:grid-cols-3">
+          <div className="mt-6 grid gap-3 md:grid-cols-3">
             {latestChangelogEntries.map((entry) => (
               <article
                 key={entry.slug}
-                className={`${LANDING_SUBPANEL_CLASS} flex h-full flex-col p-5`}
+                className={`${LANDING_SUBPANEL_CLASS} flex h-full flex-col p-4`}
               >
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand">
+                <p className={PUBLIC_EYEBROW_CLASS}>
                   {formatChangelogDate(entry.date)} | {entry.version}
                 </p>
-                <h3 className="mt-2 text-base font-bold text-foreground">
+                <h3 className="mt-2 text-lg font-semibold leading-6 text-foreground">
                   {entry.title}
                 </h3>
                 <Link

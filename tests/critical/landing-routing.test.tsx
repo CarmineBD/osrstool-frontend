@@ -30,8 +30,11 @@ describe("critical flow: landing + all methods routing", () => {
       }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "Explore methods" }),
-    ).toHaveAttribute("href", "/allMethods");
+      screen.getByRole("link", { name: "Find a method" }),
+    ).toHaveAttribute("href", "#method-finder");
+    expect(document.getElementById("method-finder")).toHaveClass(
+      "scroll-mt-20",
+    );
     expect(
       screen.getByRole("heading", { name: "What do you feel like doing?" }),
     ).toBeInTheDocument();
