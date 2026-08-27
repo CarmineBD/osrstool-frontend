@@ -10,6 +10,8 @@ const apiUrl = (process.env.SEO_API_URL ??
 const robotsDirective = process.env.VITE_ROBOTS?.trim();
 const outputDirectory = path.resolve("dist");
 const methodsEndpoint = `${apiUrl}/methods/search?enabled=true&variants=all`;
+const SEO_FETCH_ATTEMPTS = 3;
+const SEO_FETCH_RETRY_DELAY_MS = 1_000;
 const staticPaths = [
   "/",
   "/allMethods",
@@ -82,11 +84,30 @@ function toPositiveNumber(value) {
 }
 
 async function fetchMethodPage(page) {
-  const response = await fetch(`${methodsEndpoint}&page=${page}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: "{}",
-  });
+  let response;
+  let lastError;
+
+  for (let attempt = 1; attempt <= SEO_FETCH_ATTEMPTS; attempt += 1) {
+    try {
+      response = await fetch(`${methodsEndpoint}&page=${page}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+      break;
+    } catch (error) {
+      lastError = error;
+      if (attempt < SEO_FETCH_ATTEMPTS) {
+        await new Promise((resolve) => {
+          setTimeout(resolve, SEO_FETCH_RETRY_DELAY_MS * attempt);
+        });
+      }
+    }
+  }
+
+  if (!response) {
+    throw lastError;
+  }
 
   if (!response.ok) {
     throw new Error(`SEO catalog request failed for page ${page}: HTTP ${response.status}`);
@@ -111,7 +132,7 @@ async function fetchAllMethodRows() {
   const totalPages = Math.ceil(firstPage.total / firstPage.perPage);
   const pageNumbers = Array.from({ length: totalPages - 1 }, (_, index) => index + 2);
   const remainingPages = [];
-  const concurrency = 32;
+  const concurrency = 8;
 
   for (let index = 0; index < pageNumbers.length; index += concurrency) {
     const batch = pageNumbers.slice(index, index + concurrency);
