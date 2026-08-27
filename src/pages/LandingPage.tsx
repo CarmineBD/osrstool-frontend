@@ -433,7 +433,10 @@ export function LandingPage() {
       </header>
 
       <main className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 pb-8 sm:px-8">
-        <div id="method-finder" className={`${LANDING_PANEL_CLASS} p-6`}>
+        <div
+          id="method-finder"
+          className={`${LANDING_PANEL_CLASS} scroll-mt-20 p-6`}
+        >
           <LandingMethodFinder />
         </div>
 
