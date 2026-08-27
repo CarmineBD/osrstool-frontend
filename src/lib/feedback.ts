@@ -45,10 +45,6 @@ export type FeedbackListResponse = {
   };
 };
 
-export const FEEDBACK_DISCORD_FORUM_URL =
-  (import.meta.env.VITE_FEEDBACK_DISCORD_FORUM_URL as string | undefined)?.trim() ||
-  "https://discord.com/channels/REPLACE_SERVER_ID/REPLACE_FEEDBACK_FORUM_CHANNEL_ID";
-
 function resolveApiUrl(): string {
   const directUrl =
     (import.meta.env.VITE_API_URL as string | undefined)?.trim() ||
