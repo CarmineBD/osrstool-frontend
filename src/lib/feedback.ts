@@ -1,4 +1,5 @@
 import { authFetch } from "@/lib/http";
+import { OFFICIAL_DISCORD_URL } from "@/lib/community";
 
 export const FEEDBACK_TYPES = [
   "feature",
@@ -34,6 +35,10 @@ export type FeedbackSummary = {
 export type FeedbackDetail = FeedbackSummary & {
   content: string;
 };
+
+export const FEEDBACK_DISCORD_FORUM_URL =
+  (import.meta.env.VITE_FEEDBACK_DISCORD_FORUM_URL as string | undefined)?.trim() ||
+  OFFICIAL_DISCORD_URL;
 
 export type FeedbackListResponse = {
   feedback: FeedbackSummary[];

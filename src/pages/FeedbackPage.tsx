@@ -10,10 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import {
   createFeedback,
+  FEEDBACK_DISCORD_FORUM_URL,
   FEEDBACK_TYPES,
   type FeedbackType,
 } from "@/lib/feedback";
-import { OFFICIAL_DISCORD_URL } from "@/lib/community";
 
 const labels: Record<FeedbackType, string> = {
   feature: "Feature",
@@ -167,7 +167,7 @@ export function FeedbackPage() {
           <p className="border-t border-border/70 pt-6 text-sm leading-5 text-muted-foreground">
             Need to share screenshots or discuss your idea?{" "}
             <a
-              href={OFFICIAL_DISCORD_URL}
+              href={FEEDBACK_DISCORD_FORUM_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="font-medium text-primary underline underline-offset-4 hover:text-primary/80"
