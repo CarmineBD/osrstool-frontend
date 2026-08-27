@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, X } from "lucide-react";
+import { IconBrandDiscord } from "@tabler/icons-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ import { fetchMe, getMeQueryKey } from "@/lib/me";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
 import { getRuntimeEnvironmentLabel } from "@/lib/runtimeEnv";
 import { normalizeBoundedText, USERNAME_MAX_LENGTH } from "@/lib/validation";
+import { OFFICIAL_DISCORD_URL } from "@/lib/community";
 
 export type Props = { hideInput?: boolean };
 const LOGIN_REQUIRED_MESSAGE = "sign-in/login to fetch data by osrs usernames";
@@ -314,6 +316,27 @@ export function Nav({ hideInput }: Props) {
         </NavigationMenu>
 
         <div className="flex items-center gap-2 lg:gap-4">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                asChild
+                variant="outline"
+                size="icon"
+                className="hidden sm:inline-flex"
+              >
+                <a
+                  href={OFFICIAL_DISCORD_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Join our Discord!"
+                >
+                  <IconBrandDiscord aria-hidden="true" />
+                </a>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Join our Discord!</TooltipContent>
+          </Tooltip>
+
           <ThemeToggle labelClassName="hidden xl:inline" />
 
           {!hideInput && (

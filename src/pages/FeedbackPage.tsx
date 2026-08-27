@@ -169,7 +169,7 @@ export function FeedbackPage() {
             <a
               href={FEEDBACK_DISCORD_FORUM_URL}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               className="font-medium text-primary underline underline-offset-4 hover:text-primary/80"
             >
               Join our Discord.

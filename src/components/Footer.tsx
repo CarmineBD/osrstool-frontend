@@ -4,6 +4,7 @@ import {
   PROJECT_CONTACT_EMAIL,
   PROJECT_CONTACT_MAILTO,
 } from "@/lib/legalNotice";
+import { OFFICIAL_DISCORD_URL } from "@/lib/community";
 
 const navigationLinks = [
   { label: "All Methods", to: "/allMethods" },
@@ -76,6 +77,14 @@ export function Footer() {
 
             <a
               className="mt-2 inline-block text-sm text-muted-foreground hover:text-foreground"
+              href={OFFICIAL_DISCORD_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Discord
+            </a>
+            <a
+              className="mt-2 block text-sm text-muted-foreground hover:text-foreground"
               href={PROJECT_CONTACT_MAILTO}
             >
               {PROJECT_CONTACT_EMAIL}
