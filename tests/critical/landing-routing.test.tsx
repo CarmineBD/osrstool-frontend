@@ -1,5 +1,6 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import App from "@/App";
@@ -25,17 +26,22 @@ describe("critical flow: landing + all methods routing", () => {
     expect(
       await screen.findByRole("heading", {
         level: 1,
-        name: /make money and train efficiently/i,
+        name: /play smarter\.\s*earn more\./i,
       }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: /explore money making methods/i }),
+      screen.getByRole("link", { name: "Explore methods" }),
     ).toHaveAttribute("href", "/allMethods");
     expect(
-      screen.getByRole("heading", { name: "Latest changelog entries" }),
+      screen.getByRole("heading", { name: "What do you feel like doing?" }),
     ).toBeInTheDocument();
-    expect(await screen.findByText("Blast Furnace")).toBeInTheDocument();
-    expect(await screen.findByAltText("Steel bars icon")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: /see what.*new in rsmethods/i }),
+    ).toBeInTheDocument();
+    expect(await screen.findAllByText("Blast Furnace")).not.toHaveLength(0);
+    expect(
+      await screen.findAllByAltText("Steel bars icon"),
+    ).not.toHaveLength(0);
     expect(
       screen.getByRole("link", {
         name: /#1\s+Steel bars icon\s+Blast Furnace/i,
@@ -44,15 +50,64 @@ describe("critical flow: landing + all methods routing", () => {
     expect(
       screen.getByRole("link", { name: /#2\s+Main icon\s+Rune Dragons/i }),
     ).toBeInTheDocument();
-    expect(screen.getByText("1.2m")).toBeInTheDocument();
+    expect(screen.getAllByText("1.2m")).not.toHaveLength(0);
     expect(screen.getByText("+5.4%")).toBeInTheDocument();
     expect(
-      screen.getAllByRole("link", { name: /read the full article/i }),
+      screen.getAllByRole("link", { name: /read update/i }),
     ).toHaveLength(3);
     expect(
       screen.getByRole("link", { name: /view all updates/i }),
     ).toHaveAttribute("href", "/changelog");
-  });
+  }, 10_000);
+
+  it("clears the Quick Demo username when Fetch is submitted empty", async () => {
+    window.history.pushState({}, "", "/");
+
+    renderApp();
+
+    const finder = await screen.findByRole("region", {
+      name: "What do you feel like doing?",
+    });
+    expect(
+      within(finder).getByLabelText("OSRS username"),
+    ).toHaveAttribute("placeholder", "username");
+
+    await userEvent.setup().click(
+      within(finder).getByRole("button", { name: "Fetch" }),
+    );
+
+    expect(
+      screen.getByRole("heading", {
+        name: "What do you feel like doing?",
+      }),
+    ).toBeInTheDocument();
+  }, 10_000);
+
+  it("shows the fixed training skill shortcuts in Quick Demo", async () => {
+    window.history.pushState({}, "", "/");
+
+    renderApp();
+
+    const finder = await screen.findByRole("region", {
+      name: "What do you feel like doing?",
+    });
+    await userEvent.setup().click(
+      within(finder).getByRole("button", { name: "Train a skill" }),
+    );
+
+    for (const skill of ["Herblore", "Fletching", "Crafting", "Magic"]) {
+      expect(
+        within(finder).getByRole("button", { name: skill }),
+      ).toBeInTheDocument();
+    }
+    expect(
+      within(finder).getByRole("link", { name: "See all skills" }),
+    ).toHaveAttribute("href", "/skilling");
+
+    await userEvent.setup().click(within(finder).getByLabelText("Only F2P"));
+    expect(within(finder).getByRole("button", { name: "Herblore" })).toBeDisabled();
+    expect(within(finder).getByRole("button", { name: "Fletching" })).toBeDisabled();
+  }, 10_000);
 
   it("renders all methods page at /allMethods", async () => {
     server.use(

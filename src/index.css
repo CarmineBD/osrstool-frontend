@@ -244,3 +244,133 @@
     @apply cursor-not-allowed;
   }
 }
+
+.landing-ambient-gradient {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.landing-ambient-gradient__orb {
+  --gradient-color: var(--link);
+  --gradient-opacity: 0.22;
+  --gradient-size: clamp(22rem, 42vw, 40rem);
+
+  position: absolute;
+  width: var(--gradient-size);
+  aspect-ratio: 1;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle,
+    color-mix(in oklab, var(--gradient-color) 42%, transparent) 0%,
+    color-mix(in oklab, var(--gradient-color) 20%, transparent) 35%,
+    transparent 70%
+  );
+  filter: blur(24px);
+  opacity: var(--gradient-opacity);
+  pointer-events: none;
+  transform: translate3d(0, 0, 0);
+  will-change: transform, opacity;
+}
+
+.dark .landing-ambient-gradient__orb {
+  --gradient-color: var(--brand);
+}
+
+.landing-ambient-gradient__orb--one {
+  top: -14rem;
+  left: -12rem;
+  --gradient-opacity: 0.34;
+  animation: landing-gradient-drift-one 22s ease-in-out infinite alternate;
+}
+
+.landing-ambient-gradient__orb--two {
+  top: 14%;
+  right: -17rem;
+  --gradient-size: clamp(20rem, 35vw, 34rem);
+  --gradient-opacity: 0.2;
+  animation: landing-gradient-drift-two 29s ease-in-out infinite alternate;
+}
+
+.landing-scroll-gradient {
+  top: clamp(5rem, 14vh, 10rem);
+}
+
+.landing-ambient-gradient__orb--three {
+  top: 47%;
+  left: 26%;
+  --gradient-size: clamp(18rem, 30vw, 30rem);
+  --gradient-opacity: 0.16;
+  animation: landing-gradient-drift-three 25s ease-in-out infinite alternate;
+}
+
+.landing-ambient-gradient__orb--four {
+  right: 3%;
+  bottom: -16rem;
+  --gradient-size: clamp(24rem, 44vw, 42rem);
+  --gradient-opacity: 0.26;
+  animation: landing-gradient-drift-four 33s ease-in-out infinite alternate;
+}
+
+@keyframes landing-gradient-drift-one {
+  0% {
+    opacity: 0.12;
+    transform: translate3d(0, 0, 0) scale(0.84);
+  }
+  42% {
+    opacity: 0.34;
+  }
+  100% {
+    opacity: 0.18;
+    transform: translate3d(48vw, 26rem, 0) scale(1.18);
+  }
+}
+
+@keyframes landing-gradient-drift-two {
+  0% {
+    opacity: 0.1;
+    transform: translate3d(0, 0, 0) scale(0.92);
+  }
+  55% {
+    opacity: 0.28;
+  }
+  100% {
+    opacity: 0.14;
+    transform: translate3d(-52vw, 31rem, 0) scale(1.15);
+  }
+}
+
+@keyframes landing-gradient-drift-three {
+  0% {
+    opacity: 0.08;
+    transform: translate3d(0, 0, 0) scale(0.8);
+  }
+  48% {
+    opacity: 0.24;
+  }
+  100% {
+    opacity: 0.11;
+    transform: translate3d(30vw, 36rem, 0) scale(1.25);
+  }
+}
+
+@keyframes landing-gradient-drift-four {
+  0% {
+    opacity: 0.13;
+    transform: translate3d(0, 0, 0) scale(0.88);
+  }
+  45% {
+    opacity: 0.32;
+  }
+  100% {
+    opacity: 0.17;
+    transform: translate3d(-44vw, -37rem, 0) scale(1.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-ambient-gradient__orb {
+    animation: none;
+  }
+}

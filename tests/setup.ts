@@ -136,6 +136,7 @@ vi.mock("@/contexts/UsernameContext", () => ({
     refreshPlayer: lookupPlayerSpy,
     isPlayerLookupPending: false,
     manualLookupCooldownRemaining: 0,
+    manualLookupCooldownUsername: null,
     clearUsername: clearUsernameSpy,
     userError: usernameState.userError,
     setUserError: setUserErrorSpy,

@@ -23,16 +23,11 @@ export function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-border bg-gradient-to-b from-background to-muted/30">
+    <footer className="relative z-10 border-t border-border/70 bg-surface-panel">
       <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-5">
           <section className="xl:col-span-2">
-            <Link to="/" className="inline-flex items-center gap-2">
-              <img
-                src="https://oldschool.runescape.wiki/images/thumb/Coins_detail.png/120px-Coins_detail.png?404bc"
-                alt="RSMethods logo"
-                className="h-7 w-auto"
-              />
+            <Link to="/" className="inline-flex">
               <span className="text-lg font-semibold tracking-tight">
                 <span className="text-brand">RSM</span>
                 <span className="text-black dark:text-white">ethods</span>

@@ -10,6 +10,15 @@ export const PUBLIC_SUBPANEL_CLASS =
 export const PUBLIC_ELEVATED_PANEL_CLASS =
   "rounded-xl border border-border/70 bg-surface-panel-elevated shadow-sm";
 
+export const LANDING_PANEL_CLASS =
+  "rounded-2xl border border-border/70 bg-surface-panel/90 shadow-sm backdrop-blur-sm";
+
+export const LANDING_SUBPANEL_CLASS =
+  "rounded-xl border border-border/70 bg-surface-panel-subtle/85 backdrop-blur-sm";
+
+export const LANDING_ELEVATED_PANEL_CLASS =
+  "rounded-xl border border-border/70 bg-surface-panel-elevated/90 shadow-sm backdrop-blur-sm";
+
 export const PUBLIC_HIGHLIGHT_CLASS =
   "bg-surface-highlight ring-1 ring-surface-highlight-border";
 
