@@ -14,6 +14,15 @@ const changelogLoaders = import.meta.glob("./*.md", {
 
 const entries: ChangelogEntry[] = [
   {
+    slug: "2026-08-27-v2026-08-27-pr148",
+    date: "2026-08-27",
+    version: "v2026.08.27-pr148",
+    title: "Fix Vercel API request proxying and routing",
+    summary:
+      "Latest user-facing updates, improvements, and fixes in RSMethods.",
+    fileName: "2026-08-27-v2026-08-27-pr148.md",
+  },
+  {
     slug: "2026-08-22-v2026-08-22-pr137",
     date: "2026-08-22",
     version: "v2026.08.22-pr137",

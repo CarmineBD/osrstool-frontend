@@ -30,6 +30,7 @@ export interface UsernameContextValue {
   refreshPlayer: () => Promise<PlayerInfo | null>;
   isPlayerLookupPending: boolean;
   manualLookupCooldownRemaining: number;
+  manualLookupCooldownUsername: string | null;
   clearUsername: () => void;
   userError: string | null;
   setUserError: (value: string | null) => void;
@@ -75,6 +76,9 @@ export function UsernameProvider({ children }: Props) {
   const [userError, setUserError] = useState<string | null>(null);
   const [isPlayerLookupPending, setIsPlayerLookupPending] = useState(false);
   const [manualLookupUntil, setManualLookupUntil] = useState(0);
+  const [manualLookupUsername, setManualLookupUsername] = useState<string | null>(
+    null,
+  );
   const [now, setNow] = useState(Date.now());
   const latestLookupRequest = useRef(0);
 
@@ -93,6 +97,8 @@ export function UsernameProvider({ children }: Props) {
     latestLookupRequest.current += 1;
     setStoredPlayer(null);
     setUserError(null);
+    setManualLookupUntil(0);
+    setManualLookupUsername(null);
     localStorage.removeItem("username");
     localStorage.removeItem(PLAYER_STORAGE_KEY);
   }, []);
@@ -113,9 +119,19 @@ export function UsernameProvider({ children }: Props) {
       setUserError("Sign in to fetch OSRS player data.");
       return null;
     }
-    if (manual && Date.now() < manualLookupUntil) return null;
+    const usernameKey = username.toLowerCase();
+    if (
+      manual &&
+      Date.now() < manualLookupUntil &&
+      usernameKey === manualLookupUsername
+    ) {
+      return null;
+    }
 
-    if (manual) setManualLookupUntil(Date.now() + MANUAL_LOOKUP_COOLDOWN_MS);
+    if (manual) {
+      setManualLookupUntil(Date.now() + MANUAL_LOOKUP_COOLDOWN_MS);
+      setManualLookupUsername(usernameKey);
+    }
     const requestId = latestLookupRequest.current + 1;
     latestLookupRequest.current = requestId;
     setIsPlayerLookupPending(true);
@@ -139,7 +155,7 @@ export function UsernameProvider({ children }: Props) {
         setIsPlayerLookupPending(false);
       }
     }
-  }, [manualLookupUntil, savePlayer, session]);
+  }, [manualLookupUntil, manualLookupUsername, savePlayer, session]);
 
   useEffect(() => {
     if (isLoading) return;
@@ -163,6 +179,7 @@ export function UsernameProvider({ children }: Props) {
       refreshPlayer: () => fetchAndStore(storedPlayer?.username ?? "", true),
       isPlayerLookupPending,
       manualLookupCooldownRemaining,
+      manualLookupCooldownUsername: manualLookupUsername,
       clearUsername,
       userError,
       setUserError,
@@ -171,6 +188,7 @@ export function UsernameProvider({ children }: Props) {
       storedPlayer,
       isPlayerLookupPending,
       manualLookupCooldownRemaining,
+      manualLookupUsername,
       userError,
       clearUsername,
       fetchAndStore,

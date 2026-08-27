@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, X } from "lucide-react";
+import { IconBrandDiscord } from "@tabler/icons-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ import { fetchMe, getMeQueryKey } from "@/lib/me";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
 import { getRuntimeEnvironmentLabel } from "@/lib/runtimeEnv";
 import { normalizeBoundedText, USERNAME_MAX_LENGTH } from "@/lib/validation";
+import { OFFICIAL_DISCORD_URL } from "@/lib/community";
 
 export type Props = { hideInput?: boolean };
 const LOGIN_REQUIRED_MESSAGE = "sign-in/login to fetch data by osrs usernames";
@@ -288,6 +290,16 @@ export function Nav({ hideInput }: Props) {
                 </Link>
               </NavigationMenuLink>
             </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NavigationMenuLink asChild>
+                <Link
+                  to="/feedback"
+                  className="group inline-flex h-9 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                >
+                  Feedback
+                </Link>
+              </NavigationMenuLink>
+            </NavigationMenuItem>
             {isSuperAdmin ? (
               <NavigationMenuItem>
                 <NavigationMenuLink asChild>
@@ -304,6 +316,27 @@ export function Nav({ hideInput }: Props) {
         </NavigationMenu>
 
         <div className="flex items-center gap-2 lg:gap-4">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                asChild
+                variant="outline"
+                size="icon"
+                className="hidden sm:inline-flex"
+              >
+                <a
+                  href={OFFICIAL_DISCORD_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Join our Discord!"
+                >
+                  <IconBrandDiscord aria-hidden="true" />
+                </a>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Join our Discord!</TooltipContent>
+          </Tooltip>
+
           <ThemeToggle labelClassName="hidden xl:inline" />
 
           {!hideInput && (
@@ -543,6 +576,14 @@ export function Nav({ hideInput }: Props) {
             onClick={() => setIsMobileMenuOpen(false)}
           >
             Wiki
+          </Link>
+
+          <Link
+            to="/feedback"
+            className="hover:bg-accent/70 focus:bg-accent/70 mt-2 flex w-full items-center rounded-xl bg-surface-panel-elevated px-3 py-3 text-sm font-semibold no-underline outline-hidden transition-colors duration-200"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            Feedback
           </Link>
 
           {isSuperAdmin ? (

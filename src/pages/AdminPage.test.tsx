@@ -18,6 +18,10 @@ vi.mock("@/components/AdminPresenceHistoryCard", () => ({
   AdminPresenceHistoryCard: () => <div>Presence history chart</div>,
 }));
 
+vi.mock("@/components/AdminFeedbackSection", () => ({
+  AdminFeedbackSection: () => <div>Feedback administration</div>,
+}));
+
 vi.mock("@/lib/admin", () => ({
   fetchAdminOverview: vi.fn().mockResolvedValue({
     counts: {

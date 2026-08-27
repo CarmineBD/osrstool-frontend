@@ -26,8 +26,24 @@ import {
   normalizeIconSource,
   type Variant,
 } from "@/lib/api";
+import { useSeo } from "@/hooks/useSeo";
 
 export type Props = Record<string, never>;
+
+function toSeoDescription(
+  methodName: string,
+  methodDescription?: string,
+  variant?: Variant,
+): string {
+  const guide = (variant?.description ?? methodDescription)
+    ?.replace(/\s+/g, " ")
+    .trim();
+  const fallback = `Explore ${methodName}, an Old School RuneScape method with requirements, practical guidance, and live market data.`;
+  const description = guide || fallback;
+  return description.length <= 155
+    ? description
+    : `${description.slice(0, 154).trimEnd()}…`;
+}
 
 function getVariantTabValue(variant: Variant, fallbackIndex: number): string {
   return variant.slug ?? (variant.id ?? fallbackIndex.toString()).toString();
@@ -42,6 +58,64 @@ export function MethodDetail(_props: Props) {
   const [variantSortMode, setVariantSortMode] = useState<VariantSortMode>(
     DEFAULT_VARIANT_SORT_MODE,
   );
+  const seoMethod = state.method;
+  const seoVariant = seoMethod?.variants.find(
+    (variant, index) =>
+      getVariantTabValue(variant, index) === state.variantSlug,
+  );
+  const seoPath = seoMethod
+    ? `/moneyMakingMethod/${seoMethod.slug}${
+        seoVariant && state.variantSlug ? `/${state.variantSlug}` : ""
+      }`
+    : `/moneyMakingMethod/${state.methodParam}`;
+  const seoTitle = seoMethod
+    ? `${seoMethod.name}${seoVariant?.label ? `: ${seoVariant.label}` : ""} | OSRS Method | RSMethods`
+    : "OSRS Method | RSMethods";
+  const seoDescription = seoMethod
+    ? toSeoDescription(seoMethod.name, seoMethod.description, seoVariant)
+    : "Explore an Old School RuneScape method with requirements, practical guidance, and live market data.";
+  const seoUrl = new URL(seoPath, window.location.origin).toString();
+
+  useSeo({
+    title: seoTitle,
+    description: seoDescription,
+    path: seoPath,
+    robots: state.error || (!state.isLoading && !seoMethod) ? "noindex, follow" : "index, follow",
+    structuredData: seoMethod
+      ? {
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "Article",
+              headline: seoMethod.name + (seoVariant?.label ? `: ${seoVariant.label}` : ""),
+              description: seoDescription,
+              mainEntityOfPage: seoUrl,
+              about: {
+                "@type": "VideoGame",
+                name: "Old School RuneScape",
+              },
+              publisher: {
+                "@type": "Organization",
+                name: "RSMethods",
+              },
+            },
+            {
+              "@type": "BreadcrumbList",
+              itemListElement: [
+                { "@type": "ListItem", position: 1, name: "RSMethods", item: window.location.origin },
+                { "@type": "ListItem", position: 2, name: "All methods", item: new URL("/allMethods", window.location.origin).toString() },
+                {
+                  "@type": "ListItem",
+                  position: 3,
+                  name: seoMethod.name + (seoVariant?.label ? `: ${seoVariant.label}` : ""),
+                  item: seoUrl,
+                },
+              ],
+            },
+          ],
+        }
+      : undefined,
+  });
 
   if (state.isLoading) return <MethodDetailSkeleton />;
 

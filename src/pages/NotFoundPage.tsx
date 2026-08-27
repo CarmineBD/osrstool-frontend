@@ -1,11 +1,19 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useSeo } from "@/hooks/useSeo";
 
 const DEFAULT_TITLE = "404 - Page not found";
 const DEFAULT_DESCRIPTION =
   "The page you are looking for does not exist or was moved.";
 
 export function NotFoundPage() {
+  useSeo({
+    title: "404 - Page not found | RSMethods",
+    description: DEFAULT_DESCRIPTION,
+    path: window.location.pathname,
+    robots: "noindex, follow",
+  });
+
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col items-center gap-4 rounded-lg border bg-card p-8 text-center shadow-sm">
       <p className="text-sm font-medium text-muted-foreground">HTTP 404</p>

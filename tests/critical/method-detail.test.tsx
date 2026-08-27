@@ -75,6 +75,26 @@ describe("critical flow: method detail load + error", () => {
     expect(
       await screen.findByRole("heading", { name: "Vorkath farming" })
     ).toBeInTheDocument();
+    expect(document.title).toBe("Vorkath farming | OSRS Method | RSMethods");
+    expect(document.head.querySelector('meta[name="description"]')).toHaveAttribute(
+      "content",
+      "Consistent dragon loot."
+    );
+    expect(document.head.querySelector('link[rel="canonical"]')).toHaveAttribute(
+      "href",
+      new URL(
+        "/moneyMakingMethod/vorkath-farming",
+        window.location.origin
+      ).toString()
+    );
+    expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
+      "content",
+      "index, follow"
+    );
+    expect(
+      document.head.querySelector('script[data-rsmethods-seo="structured-data"]')
+        ?.textContent
+    ).toContain('"@type":"BreadcrumbList"');
     expect(screen.getByText("Consistent dragon loot.")).toBeInTheDocument();
     expect(screen.queryByText("1 variant")).not.toBeInTheDocument();
     expect(screen.getByText("Patient")).toBeInTheDocument();
