@@ -6,6 +6,7 @@ import { PixelArtIcon } from "@/components/method-editor/MethodEditorPrimitives"
 import { UsernameLookupErrorMessage } from "@/components/UsernameLookupErrorMessage";
 import {
   PUBLIC_BODY_CLASS,
+  PUBLIC_EYEBROW_CLASS,
   PUBLIC_LINK_CLASS,
 } from "@/components/public-page/publicPageStyles";
 import { Button } from "@/components/ui/button";
@@ -54,6 +55,10 @@ const QUICK_DEMO_SKILLS = [
   "magic",
 ] as const;
 const MEMBERS_ONLY_QUICK_DEMO_SKILLS = new Set(["herblore", "fletching"]);
+const FINDER_CONTROL_CLASS =
+  "rounded-md border border-border bg-background text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35";
+const FINDER_CHIP_CLASS =
+  "min-h-9 rounded-full border border-border bg-background px-3 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35";
 
 function getFinderFilters({
   goal,
@@ -120,6 +125,47 @@ function getXpPerHour(
   );
 
   return total > 0 ? total : undefined;
+}
+
+function FinderMetrics({
+  variant,
+  xpPerHour,
+}: {
+  variant: Variant;
+  xpPerHour?: number;
+}) {
+  return (
+    <div className="col-span-2 grid grid-cols-3 gap-2 pl-[42px] text-right sm:col-auto sm:w-[196px] sm:pl-0">
+      <div>
+        <p className="text-xs font-medium leading-4 uppercase tracking-wide text-muted-foreground">
+          GP/hr
+        </p>
+        <p className="text-sm font-semibold leading-5 text-foreground">
+          {typeof variant.highProfit === "number" ? (
+            <AnimatedProfitValue value={variant.highProfit} />
+          ) : (
+            "N/A"
+          )}
+        </p>
+      </div>
+      <div>
+        <p className="text-xs font-medium leading-4 uppercase tracking-wide text-muted-foreground">
+          XP/hr
+        </p>
+        <p className="text-sm font-semibold leading-5 text-foreground">
+          {xpPerHour !== undefined ? formatNumber(xpPerHour) : "N/A"}
+        </p>
+      </div>
+      <div>
+        <p className="text-xs font-medium leading-4 uppercase tracking-wide text-muted-foreground">
+          AFK
+        </p>
+        <p className="text-sm font-semibold leading-5 text-foreground">
+          {variant.afkiness !== undefined ? `${variant.afkiness}%` : "N/A"}
+        </p>
+      </div>
+    </div>
+  );
 }
 
 export function LandingMethodFinder() {
@@ -226,13 +272,13 @@ export function LandingMethodFinder() {
 
   return (
     <section aria-labelledby="method-finder-heading">
-      <div className="mb-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand">
+      <div className="mb-6">
+        <p className={PUBLIC_EYEBROW_CLASS}>
           Quick demo
         </p>
         <h2
           id="method-finder-heading"
-          className="mt-2 text-2xl font-bold text-foreground"
+          className="mt-2 text-2xl font-semibold leading-8 text-foreground"
         >
           What do you feel like doing?
         </h2>
@@ -252,10 +298,10 @@ export function LandingMethodFinder() {
                   aria-pressed={goal === option.value}
                   onClick={() => setGoal(option.value as FinderGoal)}
                   className={cn(
-                    "min-h-11 rounded-md border px-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35",
+                    `min-h-11 px-3 ${FINDER_CONTROL_CLASS}`,
                     goal === option.value
-                      ? "border-brand/35 bg-brand text-brand-foreground"
-                      : "border-border/70 bg-background/40 text-foreground hover:bg-brand-soft",
+                      ? "border-brand bg-brand-soft text-brand-soft-foreground"
+                      : "text-foreground hover:bg-brand-soft",
                   )}
                 >
                   {option.label}
@@ -265,7 +311,7 @@ export function LandingMethodFinder() {
           </fieldset>
 
           {goal === "skill" ? (
-            <div className="mt-5">
+            <div className="mt-6">
               <p className="text-sm font-medium text-foreground">
                 Skill to train
               </p>
@@ -287,10 +333,10 @@ export function LandingMethodFinder() {
                           onClick={() => setSkill(skillOption)}
                           disabled={onlyF2p && isMembersOnly}
                           className={cn(
-                            "flex size-10 items-center justify-center rounded-md border bg-background/40 p-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35",
+                            `flex size-10 items-center justify-center p-2 ${FINDER_CONTROL_CLASS}`,
                             isSelected
-                              ? "border-brand/35 bg-brand-soft"
-                              : "border-border/70 hover:bg-brand-soft",
+                              ? "border-brand bg-brand-soft"
+                              : "hover:bg-brand-soft",
                           )}
                         >
                           {iconUrl ? (
@@ -310,14 +356,14 @@ export function LandingMethodFinder() {
               </div>
               <Link
                 to="/skilling"
-                className={`mt-3 inline-block text-xs ${PUBLIC_LINK_CLASS}`}
+                className={`mt-3 inline-block ${PUBLIC_LINK_CLASS}`}
               >
                 See all skills
               </Link>
             </div>
           ) : null}
 
-          <fieldset className="mt-5">
+          <fieldset className="mt-6">
             <legend className="text-sm font-medium text-foreground">
               What matters most?
             </legend>
@@ -338,10 +384,10 @@ export function LandingMethodFinder() {
                     aria-pressed={selected}
                     onClick={() => setPreference(option.value)}
                     className={cn(
-                      "min-h-9 rounded-full border px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35",
+                      FINDER_CHIP_CLASS,
                       selected
-                        ? "border-brand/35 bg-brand-soft text-brand-soft-foreground"
-                        : "border-border/70 bg-background/40 text-foreground hover:bg-brand-soft",
+                        ? "border-brand bg-brand-soft text-brand-soft-foreground"
+                        : "text-foreground hover:bg-brand-soft",
                     )}
                   >
                     {label}
@@ -351,7 +397,7 @@ export function LandingMethodFinder() {
             </div>
           </fieldset>
 
-          <div className="mt-5 flex flex-wrap gap-x-5 gap-y-3">
+          <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3">
             <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-foreground">
               <input
                 type="checkbox"
@@ -381,7 +427,7 @@ export function LandingMethodFinder() {
             </label>
           </div>
 
-          <div className="mt-5">
+          <div className="mt-6">
             <label
               htmlFor="landing-osrs-username"
               className="text-sm font-medium text-foreground"
@@ -431,9 +477,9 @@ export function LandingMethodFinder() {
           </div>
         </div>
 
-        <div className="border-t border-border/60 pt-6 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
+        <div className="border-t border-border pt-6 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
           <div className="flex items-center justify-between gap-3">
-            <h3 className="text-sm font-semibold text-foreground">
+            <h3 className="text-lg font-semibold leading-6 text-foreground">
               Your matches
             </h3>
             <span className="text-xs font-medium text-muted-foreground">
@@ -451,11 +497,11 @@ export function LandingMethodFinder() {
                 {[0, 1, 2].map((index) => (
                   <div
                     key={index}
-                    className="flex items-center gap-3 border-b border-border/60 py-3 last:border-b-0"
+                    className="grid grid-cols-[30px_minmax(0,1fr)] gap-3 border-b border-border py-3 last:border-b-0 sm:grid-cols-[30px_minmax(0,1fr)_196px] sm:items-center"
                   >
                     <Skeleton className="h-[30px] w-[30px]" />
                     <Skeleton className="h-8 flex-1" />
-                    <Skeleton className="h-8 w-40" />
+                    <Skeleton className="col-span-2 h-8 w-full sm:col-auto sm:w-full" />
                   </div>
                 ))}
               </div>
@@ -490,7 +536,7 @@ export function LandingMethodFinder() {
                     <Link
                       key={id}
                       to={href}
-                      className="flex items-center gap-3 border-b border-border/60 py-3 last:border-b-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35"
+                      className="grid grid-cols-[30px_minmax(0,1fr)] gap-3 border-b border-border py-3 last:border-b-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35 sm:grid-cols-[30px_minmax(0,1fr)_196px] sm:items-center"
                     >
                       <PixelArtIcon
                         src={
@@ -499,7 +545,7 @@ export function LandingMethodFinder() {
                             : undefined
                         }
                         alt={variant.label ? `${variant.label} icon` : ""}
-                        className="h-[30px] w-[30px]"
+                        className="mt-1 h-[30px] w-[30px] sm:mt-0"
                       />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-link transition-colors hover:text-link-hover hover:underline">
@@ -507,45 +553,12 @@ export function LandingMethodFinder() {
                         </p>
                         {variant.label.toLowerCase() !==
                         method.name.toLowerCase() ? (
-                          <p className="mt-0.5 truncate text-xs font-medium text-muted-foreground">
+                          <p className="mt-1 truncate text-xs font-medium leading-4 text-muted-foreground">
                             {variant.label}
                           </p>
                         ) : null}
                       </div>
-                      <div className="grid w-[174px] grid-cols-3 gap-2 text-right sm:w-[196px]">
-                        <div>
-                          <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                            GP/hr
-                          </p>
-                          <p className="text-xs font-bold text-foreground">
-                            {typeof variant.highProfit === "number" ? (
-                              <AnimatedProfitValue value={variant.highProfit} />
-                            ) : (
-                              "N/A"
-                            )}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                            XP/hr
-                          </p>
-                          <p className="text-xs font-bold text-foreground">
-                            {xpPerHour !== undefined
-                              ? formatNumber(xpPerHour)
-                              : "N/A"}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                            AFK
-                          </p>
-                          <p className="text-xs font-bold text-foreground">
-                            {variant.afkiness !== undefined
-                              ? `${variant.afkiness}%`
-                              : "N/A"}
-                          </p>
-                        </div>
-                      </div>
+                      <FinderMetrics variant={variant} xpPerHour={xpPerHour} />
                     </Link>
                   );
                 })}

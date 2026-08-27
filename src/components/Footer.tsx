@@ -24,7 +24,7 @@ export function Footer() {
 
   return (
     <footer className="relative z-10 border-t border-border/70 bg-surface-panel">
-      <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-6xl px-6 py-8 sm:px-8">
         <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-5">
           <section className="xl:col-span-2">
             <Link to="/" className="inline-flex">
@@ -40,7 +40,7 @@ export function Footer() {
           </section>
 
           <section>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground/90">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-foreground/90">
               Navigation
             </h2>
             <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
@@ -55,7 +55,7 @@ export function Footer() {
           </section>
 
           <section>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground/90">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-foreground/90">
               Legal
             </h2>
             <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
@@ -70,7 +70,7 @@ export function Footer() {
           </section>
 
           <section>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground/90">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-foreground/90">
               Contact
             </h2>
 
@@ -83,7 +83,7 @@ export function Footer() {
           </section>
         </div>
 
-        <div className="mt-10 border-t border-border/70 pt-5 text-xs text-muted-foreground">
+        <div className="mt-8 border-t border-border pt-6 text-xs text-muted-foreground">
           <p className="max-w-3xl leading-relaxed">
             {FOOTER_AFFILIATION_NOTICE}
           </p>

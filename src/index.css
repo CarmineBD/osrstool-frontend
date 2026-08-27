@@ -253,8 +253,8 @@
 }
 
 .landing-ambient-gradient__orb {
-  --gradient-color: var(--link);
-  --gradient-opacity: 0.22;
+  --gradient-color: var(--brand);
+  --gradient-opacity: 0.12;
   --gradient-size: clamp(22rem, 42vw, 40rem);
 
   position: absolute;
@@ -274,14 +274,10 @@
   will-change: transform, opacity;
 }
 
-.dark .landing-ambient-gradient__orb {
-  --gradient-color: var(--brand);
-}
-
 .landing-ambient-gradient__orb--one {
   top: -14rem;
   left: -12rem;
-  --gradient-opacity: 0.34;
+  --gradient-opacity: 0.18;
   animation: landing-gradient-drift-one 22s ease-in-out infinite alternate;
 }
 
@@ -289,7 +285,7 @@
   top: 14%;
   right: -17rem;
   --gradient-size: clamp(20rem, 35vw, 34rem);
-  --gradient-opacity: 0.2;
+  --gradient-opacity: 0.12;
   animation: landing-gradient-drift-two 29s ease-in-out infinite alternate;
 }
 
@@ -301,7 +297,7 @@
   top: 47%;
   left: 26%;
   --gradient-size: clamp(18rem, 30vw, 30rem);
-  --gradient-opacity: 0.16;
+  --gradient-opacity: 0.1;
   animation: landing-gradient-drift-three 25s ease-in-out infinite alternate;
 }
 
@@ -309,62 +305,62 @@
   right: 3%;
   bottom: -16rem;
   --gradient-size: clamp(24rem, 44vw, 42rem);
-  --gradient-opacity: 0.26;
+  --gradient-opacity: 0.14;
   animation: landing-gradient-drift-four 33s ease-in-out infinite alternate;
 }
 
 @keyframes landing-gradient-drift-one {
   0% {
-    opacity: 0.12;
+    opacity: 0.06;
     transform: translate3d(0, 0, 0) scale(0.84);
   }
   42% {
-    opacity: 0.34;
+    opacity: 0.18;
   }
   100% {
-    opacity: 0.18;
+    opacity: 0.1;
     transform: translate3d(48vw, 26rem, 0) scale(1.18);
   }
 }
 
 @keyframes landing-gradient-drift-two {
   0% {
-    opacity: 0.1;
+    opacity: 0.05;
     transform: translate3d(0, 0, 0) scale(0.92);
   }
   55% {
-    opacity: 0.28;
+    opacity: 0.14;
   }
   100% {
-    opacity: 0.14;
+    opacity: 0.08;
     transform: translate3d(-52vw, 31rem, 0) scale(1.15);
   }
 }
 
 @keyframes landing-gradient-drift-three {
   0% {
-    opacity: 0.08;
+    opacity: 0.04;
     transform: translate3d(0, 0, 0) scale(0.8);
   }
   48% {
-    opacity: 0.24;
+    opacity: 0.12;
   }
   100% {
-    opacity: 0.11;
+    opacity: 0.06;
     transform: translate3d(30vw, 36rem, 0) scale(1.25);
   }
 }
 
 @keyframes landing-gradient-drift-four {
   0% {
-    opacity: 0.13;
+    opacity: 0.06;
     transform: translate3d(0, 0, 0) scale(0.88);
   }
   45% {
-    opacity: 0.32;
+    opacity: 0.16;
   }
   100% {
-    opacity: 0.17;
+    opacity: 0.08;
     transform: translate3d(-44vw, -37rem, 0) scale(1.12);
   }
 }
