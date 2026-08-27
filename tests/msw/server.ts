@@ -185,5 +185,76 @@ export const server = setupServer(
       },
     });
   }),
+  http.post("*/methods/search", () =>
+    HttpResponse.json({
+      data: {
+        methods: [
+          {
+            id: "finder-1",
+            slug: "blast-furnace",
+            name: "Blast Furnace",
+            category: "processing",
+            variantCount: 1,
+            variants: [
+              {
+                id: "finder-variant-1",
+                slug: "steel-bars",
+                label: "Steel bars",
+                icon_id: 2001,
+                highProfit: 1200000,
+                afkiness: 20,
+                xpHour: [{ skill: "smithing", experience: 220000 }],
+                requirements: {},
+                inputs: [],
+                outputs: [],
+              },
+            ],
+          },
+          {
+            id: "finder-2",
+            slug: "magic-trees",
+            name: "Magic trees",
+            category: "skilling",
+            variantCount: 1,
+            variants: [
+              {
+                id: "finder-variant-2",
+                slug: "woodcutting",
+                label: "Woodcutting",
+                icon_id: 2002,
+                highProfit: 180000,
+                afkiness: 85,
+                xpHour: [{ skill: "woodcutting", experience: 70000 }],
+                requirements: {},
+                inputs: [],
+                outputs: [],
+              },
+            ],
+          },
+          {
+            id: "finder-3",
+            slug: "rune-dragons",
+            name: "Rune Dragons",
+            category: "combat",
+            variantCount: 1,
+            variants: [
+              {
+                id: "finder-variant-3",
+                slug: "main",
+                label: "Main",
+                icon_id: 2003,
+                highProfit: 900000,
+                afkiness: 35,
+                xpHour: [{ skill: "slayer", experience: 45000 }],
+                requirements: {},
+                inputs: [],
+                outputs: [],
+              },
+            ],
+          },
+        ],
+      },
+    }),
+  ),
   http.get("*/skills", () => HttpResponse.json([])),
 );

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, TrendingDown, TrendingUp } from "lucide-react";
 import { AnimatedProfitValue } from "@/components/AnimatedProfitValue";
+import { LandingMethodFinder } from "@/components/LandingMethodFinder";
 import { PixelArtIcon } from "@/components/method-editor/MethodEditorPrimitives";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,13 +16,13 @@ import {
 } from "@/components/ui/carousel";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  LANDING_ELEVATED_PANEL_CLASS,
+  LANDING_PANEL_CLASS,
+  LANDING_SUBPANEL_CLASS,
   PUBLIC_BODY_CLASS,
-  PUBLIC_ELEVATED_PANEL_CLASS,
   PUBLIC_LINK_CLASS,
   PUBLIC_PAGE_BACKGROUND_CLASS,
-  PUBLIC_PANEL_CLASS,
   PUBLIC_SECTION_EYEBROW_CLASS,
-  PUBLIC_SUBPANEL_CLASS,
 } from "@/components/public-page/publicPageStyles";
 import {
   formatChangelogDate,
@@ -46,7 +47,7 @@ import { cn, formatPercent } from "@/lib/utils";
 
 const SEO_TITLE = "RSMethods | OSRS Money Making Methods";
 const SEO_DESCRIPTION =
-  "Find OSRS money making methods with clear filters, fast comparisons, and live product updates.";
+  "Find OSRS methods matched to your account with live GP/hr, XP/hr, and market signals.";
 const SEO_KEYWORDS =
   "osrs tool, osrs money making, old school runescape gp, osrs methods, osrs moneymaking";
 const TRENDING_METHODS_LIMIT = 6;
@@ -58,31 +59,65 @@ const TRENDING_PROFIT_QUERY_KEY = [
 
 const FEATURE_ITEMS = [
   {
-    title: "Advanced filters",
+    title: "Real methods. Real numbers.",
     description:
-      "Filter by category, click intensity, risk level, and skills to find methods that match your playstyle.",
+      "Explore deeply detailed money-making and training methods with live data, realistic rates, and advanced metrics to see what actually works.",
+    videoFileName: "feature-compare.webm",
+    reversed: false,
   },
   {
-    title: "Method history",
+    title: "Built around your stats.",
     description:
-      "Review profit-per-hour history to spot trends and market stability before committing.",
+      "Enter your OSRS username to pull your stats and instantly surface the best methods you can actually do.",
+    videoFileName: "feature-trends.webm",
+    reversed: true,
   },
   {
-    title: "Tailored to your account",
+    title: "Turn goals into a roadmap.",
     description:
-      "Use your account skills to surface the best methods you can do right now.",
+      "Set a GP or skill goal and get a step-by-step roadmap tailored to your stats, with precise time, XP, and profit estimates.",
+    videoFileName: "feature-recommendations.webm",
+    reversed: false,
   },
-  {
-    title: "Live data",
-    description:
-      "Prices and profit values refresh every 60 seconds so you can act on current market conditions.",
-  },
-  {
-    title: "Real-world viability",
-    description:
-      "Check advanced market impact metrics to estimate whether a method is practical at scale.",
-  },
+] as const;
+
+const AMBIENT_GRADIENT_ORBS = [
+  "landing-ambient-gradient__orb--one",
+  "landing-ambient-gradient__orb--three",
+  "landing-ambient-gradient__orb--four",
 ];
+
+function FeatureMediaPlaceholder({
+  title,
+  videoFileName,
+}: {
+  title: string;
+  videoFileName: string;
+}) {
+  return (
+    <figure
+      className={`${LANDING_SUBPANEL_CLASS} relative flex aspect-video min-h-52 items-end overflow-hidden p-5 sm:min-h-64`}
+      aria-label={`${title} product preview`}
+    >
+      {/*
+        Replace this placeholder with the matching media asset: feature-compare.webm,
+        feature-trends.webm, or feature-recommendations.webm. Use a video with
+        autoPlay, muted, loop, playsInline, preload="metadata", and respect
+        prefers-reduced-motion before starting playback.
+      */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-[radial-gradient(circle_at_75%_20%,var(--surface-highlight),transparent_38%),linear-gradient(135deg,transparent_0%,var(--surface-page-accent)_100%)] opacity-70"
+      />
+      <figcaption className="relative text-sm font-medium text-muted-foreground">
+        Product preview coming soon
+        <span className="mt-1 block text-xs text-brand/80">
+          {videoFileName}
+        </span>
+      </figcaption>
+    </figure>
+  );
+}
 
 function getVariantHref(method: Method, variant?: Variant): string {
   const variantSlug = variant?.slug ?? variant?.id;
@@ -152,7 +187,7 @@ function TrendingMethodCard({
   return (
     <Link
       to={getVariantHref(method, variant)}
-      className={`${PUBLIC_ELEVATED_PANEL_CLASS} block h-full p-4 text-left transition-[border-color,background-color,box-shadow] hover:border-brand/25 hover:bg-surface-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35 sm:p-5`}
+      className={`${LANDING_ELEVATED_PANEL_CLASS} block h-full p-4 text-left transition-[border-color,background-color,box-shadow] hover:border-brand/25 hover:bg-surface-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35 sm:p-5`}
     >
       <article className="flex min-h-[108px] flex-col gap-4">
         <div className="flex items-center justify-between gap-3">
@@ -267,12 +302,12 @@ function TrendingMethodsCarousel() {
           id="trending-profit-heading"
           className={PUBLIC_SECTION_EYEBROW_CLASS}
         >
-          Trending profit
+          Trending right now
         </h2>
       </div>
 
       {isInitialLoading ? (
-        <div className={`${PUBLIC_ELEVATED_PANEL_CLASS} p-4 sm:p-5`}>
+        <div className={`${LANDING_ELEVATED_PANEL_CLASS} p-4 sm:p-5`}>
           <div className="flex items-center justify-between">
             <Skeleton className="h-6 w-10 rounded-md" />
             <Skeleton className="h-5 w-5" />
@@ -297,13 +332,13 @@ function TrendingMethodsCarousel() {
         </div>
       ) : error ? (
         <div
-          className={`${PUBLIC_ELEVATED_PANEL_CLASS} p-5 text-sm text-muted-foreground`}
+          className={`${LANDING_ELEVATED_PANEL_CLASS} p-5 text-sm text-muted-foreground`}
         >
           Trending methods are unavailable right now.
         </div>
       ) : methods.length === 0 ? (
         <div
-          className={`${PUBLIC_ELEVATED_PANEL_CLASS} p-5 text-sm text-muted-foreground`}
+          className={`${LANDING_ELEVATED_PANEL_CLASS} p-5 text-sm text-muted-foreground`}
         >
           No trending methods are available yet.
         </div>
@@ -353,18 +388,36 @@ export function LandingPage() {
   });
 
   return (
-    <div className={PUBLIC_PAGE_BACKGROUND_CLASS}>
-      <header className="mx-auto grid w-full max-w-6xl items-center gap-10 px-6 py-18 sm:px-10 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
+    <div
+      className={`${PUBLIC_PAGE_BACKGROUND_CLASS} relative isolate overflow-hidden`}
+    >
+      <div className="landing-ambient-gradient" aria-hidden="true">
+        {AMBIENT_GRADIENT_ORBS.map((orbClass) => (
+          <span
+            key={orbClass}
+            className={`landing-ambient-gradient__orb ${orbClass}`}
+          />
+        ))}
+      </div>
+      <span
+        aria-hidden="true"
+        className="landing-ambient-gradient__orb landing-ambient-gradient__orb--two landing-scroll-gradient"
+      />
+
+      <header className="relative z-10 mx-auto grid min-h-[82svh] w-full max-w-6xl items-center gap-10 px-6 py-24 sm:px-10 lg:min-h-[90svh] lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] lg:py-28">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand">
-            Welcome to RSMethods
+            Welcome to RSMethods (Beta)
           </p>
           <h1 className="mt-3 max-w-4xl text-4xl font-black leading-tight text-foreground sm:text-6xl">
-            Make money and train efficiently with real-time data.
+            {/* Find your best OSRS method. */}
+            Play smarter.
+            <br></br>
+            Earn more.
           </h1>
           <p className="mt-6 max-w-3xl text-lg leading-relaxed text-muted-foreground sm:text-2xl">
-            RSMethods is a real-time decision tool for exploring money making
-            and training methods that fit each account&apos;s stats.
+            Find the best realistic methods for your account with accurate
+            real-time GP & XP rates.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Button
@@ -372,10 +425,7 @@ export function LandingPage() {
               size="lg"
               className="bg-brand text-brand-foreground shadow-sm ring-1 ring-black/10 hover:bg-brand hover:shadow-md"
             >
-              <Link to="/allMethods">Explore money making methods</Link>
-            </Button>
-            <Button asChild size="lg" variant="outline">
-              <Link to="/skilling">Explore skilling methods</Link>
+              <Link to="/allMethods">Explore methods</Link>
             </Button>
           </div>
         </div>
@@ -384,122 +434,72 @@ export function LandingPage() {
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 pb-16 sm:px-10">
-        <section id="who-it-is-for" className={`${PUBLIC_PANEL_CLASS} p-8`}>
-          <h2 className="text-2xl font-bold text-foreground">Who it is for</h2>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <article className={`${PUBLIC_SUBPANEL_CLASS} p-5`}>
-              <h3 className="font-semibold text-foreground">New players</h3>
-              <p className={`mt-2 ${PUBLIC_BODY_CLASS}`}>
-                Find practical methods without spending hours jumping between
-                guides, videos, and spreadsheets.
-              </p>
-            </article>
-            <article className={`${PUBLIC_SUBPANEL_CLASS} p-5`}>
-              <h3 className="font-semibold text-foreground">
-                Advanced players
-              </h3>
-              <p className={`mt-2 ${PUBLIC_BODY_CLASS}`}>
-                Optimize your time with the best method you can currently do
-                based on GP/hr, XP/hr, % AFK, and market stability.
-              </p>
-            </article>
-            <article className={`${PUBLIC_SUBPANEL_CLASS} p-5`}>
-              <h3 className="font-semibold text-foreground">
-                Low-attention players
-              </h3>
-              <p className={`mt-2 ${PUBLIC_BODY_CLASS}`}>
-                Surface methods that demand less attention while still helping
-                you profit or train.
-              </p>
-            </article>
-            <article className={`${PUBLIC_SUBPANEL_CLASS} p-5`}>
-              <h3 className="font-semibold text-foreground">
-                Players focused on GP
-              </h3>
-              <p className={`mt-2 ${PUBLIC_BODY_CLASS}`}>
-                Spend time only on methods that currently deliver the best
-                hourly returns, backed by fresh and reliable data.
-              </p>
-            </article>
-            <article className={`${PUBLIC_SUBPANEL_CLASS} p-5`}>
-              <h3 className="font-semibold text-foreground">
-                Players focused on XP
-              </h3>
-              <p className={`mt-2 ${PUBLIC_BODY_CLASS}`}>
-                Level efficiently with realistic methods that fit your current
-                account progression.
-              </p>
-            </article>
-          </div>
-        </section>
+      <main className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 pb-16 sm:px-10">
+        <div className={`${LANDING_PANEL_CLASS} p-8`}>
+          <LandingMethodFinder />
+        </div>
 
-        <section id="features" className={`${PUBLIC_PANEL_CLASS} p-8`}>
-          <h2 className="text-2xl font-bold text-foreground">Features</h2>
-          <div className="mt-4 grid gap-4 sm:grid-cols-3">
-            {FEATURE_ITEMS.map((item) => (
+        <section id="features" className={`${LANDING_PANEL_CLASS} p-8`}>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand">
+            Features
+          </p>
+          {/* <h2 className="mt-2 text-2xl font-bold text-foreground">
+            Choose better methods, faster.
+          </h2>
+          <p className={`mt-3 max-w-2xl ${PUBLIC_BODY_CLASS}`}>
+            RSMethods helps you compare methods, spot opportunities and find
+            options that match how you want to play.
+          </p> */}
+          <div className="mt-10 space-y-16">
+            {FEATURE_ITEMS.map((feature) => (
               <article
-                key={item.title}
-                className={`${PUBLIC_SUBPANEL_CLASS} p-5`}
+                key={feature.title}
+                className="grid items-center gap-8 lg:grid-cols-2 lg:gap-12"
               >
-                <h3 className="font-semibold text-foreground">{item.title}</h3>
-                <p className={`mt-2 ${PUBLIC_BODY_CLASS}`}>
-                  {item.description}
-                </p>
+                <div className={feature.reversed ? "lg:order-2" : undefined}>
+                  <h3 className="text-xl font-bold text-foreground sm:text-2xl">
+                    {feature.title}
+                  </h3>
+                  <p className={`mt-3 max-w-lg ${PUBLIC_BODY_CLASS}`}>
+                    {feature.description}
+                  </p>
+                </div>
+                <div className={feature.reversed ? "lg:order-1" : undefined}>
+                  <FeatureMediaPlaceholder
+                    title={feature.title}
+                    videoFileName={feature.videoFileName}
+                  />
+                </div>
               </article>
             ))}
           </div>
         </section>
 
-        <section id="how-it-works" className={`${PUBLIC_PANEL_CLASS} p-8`}>
-          <h2 className="text-2xl font-bold text-foreground">How it works</h2>
-          <ol className={`mt-4 grid gap-3 ${PUBLIC_BODY_CLASS} sm:grid-cols-2`}>
-            <li className={`${PUBLIC_SUBPANEL_CLASS} p-4`}>
-              1. Open{" "}
-              <Link to="/allMethods" className={PUBLIC_LINK_CLASS}>
-                /allMethods
-              </Link>
-              .
-            </li>
-            <li className={`${PUBLIC_SUBPANEL_CLASS} p-4`}>
-              2. Apply filters for category, skill, and risk level.
-            </li>
-            <li className={`${PUBLIC_SUBPANEL_CLASS} p-4`}>
-              3. Compare methods and open the detail view to review requirements
-              and variants.
-            </li>
-            <li className={`${PUBLIC_SUBPANEL_CLASS} p-4`}>
-              4. Check the changelog to see recent product improvements.
-            </li>
-          </ol>
-        </section>
-
-        <section id="changelog" className={`${PUBLIC_PANEL_CLASS} p-8`}>
-          <h2 className="text-2xl font-bold text-foreground">
-            Latest changelog entries
-          </h2>
-          <p className={`mt-2 ${PUBLIC_BODY_CLASS}`}>
-            The three most recent product updates.
+        <section id="changelog" className={`${LANDING_PANEL_CLASS} p-8`}>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand">
+            Updates
           </p>
+          <h2 className="text-2xl font-bold text-foreground">
+            See what’s new in RSMethods
+          </h2>
 
-          <div className="mt-5 grid gap-3">
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
             {latestChangelogEntries.map((entry) => (
               <article
                 key={entry.slug}
-                className={`${PUBLIC_SUBPANEL_CLASS} p-5`}
+                className={`${LANDING_SUBPANEL_CLASS} flex h-full flex-col p-5`}
               >
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand">
                   {formatChangelogDate(entry.date)} | {entry.version}
                 </p>
-                <h3 className="mt-2 text-lg font-bold text-foreground">
+                <h3 className="mt-2 text-base font-bold text-foreground">
                   {entry.title}
                 </h3>
-                <p className={`mt-2 ${PUBLIC_BODY_CLASS}`}>{entry.summary}</p>
                 <Link
                   to={`/changelog/${entry.slug}`}
-                  className={`mt-3 inline-block text-sm ${PUBLIC_LINK_CLASS}`}
+                  className={`mt-4 inline-block text-sm ${PUBLIC_LINK_CLASS}`}
                 >
-                  Read the full article
+                  Read update
                 </Link>
               </article>
             ))}

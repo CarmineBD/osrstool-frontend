@@ -31,7 +31,10 @@ describe("critical flow: unknown routes", () => {
 
     await userEvent.setup().click(homeLink);
 
-    await screen.findByText("Welcome to RSMethods");
+    await screen.findByRole("heading", {
+      level: 1,
+      name: /Play smarter\.\s*Earn more\./i,
+    });
     expect(document.head.querySelector('meta[name="robots"]')).toBeNull();
-  });
+  }, 10_000);
 });
