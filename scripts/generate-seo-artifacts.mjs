@@ -1,10 +1,11 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-const siteUrl = (process.env.SEO_SITE_URL ?? "https://www.rsmethods.com").replace(
-  /\/$/,
-  "",
-);
+const siteUrl = (
+  process.env.SEO_SITE_URL ??
+  process.env.VITE_SITE_URL ??
+  "https://www.rsmethods.com"
+).replace(/\/$/, "");
 const apiUrl = (process.env.SEO_API_URL ??
   "https://osrstool-backend-production.up.railway.app").replace(/\/$/, "");
 const robotsDirective = process.env.VITE_ROBOTS?.trim();
@@ -18,6 +19,7 @@ const staticPaths = [
   "/skilling",
   "/skilling/agility",
   "/skilling/attack",
+  "/skilling/strength",
   "/skilling/construction",
   "/skilling/cooking",
   "/skilling/crafting",
@@ -230,17 +232,23 @@ async function main() {
   for (const row of rows) {
     if (row?.enabled === false || !row?.slug || !row.name) continue;
     const existing = methods.get(row.slug) ?? { ...row, variants: [] };
-    const variant = row.variants?.[0];
-    if (variant?.slug && !existing.variants.some((item) => item.slug === variant.slug)) {
-      existing.variants.push(variant);
+
+    for (const variant of row.variants ?? []) {
+      if (
+        variant?.slug &&
+        !existing.variants.some((item) => item.slug === variant.slug)
+      ) {
+        existing.variants.push(variant);
+      }
     }
+
     methods.set(row.slug, existing);
   }
 
   for (const method of methods.values()) {
     const defaultVariant = method.variants[0];
     pages.set(`/moneyMakingMethod/${method.slug}`, { method, variant: defaultVariant });
-    if (method.variantCount > 1) {
+    if (method.variants.length > 1) {
       for (const variant of method.variants) {
         pages.set(`/moneyMakingMethod/${method.slug}/${variant.slug}`, { method, variant });
       }

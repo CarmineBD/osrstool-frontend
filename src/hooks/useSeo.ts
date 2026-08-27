@@ -131,6 +131,14 @@ export function useSeo({
 
     upsertCanonical(path);
     return () => {
+      if (structuredData) {
+        document.head
+          .querySelector<HTMLScriptElement>(
+            'script[data-rsmethods-seo="structured-data"]',
+          )
+          ?.remove();
+      }
+
       if (!environmentRobots && robots) {
         document.head
           .querySelector<HTMLMetaElement>(
