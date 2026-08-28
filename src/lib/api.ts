@@ -861,6 +861,9 @@ export interface SkillRoadmap {
   currentExperience: number;
   targetLevel: number;
   targetExperience: number;
+  experienceRemaining?: number;
+  goalReached?: boolean;
+  message?: string | null;
   totalHours: number;
   averageAfkPercent: number;
   totalProfit: RoadmapProfitRange;
