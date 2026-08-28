@@ -123,6 +123,46 @@ describe("critical flow: landing + all methods routing", () => {
     expect(within(finder).getByRole("button", { name: "Fletching" })).toBeDisabled();
   }, 10_000);
 
+  it("shows three result skeletons while Quick Demo filters are updating", async () => {
+    window.history.pushState({}, "", "/");
+
+    renderApp();
+
+    const finder = await screen.findByRole("region", {
+      name: "What do you feel like doing?",
+    });
+    await within(finder).findByRole("link", { name: /Blast Furnace/i });
+
+    let resolveSearch: (() => void) | undefined;
+    server.use(
+      http.post("*/methods/search", async () => {
+        await new Promise<void>((resolve) => {
+          resolveSearch = resolve;
+        });
+
+        return HttpResponse.json({
+          data: { methods: [], page: 1, perPage: 10, total: 0 },
+        });
+      }),
+    );
+
+    await userEvent.setup().click(
+      within(finder).getByRole("button", { name: "Train a skill" }),
+    );
+
+    const loadingMatches = await within(finder).findByRole("status", {
+      name: "Loading matches",
+    });
+    expect(
+      loadingMatches.querySelectorAll('[data-slot="skeleton"]'),
+    ).toHaveLength(9);
+
+    resolveSearch?.();
+    expect(
+      await within(finder).findByText("No methods match these choices yet."),
+    ).toBeInTheDocument();
+  });
+
   it("renders all methods page at /allMethods", async () => {
     server.use(
       http.post("*/methods/search", () =>
