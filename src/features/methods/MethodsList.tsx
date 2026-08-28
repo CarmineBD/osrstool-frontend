@@ -830,13 +830,9 @@ export function MethodsList({
             >
               {row.name}
             </Link>
-            {secondaryVariantLabel ? (
-              <p className="truncate text-xs font-medium leading-4 text-muted-foreground">
-                {secondaryVariantLabel}
-              </p>
-            ) : null}
-          </div>
-        </div>
+          }
+          variantLabel={secondaryVariantLabel}
+        />
       </TableCell>
     );
   };
