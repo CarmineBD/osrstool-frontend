@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { AlertCircleIcon, CircleHelp } from "lucide-react";
+import { AlertCircleIcon, CircleCheckIcon, CircleHelp } from "lucide-react";
 import { IoItemsGrid } from "@/components/IoItemsDisplay";
 import {
   GuidanceColumn,
@@ -259,9 +259,21 @@ function getRoadmapErrorMessage(error: unknown): string {
 }
 
 function getXpLeftLabel(roadmap: SkillRoadmap): string {
-  return `${formatNumber(
-    roadmap.targetExperience - roadmap.currentExperience,
-  )} xp needed to reach level ${roadmap.targetLevel}.`;
+  if (roadmap.goalReached) {
+    return (
+      roadmap.message ?? `Target level ${roadmap.targetLevel} has already been reached.`
+    );
+  }
+
+  return `${formatNumber(getExperienceRemaining(roadmap))} xp needed to reach level ${roadmap.targetLevel}.`;
+}
+
+function getExperienceRemaining(roadmap: SkillRoadmap): number {
+  if (typeof roadmap.experienceRemaining === "number") {
+    return Math.max(0, roadmap.experienceRemaining);
+  }
+
+  return Math.max(0, roadmap.targetExperience - roadmap.currentExperience);
 }
 
 function RoadmapMetricsPanel({
@@ -346,9 +358,7 @@ function RoadmapMetricsPanel({
             <div className={rowClassName}>
               <span className={labelClassName}>XP left</span>
               <span className="text-right text-sm font-medium tabular-nums text-foreground">
-                {formatNumber(
-                  roadmap.targetExperience - roadmap.currentExperience,
-                )}
+                {formatNumber(getExperienceRemaining(roadmap))}
               </span>
             </div>
 
@@ -1428,11 +1438,22 @@ export function RoadmapsPage() {
                   level="h2"
                 />
 
+                {!roadmapMutation.isPending && roadmap?.goalReached ? (
+                  <Alert className="mt-6 border-success/40 bg-success-soft text-success-foreground">
+                    <CircleCheckIcon />
+                    <AlertTitle>Goal reached</AlertTitle>
+                    <AlertDescription className="text-success-foreground/80">
+                      {roadmap.message ??
+                        `Target level ${roadmap.targetLevel} has already been reached.`}
+                    </AlertDescription>
+                  </Alert>
+                ) : null}
+
                 {roadmapMutation.isPending ? (
                   <RoadmapJourneyBarSkeleton />
                 ) : null}
 
-                {!roadmapMutation.isPending && roadmap ? (
+                {!roadmapMutation.isPending && roadmap && !roadmap.goalReached ? (
                   <RoadmapJourneyBar
                     ranges={roadmap.ranges}
                     variantIcons={roadmapIconMap}
@@ -1440,7 +1461,7 @@ export function RoadmapsPage() {
                   />
                 ) : null}
 
-                {!roadmapMutation.isPending && roadmap ? (
+                {!roadmapMutation.isPending && roadmap && !roadmap.goalReached ? (
                   <RoadmapMaterialsSection
                     roadmap={roadmap}
                     itemsMap={roadmapItemsMap}
@@ -1449,7 +1470,9 @@ export function RoadmapsPage() {
                   />
                 ) : null}
 
-                {!roadmapMutation.isPending && aggregatedRoadmapRequirements ? (
+                {!roadmapMutation.isPending &&
+                !roadmap?.goalReached &&
+                aggregatedRoadmapRequirements ? (
                   <RoadmapRequirementsSection
                     requirements={aggregatedRoadmapRequirements}
                     itemsMap={roadmapItemsMap}
@@ -1462,7 +1485,7 @@ export function RoadmapsPage() {
                     <RoadmapTimelineSkeleton />
                   ) : null}
 
-                  {!roadmapMutation.isPending && roadmap ? (
+                  {!roadmapMutation.isPending && roadmap && !roadmap.goalReached ? (
                     <div className="space-y-0">
                       {roadmap.ranges.map((range, index) => (
                         <RoadmapTimelineItem
