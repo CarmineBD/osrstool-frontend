@@ -33,6 +33,7 @@ import { formatSkillName } from "@/lib/skills";
 import { cn, getUrlByType } from "@/lib/utils";
 import { OPEN_NAV_USERNAME_EVENT } from "@/lib/events";
 import { fetchMe, getMeQueryKey } from "@/lib/me";
+import { fetchMethodsSkillsSummary } from "@/lib/api";
 import { QUERY_STALE_TIME_MS } from "@/lib/queryRefresh";
 import { getRuntimeEnvironmentLabel } from "@/lib/runtimeEnv";
 import { normalizeBoundedText, USERNAME_MAX_LENGTH } from "@/lib/validation";
@@ -67,6 +68,20 @@ const SKILL_TAB_ORDER = [
   "hunter",
   "sailing",
 ] as const;
+const SKILL_TAB_COLUMNS = [
+  SKILL_TAB_ORDER.slice(0, 12),
+  SKILL_TAB_ORDER.slice(12),
+];
+const SKILL_TILE_GRID_CLASS =
+  "grid grid-cols-[repeat(3,3.5rem)] justify-center gap-2";
+const SKILL_COLUMNS_GRID_CLASS =
+  "grid grid-cols-[repeat(2,11.5rem)] justify-center gap-2";
+const SKILL_TILE_CLASS =
+  "hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground flex size-14 flex-col items-center justify-center gap-1 rounded-md text-center text-[10px] font-medium leading-none no-underline outline-hidden transition-colors duration-200 select-none";
+const UNAVAILABLE_SKILL_TILE_CLASS =
+  "flex size-14 cursor-not-allowed flex-col items-center justify-center gap-1 rounded-md text-center text-[10px] font-medium leading-none text-muted-foreground opacity-45 select-none";
+const MOBILE_SKILL_OVERVIEW_LINK_CLASS =
+  "from-muted/50 to-muted hover:bg-accent/70 focus:bg-accent/70 flex h-10 w-full items-center justify-center rounded-md bg-linear-to-r px-3 text-sm font-medium no-underline outline-hidden transition-colors duration-200";
 
 export function Nav({ hideInput }: Props) {
   const navigate = useNavigate();
@@ -87,6 +102,12 @@ export function Nav({ hideInput }: Props) {
     staleTime: QUERY_STALE_TIME_MS,
     retry: false,
   });
+  const { data: skillsSummary } = useQuery({
+    queryKey: ["methodsSkillsSummary", undefined, undefined],
+    queryFn: () => fetchMethodsSkillsSummary(),
+    staleTime: QUERY_STALE_TIME_MS,
+    retry: false,
+  });
   const [input, setInput] = useState<string>(username);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [mobileAccordionValue, setMobileAccordionValue] = useState<string[]>(
@@ -103,6 +124,9 @@ export function Nav({ hideInput }: Props) {
     window.location.hostname,
     import.meta.env.DEV,
   );
+  const isSkillUnavailable = (skill: (typeof SKILL_TAB_ORDER)[number]) =>
+    skillsSummary !== undefined &&
+    (skillsSummary.data[skill]?.officialVariantCount ?? 0) === 0;
 
   useEffect(() => {
     setInput(username);
@@ -224,49 +248,81 @@ export function Nav({ hideInput }: Props) {
               </NavigationMenuContent>
             </NavigationMenuItem>
             <NavigationMenuItem>
-              <NavigationMenuTrigger onClick={() => navigate("/allMethods")}>
+              <NavigationMenuTrigger onClick={() => navigate("/skilling")}>
                 Training methods
               </NavigationMenuTrigger>
               <NavigationMenuContent>
-                <ul className="grid w-fit grid-cols-[max-content_max-content_max-content] justify-items-center gap-x-2 gap-y-1 p-1">
-                  <li className="col-span-3">
+                <ul className="grid gap-2 p-2 md:w-[420px]">
+                  <li>
                     <NavigationMenuLink asChild>
                       <Link
-                        className="from-muted/50 to-muted flex h-full w-full flex-col justify-end rounded-md bg-linear-to-b p-2 no-underline outline-hidden select-none focus:shadow-md"
+                        className="from-muted/50 to-muted flex h-full w-full flex-col justify-end rounded-md bg-linear-to-b p-6 no-underline outline-hidden select-none focus:shadow-md"
                         to="/skilling"
                       >
-                        <div className="text-base font-medium">
+                        <div className="mt-4 mb-2 text-lg font-medium">
                           See all skills
                         </div>
+                        <p className="text-muted-foreground text-sm leading-tight">
+                          Browse every official training skill in one place.
+                        </p>
                       </Link>
                     </NavigationMenuLink>
                   </li>
-                  {SKILL_TAB_ORDER.map((skill) => {
-                    const iconUrl = getUrlByType(skill);
-                    const skillName = formatSkillName(skill);
+                  <li>
+                    <ul className={SKILL_COLUMNS_GRID_CLASS}>
+                      {SKILL_TAB_COLUMNS.map((skills, columnIndex) => (
+                        <li key={columnIndex}>
+                          <ul className={SKILL_TILE_GRID_CLASS}>
+                            {skills.map((skill) => {
+                              const iconUrl = getUrlByType(skill);
+                              const skillName = formatSkillName(skill);
+                              const unavailable = isSkillUnavailable(skill);
 
-                    return (
-                      <li key={skill}>
-                        <NavigationMenuLink asChild>
-                          <Link
-                            className="hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground flex items-center justify-center gap-1 rounded-md px-1 py-1 text-xs no-underline outline-hidden transition-colors select-none"
-                            to={`/skilling/${skill}`}
-                          >
-                            {iconUrl ? (
-                              <img
-                                src={iconUrl}
-                                alt={`${skill}_icon`}
-                                className="block shrink-0 [image-rendering:pixelated]"
-                              />
-                            ) : null}
-                            <span className="font-medium leading-none">
-                              {skillName}
-                            </span>
-                          </Link>
-                        </NavigationMenuLink>
-                      </li>
-                    );
-                  })}
+                              return (
+                                <li key={skill}>
+                                  {unavailable ? (
+                                    <span
+                                      aria-label={`${skillName}: No variants added yet`}
+                                      aria-disabled="true"
+                                      title="No variants added yet"
+                                      className={UNAVAILABLE_SKILL_TILE_CLASS}
+                                    >
+                                      {iconUrl ? (
+                                        <img
+                                          src={iconUrl}
+                                          alt={`${skill}_icon`}
+                                          className="block shrink-0 object-contain grayscale [image-rendering:pixelated]"
+                                        />
+                                      ) : null}
+                                      <span>{skillName}</span>
+                                    </span>
+                                  ) : (
+                                    <NavigationMenuLink asChild>
+                                      <Link
+                                        aria-label={skillName}
+                                        title={skillName}
+                                        className={SKILL_TILE_CLASS}
+                                        to={`/skilling/${skill}`}
+                                      >
+                                        {iconUrl ? (
+                                          <img
+                                            src={iconUrl}
+                                            alt={`${skill}_icon`}
+                                            className="block shrink-0 object-contain [image-rendering:pixelated]"
+                                          />
+                                        ) : null}
+                                        <span>{skillName}</span>
+                                      </Link>
+                                    </NavigationMenuLink>
+                                  )}
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </li>
+                      ))}
+                    </ul>
+                  </li>
                 </ul>
               </NavigationMenuContent>
             </NavigationMenuItem>
@@ -475,33 +531,54 @@ export function Nav({ hideInput }: Props) {
               <AccordionContent className="px-3 pb-3">
                 <div className="grid gap-2">
                   <Link
-                    className="from-muted/50 to-muted hover:bg-accent/70 focus:bg-accent/70 rounded-lg bg-linear-to-b p-3 text-sm font-medium no-underline outline-hidden transition-colors duration-200"
+                    className={MOBILE_SKILL_OVERVIEW_LINK_CLASS}
                     to="/skilling"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     See all skills
                   </Link>
-                  <ul className="grid grid-cols-2 gap-1 sm:grid-cols-3">
+                  <ul className={SKILL_TILE_GRID_CLASS}>
                     {SKILL_TAB_ORDER.map((skill) => {
                       const iconUrl = getUrlByType(skill);
                       const skillName = formatSkillName(skill);
+                      const unavailable = isSkillUnavailable(skill);
 
                       return (
                         <li key={skill}>
-                          <Link
-                            className="hover:bg-accent/70 focus:bg-accent/70 flex items-center gap-2 rounded-md px-2 py-1.5 text-xs no-underline outline-hidden transition-colors duration-200"
-                            to={`/skilling/${skill}`}
-                            onClick={() => setIsMobileMenuOpen(false)}
-                          >
-                            {iconUrl ? (
-                              <img
-                                src={iconUrl}
-                                alt={`${skill}_icon`}
-                                className="block shrink-0 [image-rendering:pixelated]"
-                              />
-                            ) : null}
-                            <span className="font-medium">{skillName}</span>
-                          </Link>
+                          {unavailable ? (
+                            <span
+                              aria-label={`${skillName}: No variants added yet`}
+                              aria-disabled="true"
+                              title="No variants added yet"
+                              className={UNAVAILABLE_SKILL_TILE_CLASS}
+                            >
+                              {iconUrl ? (
+                                <img
+                                  src={iconUrl}
+                                  alt={`${skill}_icon`}
+                                  className="block shrink-0 object-contain grayscale [image-rendering:pixelated]"
+                                />
+                              ) : null}
+                              <span>{skillName}</span>
+                            </span>
+                          ) : (
+                            <Link
+                              aria-label={skillName}
+                              title={skillName}
+                              className={SKILL_TILE_CLASS}
+                              to={`/skilling/${skill}`}
+                              onClick={() => setIsMobileMenuOpen(false)}
+                            >
+                              {iconUrl ? (
+                                <img
+                                  src={iconUrl}
+                                  alt={`${skill}_icon`}
+                                  className="block shrink-0 object-contain [image-rendering:pixelated]"
+                                />
+                              ) : null}
+                              <span>{skillName}</span>
+                            </Link>
+                          )}
                         </li>
                       );
                     })}

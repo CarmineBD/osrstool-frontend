@@ -15,6 +15,7 @@ import { useUsername } from "@/contexts/UsernameContext";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatedProfitValue } from "@/components/AnimatedProfitValue";
+import { MethodIdentity } from "@/components/MethodIdentity";
 import {
   Table,
   TableHeader,
@@ -802,27 +803,19 @@ export function MethodsList({
 
     return (
       <TableCell className={cn("min-w-0 font-medium", className)}>
-        <div className="flex items-start gap-2">
-          {row.iconId &&
-          variantIcons[
-            getIconReferenceKey({ id: row.iconId, source: row.iconSource })
-          ]?.iconUrl ? (
-            <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
-              <img
-                src={
-                  variantIcons[
-                    getIconReferenceKey({
-                      id: row.iconId,
-                      source: row.iconSource,
-                    })
-                  ]?.iconUrl
-                }
-                alt={`${row.name} icon`}
-                className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
-              />
-            </div>
-          ) : null}
-          <div className="min-w-0 space-y-1">
+        <MethodIdentity
+          iconUrl={
+            row.iconId
+              ? variantIcons[
+                  getIconReferenceKey({
+                    id: row.iconId,
+                    source: row.iconSource,
+                  })
+                ]?.iconUrl
+              : undefined
+          }
+          iconAlt={`${row.name} icon`}
+          methodName={
             <Link
               to={`/moneyMakingMethod/${row.methodSlug}${
                 row.variantCount > 1 ? `/${row.variantSlug}` : ""
@@ -837,13 +830,9 @@ export function MethodsList({
             >
               {row.name}
             </Link>
-            {secondaryVariantLabel ? (
-              <p className="truncate text-xs font-medium leading-4 text-muted-foreground">
-                {secondaryVariantLabel}
-              </p>
-            ) : null}
-          </div>
-        </div>
+          }
+          variantLabel={secondaryVariantLabel}
+        />
       </TableCell>
     );
   };
