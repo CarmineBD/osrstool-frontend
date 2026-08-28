@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
@@ -75,6 +75,64 @@ describe("RoadmapsPage", () => {
     },
     ROADMAP_INTERACTION_TEST_TIMEOUT_MS,
   );
+
+  it("shows the completion message for an already reached target", async () => {
+    server.use(
+      http.post("*/methods/skills/roadmap", () =>
+        HttpResponse.json({
+          data: {
+            roadmap: {
+              skill: "fletching",
+              strategy: "profitable",
+              currentLevel: 99,
+              currentExperience: 13043265,
+              targetLevel: 99,
+              targetExperience: 13034431,
+              experienceRemaining: 0,
+              goalReached: true,
+              message: "Target level 99 has already been reached.",
+              totalHours: 0,
+              averageAfkPercent: 0,
+              totalProfit: { low: 0, high: 0 },
+              ranges: [],
+            },
+            user: {
+              levels: { Fletching: 99 },
+              quests: {},
+              achievement_diaries: {},
+            },
+          },
+          meta: {
+            username: "carmixtank",
+            skill: "fletching",
+            strategy: "profitable",
+            enabled: true,
+            show_only_free_to_play: false,
+            ignoredTags: ["ge_limits", "not_viable"],
+            computedAt: 1785780480,
+            usesExactSkillExperience: true,
+          },
+        }),
+      ),
+    );
+
+    renderWithProviders(<RoadmapsPage />, { route: "/roadmaps" });
+    const user = userEvent.setup();
+
+    await user.type(screen.getByLabelText("OSRS username"), "carmixtank");
+    await user.click(screen.getByRole("button", { name: "Generate" }));
+
+    const completionAlert = await screen.findByRole("alert");
+    expect(within(completionAlert).getByText("Goal reached")).toBeInTheDocument();
+    expect(
+      within(completionAlert).getByText(
+        "Target level 99 has already been reached.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Progress by step"),
+    ).not.toBeInTheDocument();
+  });
 
   it("renders the timeline layout with variant icons and xp left", async () => {
     server.use(
