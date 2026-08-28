@@ -223,7 +223,7 @@ export function LandingMethodFinder() {
     () => getFinderFilters({ goal, preference, skill, lowBudget, onlyF2p }),
     [goal, lowBudget, onlyF2p, preference, skill],
   );
-  const { data, error, isLoading } = useQuery({
+  const { data, error, isLoading, isPlaceholderData } = useQuery({
     queryKey: ["landing-method-finder", player, filters],
     queryFn: () => fetchMethods(player ?? undefined, 1, undefined, filters),
     placeholderData: (previousData) => previousData,
@@ -268,7 +268,7 @@ export function LandingMethodFinder() {
     enabled: iconReferences.length > 0,
     staleTime: QUERY_STALE_TIME_MS,
   });
-  const isResultsLoading = isLoading;
+  const isResultsLoading = isLoading || isPlaceholderData;
 
   return (
     <section aria-labelledby="method-finder-heading">
