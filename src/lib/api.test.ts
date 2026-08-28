@@ -98,6 +98,21 @@ describe("api account username requirement handling", () => {
 });
 
 describe("api method payloads", () => {
+  it("omits the enabled query parameter when no filter is requested", async () => {
+    let receivedEnabled: string | null = "not-called";
+
+    server.use(
+      http.post("*/methods/skills/summary", ({ request }) => {
+        receivedEnabled = new URL(request.url).searchParams.get("enabled");
+        return HttpResponse.json({ data: {} });
+      }),
+    );
+
+    await fetchMethodsSkillsSummary();
+
+    expect(receivedEnabled).toBeNull();
+  });
+
   it("normalizes bigint icon ids returned as strings", async () => {
     server.use(
       http.post("*/methods/search", () =>
@@ -132,6 +147,38 @@ describe("api method payloads", () => {
 
     expect(response.methods[0]?.icon_id).toBe(4151);
     expect(response.methods[0]?.variants[0]?.icon_id).toBe(11284);
+  });
+
+  it("normalizes skill summary variant icon ids returned as strings", async () => {
+    server.use(
+      http.post("*/methods/skills/summary", () =>
+        HttpResponse.json({
+          data: {
+            magic: {
+              bestProfit: {
+                id: "method-1",
+                name: "Test method",
+                variants: [
+                  {
+                    id: "variant-1",
+                    label: "Main",
+                    icon_id: "11284",
+                    iconSource: "item",
+                    members: true,
+                    xpHour: [],
+                    requirements: {},
+                  },
+                ],
+              },
+            },
+          },
+        }),
+      ),
+    );
+
+    const response = await fetchMethodsSkillsSummary();
+
+    expect(response.data.magic?.bestProfit?.variants[0]?.icon_id).toBe(11284);
   });
 
   it("allows decimal actionsPerHour values within range", () => {

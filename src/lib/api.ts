@@ -769,6 +769,7 @@ export type SkillSummaryEntry = {
   bestProfit?: SkillSummaryMethod | null;
   bestAfk?: SkillSummaryMethod | null;
   bestXp?: SkillSummaryMethod | null;
+  officialVariantCount?: number;
 };
 
 export interface MethodsSkillsSummaryResponse {
@@ -1288,12 +1289,34 @@ export async function fetchSkills(): Promise<SkillOption[]> {
   return parseSkillOptions(json);
 }
 
+function normalizeSkillSummaryMethod(
+  method: SkillSummaryMethod | null | undefined,
+) {
+  if (!method) return method ?? null;
+
+  return {
+    ...method,
+    variants: (method.variants ?? []).map(normalizeVariant),
+  };
+}
+
+function normalizeSkillSummaryEntry(entry: SkillSummaryEntry): SkillSummaryEntry {
+  return {
+    ...entry,
+    bestProfit: normalizeSkillSummaryMethod(entry.bestProfit),
+    bestXp: normalizeSkillSummaryMethod(entry.bestXp),
+    bestAfk: normalizeSkillSummaryMethod(entry.bestAfk),
+  };
+}
+
 export async function fetchMethodsSkillsSummary(
   player?: PlayerInfo,
-  enabled = false,
+  enabled?: boolean,
 ): Promise<MethodsSkillsSummaryResponse> {
   const url = toApiUrl("/methods/skills/summary");
-  url.searchParams.set("enabled", String(enabled));
+  if (enabled !== undefined) {
+    url.searchParams.set("enabled", String(enabled));
+  }
 
   const res = await apiFetch(url.toString(), {
     method: "POST",
@@ -1321,7 +1344,15 @@ export async function fetchMethodsSkillsSummary(
       ? (root.meta as MethodsSkillsSummaryResponse["meta"])
       : undefined;
 
-  return { data, meta };
+  return {
+    data: Object.fromEntries(
+      Object.entries(data).map(([skill, entry]) => [
+        skill,
+        normalizeSkillSummaryEntry(entry),
+      ]),
+    ),
+    meta,
+  };
 }
 
 export async function fetchSkillRoadmap(

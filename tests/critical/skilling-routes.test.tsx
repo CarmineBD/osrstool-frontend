@@ -19,12 +19,16 @@ function renderApp() {
 const SLOW_INTERACTION_TEST_TIMEOUT_MS = 20000;
 
 describe("critical flow: skilling routes", () => {
-  it("renders skills cards with best metric tags and tooltip details", async () => {
+  it("renders skills by category with expandable best-method metrics", async () => {
     server.use(
       http.post("*/methods/skills/summary", () =>
         HttpResponse.json({
           data: {
+            attack: {
+              officialVariantCount: 0,
+            },
             magic: {
+              officialVariantCount: 3,
               bestProfit: {
                 id: "method-1",
                 slug: "bursting-monkeys",
@@ -102,61 +106,69 @@ describe("critical flow: skilling routes", () => {
     const user = userEvent.setup();
 
     expect(await screen.findByRole("heading", { name: "Skilling" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Combat skills" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Gathering skills" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Magic" })).toHaveAttribute(
       "href",
       "/skilling/magic"
     );
     expect(screen.queryByRole("link", { name: "Bursting monkeys" })).not.toBeInTheDocument();
+    await waitFor(() => {
+      const attackCard = screen.getByText("Attack").closest("article");
+      expect(attackCard).not.toBeNull();
+      expect(
+        within(attackCard as HTMLElement).getByText("No variants added yet."),
+      ).toBeInTheDocument();
+      expect(
+        within(attackCard as HTMLElement).queryByRole("link", {
+          name: "Attack",
+        }),
+      ).not.toBeInTheDocument();
+    });
 
-    const profitTag = await screen.findByRole("button", { name: /GP\/hr: 1\.5m/i });
-    const xpTag = screen.getByRole("button", { name: /XP\/hr: 120k/i });
-    const afkTag = screen.getByRole("button", { name: /% AFK: 95%/i });
-    expect(profitTag).not.toHaveAttribute("title");
-    expect(xpTag).not.toHaveAttribute("title");
-    expect(afkTag).not.toHaveAttribute("title");
+    const magicCard = screen.getByRole("link", { name: "Magic" }).closest("article");
+    expect(magicCard).not.toBeNull();
+    expect(
+      within(magicCard as HTMLElement).getByText("3 variants"),
+    ).toBeInTheDocument();
+    expect(
+      within(magicCard as HTMLElement).getByRole("link", {
+        name: "See all variants",
+      }),
+    ).toHaveAttribute("href", "/skilling/magic");
+    await user.hover(magicCard as HTMLElement);
 
-    await user.hover(profitTag);
+    const profitMetric = await screen.findByRole("link", {
+      name: /Best for Profit: 1\.5m GP\/hr\. Method: Bursting monkeys/i,
+    });
+    const xpMetric = screen.getByRole("link", {
+      name: /Best for XP: 120k XP\/hr\. Method: Bursting temple/i,
+    });
+    const afkMetric = screen.getByRole("link", {
+      name: /Most AFK: 95% AFK\. Method: Splashing/i,
+    });
+    expect(profitMetric).toHaveAttribute("href", "/moneyMakingMethod/bursting-monkeys");
+    expect(xpMetric).toHaveAttribute("href", "/moneyMakingMethod/bursting-temple");
+    expect(afkMetric).toHaveAttribute("href", "/moneyMakingMethod/splashing");
+
+    await user.hover(profitMetric);
     {
       const tooltips = await screen.findAllByRole("tooltip");
       const tooltip = tooltips[tooltips.length - 1];
       expect(within(tooltip).getByText("Bursting monkeys")).toBeInTheDocument();
-      expect(within(tooltip).getByText("XP/hr: 80k")).toBeInTheDocument();
-      expect(within(tooltip).getByText("% AFK: 15%")).toBeInTheDocument();
+      expect(within(tooltip).getByText("Main")).toBeInTheDocument();
+      expect(within(tooltip).queryByText("XP/hr: 80k")).not.toBeInTheDocument();
+      expect(within(tooltip).queryByText("AFK: 15%")).not.toBeInTheDocument();
     }
-    await user.unhover(profitTag);
-
-    await user.hover(xpTag);
-    await waitFor(() => {
-      expect(profitTag.className).toContain("opacity-45");
-      expect(afkTag.className).toContain("opacity-45");
-      expect(xpTag.className).not.toContain("opacity-45");
-    });
-    {
-      const tooltips = await screen.findAllByRole("tooltip");
-      const tooltip = tooltips[tooltips.length - 1];
-      expect(within(tooltip).getByText("Bursting temple")).toBeInTheDocument();
-      expect(within(tooltip).getByText("GP/hr: 500k")).toBeInTheDocument();
-      expect(within(tooltip).getByText("% AFK: 10%")).toBeInTheDocument();
-    }
-    await user.unhover(xpTag);
-
-    await user.hover(afkTag);
-    {
-      const tooltips = await screen.findAllByRole("tooltip");
-      const tooltip = tooltips[tooltips.length - 1];
-      expect(within(tooltip).getByText("Splashing")).toBeInTheDocument();
-      expect(within(tooltip).getByText("GP/hr: 0")).toBeInTheDocument();
-      expect(within(tooltip).getByText("XP/hr: 10k")).toBeInTheDocument();
-    }
-    await user.unhover(afkTag);
   }, SLOW_INTERACTION_TEST_TIMEOUT_MS);
 
-  it("does not dim tags that share the same method", async () => {
+  it("shows every metric when the same method leads more than one category", async () => {
     server.use(
       http.post("*/methods/skills/summary", () =>
         HttpResponse.json({
           data: {
             magic: {
+              officialVariantCount: 3,
               bestProfit: {
                 id: "method-1",
                 slug: "bursting-monkeys",
@@ -233,16 +245,19 @@ describe("critical flow: skilling routes", () => {
     renderApp();
     const user = userEvent.setup();
 
-    const profitTag = await screen.findByRole("button", { name: /GP\/hr: 1\.5m/i });
-    const xpTag = screen.getByRole("button", { name: /XP\/hr: 80k/i });
-    const afkTag = screen.getByRole("button", { name: /% AFK: 95%/i });
-
-    await user.hover(profitTag);
-    await waitFor(() => {
-      expect(xpTag.className).not.toContain("opacity-45");
-      expect(afkTag.className).toContain("opacity-45");
-    });
-    await user.unhover(profitTag);
+    const magicCard = (await screen.findByRole("link", { name: "Magic" })).closest("article");
+    expect(magicCard).not.toBeNull();
+    await user.hover(magicCard as HTMLElement);
+    expect(
+      screen.getByRole("link", {
+        name: /Best for Profit: 1\.5m GP\/hr\. Method: Bursting monkeys/i,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", {
+        name: /Best for XP: 80k XP\/hr\. Method: Bursting monkeys/i,
+      }),
+    ).toBeInTheDocument();
   });
 
   it("locks skill filters when browsing a specific skill page", async () => {
@@ -464,7 +479,7 @@ describe("critical flow: skilling routes", () => {
     const user = userEvent.setup();
     expect(await screen.findByText("Enabled only")).toBeInTheDocument();
     await waitFor(() => {
-      expect(seenEnabledValues).toContain("false");
+      expect(seenEnabledValues).toContain("true");
     });
 
     await user.click(
@@ -472,7 +487,7 @@ describe("critical flow: skilling routes", () => {
     );
 
     await waitFor(() => {
-      expect(seenEnabledValues).toContain("true");
+      expect(seenEnabledValues).toContain("false");
     });
   });
 
