@@ -5,7 +5,6 @@ import { ArrowUpRight, TrendingDown, TrendingUp } from "lucide-react";
 import { AnimatedProfitValue } from "@/components/AnimatedProfitValue";
 import { LandingMethodFinder } from "@/components/LandingMethodFinder";
 import { PixelArtIcon } from "@/components/method-editor/MethodEditorPrimitives";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -408,17 +407,17 @@ export function LandingPage() {
       />
 
       <header className="relative z-10 mx-auto flex min-h-[82svh] w-full max-w-6xl flex-col gap-8 px-6 py-6 sm:px-8 lg:min-h-[90svh] lg:py-8">
-        <Alert className="rounded-lg border-warning/40 bg-warning-soft px-4 py-3 text-warning-foreground">
+        <div className="rounded-lg border border-warning/40 bg-warning-soft px-4 py-3 text-warning-foreground">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-2">
-              <AlertTitle className="text-sm font-semibold">
+              <p className="text-sm font-semibold">
                 🚧 RSMethods is in Beta
-              </AlertTitle>
-              <AlertDescription className="text-sm leading-5 text-warning-foreground/80">
+              </p>
+              <p className="text-sm leading-5 text-warning-foreground/80">
                 You may encounter bugs or inaccurate data while we keep
                 improving the app. <strong>Found something wrong or have an idea?</strong>{" "}
                 Join our Discord and let us know.
-              </AlertDescription>
+              </p>
             </div>
             <Button
               asChild
@@ -435,7 +434,7 @@ export function LandingPage() {
               </a>
             </Button>
           </div>
-        </Alert>
+        </div>
 
         <div className="grid flex-1 items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
           <div>

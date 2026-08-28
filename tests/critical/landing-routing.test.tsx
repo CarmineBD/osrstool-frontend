@@ -33,11 +33,12 @@ describe("critical flow: landing + all methods routing", () => {
     expect(
       screen.getByRole("link", { name: "Find a method" }),
     ).toHaveAttribute("href", "#method-finder");
-    const betaAlert = screen.getByRole("alert");
-    expect(betaAlert).toHaveTextContent("RSMethods is in Beta");
-    expect(betaAlert).toHaveTextContent(
+    const betaNotice = screen.getByText(/RSMethods is in Beta/);
+    expect(betaNotice).toBeInTheDocument();
+    expect(betaNotice.parentElement).toHaveTextContent(
       "You may encounter bugs or inaccurate data while we keep improving the app. Found something wrong or have an idea? Join our Discord and let us know.",
     );
+    expect(betaNotice.closest("[role='alert']")).toBeNull();
     expect(
       screen.getByRole("link", {
         name: "Join our Discord",
