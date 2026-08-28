@@ -5,6 +5,7 @@ import { ArrowUpRight, TrendingDown, TrendingUp } from "lucide-react";
 import { AnimatedProfitValue } from "@/components/AnimatedProfitValue";
 import { LandingMethodFinder } from "@/components/LandingMethodFinder";
 import { PixelArtIcon } from "@/components/method-editor/MethodEditorPrimitives";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +32,7 @@ import {
 } from "@/content/changelog";
 import { useSeo } from "@/hooks/useSeo";
 import { useUsername } from "@/contexts/UsernameContext";
+import { OFFICIAL_DISCORD_URL } from "@/lib/community";
 import {
   fetchIconRecords,
   fetchTrendingProfitMethods,
@@ -405,30 +407,61 @@ export function LandingPage() {
         className="landing-ambient-gradient__orb landing-ambient-gradient__orb--two landing-scroll-gradient"
       />
 
-      <header className="relative z-10 mx-auto grid min-h-[82svh] w-full max-w-6xl items-center gap-8 px-6 py-24 sm:px-8 lg:min-h-[90svh] lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] lg:py-28">
-        <div>
-          <p className={PUBLIC_EYEBROW_CLASS}>Welcome to RSMethods (Beta)</p>
-          <h1 className="mt-3 max-w-4xl text-4xl font-bold leading-10 tracking-tight text-foreground sm:text-6xl sm:leading-[64px]">
-            Play smarter.
-            <br />
-            Earn more.
-          </h1>
-          <p className="mt-6 max-w-2xl text-lg leading-7 text-muted-foreground">
-            Find the best realistic methods for your account with accurate
-            real-time GP & XP rates.
-          </p>
-          <div className="mt-6 flex flex-wrap gap-3">
+      <header className="relative z-10 mx-auto flex min-h-[82svh] w-full max-w-6xl flex-col gap-8 px-6 py-6 sm:px-8 lg:min-h-[90svh] lg:py-8">
+        <Alert className="rounded-lg border-warning/40 bg-warning-soft px-4 py-3 text-warning-foreground">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-2">
+              <AlertTitle className="text-sm font-semibold">
+                🚧 RSMethods is in Beta
+              </AlertTitle>
+              <AlertDescription className="text-sm leading-5 text-warning-foreground/80">
+                You may encounter bugs or inaccurate data while we keep
+                improving the app. <strong>Found something wrong or have an idea?</strong>{" "}
+                Join our Discord and let us know.
+              </AlertDescription>
+            </div>
             <Button
               asChild
-              size="lg"
-              className="bg-brand text-brand-foreground shadow-none hover:bg-brand/90"
+              variant="secondary"
+              size="sm"
+              className="shrink-0"
             >
-              <a href="#method-finder">Find a method</a>
+              <a
+                href={OFFICIAL_DISCORD_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Join our Discord
+              </a>
             </Button>
           </div>
-        </div>
-        <div className="flex justify-center lg:justify-end">
-          <TrendingMethodsCarousel />
+        </Alert>
+
+        <div className="grid flex-1 items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
+          <div>
+            <p className={PUBLIC_EYEBROW_CLASS}>Welcome to RSMethods (Beta)</p>
+            <h1 className="mt-3 max-w-4xl text-4xl font-bold leading-10 tracking-tight text-foreground sm:text-6xl sm:leading-[64px]">
+              Play smarter.
+              <br />
+              Earn more.
+            </h1>
+            <p className="mt-6 max-w-2xl text-lg leading-7 text-muted-foreground">
+              Find the best realistic methods for your account with accurate
+              real-time GP & XP rates.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Button
+                asChild
+                size="lg"
+                className="bg-brand text-brand-foreground shadow-none hover:bg-brand/90"
+              >
+                <a href="#method-finder">Find a method</a>
+              </Button>
+            </div>
+          </div>
+          <div className="flex justify-center lg:justify-end">
+            <TrendingMethodsCarousel />
+          </div>
         </div>
       </header>
 

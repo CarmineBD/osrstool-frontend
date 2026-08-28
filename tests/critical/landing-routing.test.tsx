@@ -7,6 +7,7 @@ import App from "@/App";
 import { server } from "../msw/server";
 import { render } from "@testing-library/react";
 import { createTestQueryClient } from "../utils/render";
+import { OFFICIAL_DISCORD_URL } from "@/lib/community";
 
 function renderApp() {
   const queryClient = createTestQueryClient();
@@ -32,6 +33,16 @@ describe("critical flow: landing + all methods routing", () => {
     expect(
       screen.getByRole("link", { name: "Find a method" }),
     ).toHaveAttribute("href", "#method-finder");
+    const betaAlert = screen.getByRole("alert");
+    expect(betaAlert).toHaveTextContent("RSMethods is in Beta");
+    expect(betaAlert).toHaveTextContent(
+      "You may encounter bugs or inaccurate data while we keep improving the app. Found something wrong or have an idea? Join our Discord and let us know.",
+    );
+    expect(
+      screen.getByRole("link", {
+        name: "Join our Discord",
+      }),
+    ).toHaveAttribute("href", OFFICIAL_DISCORD_URL);
     expect(document.getElementById("method-finder")).toHaveClass(
       "scroll-mt-20",
     );
