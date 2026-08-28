@@ -15,6 +15,7 @@ import { useUsername } from "@/contexts/UsernameContext";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatedProfitValue } from "@/components/AnimatedProfitValue";
+import { MethodIdentity } from "@/components/MethodIdentity";
 import {
   Table,
   TableHeader,
