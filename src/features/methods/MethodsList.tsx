@@ -803,27 +803,19 @@ export function MethodsList({
 
     return (
       <TableCell className={cn("min-w-0 font-medium", className)}>
-        <div className="flex items-start gap-2">
-          {row.iconId &&
-          variantIcons[
-            getIconReferenceKey({ id: row.iconId, source: row.iconSource })
-          ]?.iconUrl ? (
-            <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center">
-              <img
-                src={
-                  variantIcons[
-                    getIconReferenceKey({
-                      id: row.iconId,
-                      source: row.iconSource,
-                    })
-                  ]?.iconUrl
-                }
-                alt={`${row.name} icon`}
-                className="h-auto w-auto max-h-full max-w-full object-contain [image-rendering:pixelated]"
-              />
-            </div>
-          ) : null}
-          <div className="min-w-0 space-y-1">
+        <MethodIdentity
+          iconUrl={
+            row.iconId
+              ? variantIcons[
+                  getIconReferenceKey({
+                    id: row.iconId,
+                    source: row.iconSource,
+                  })
+                ]?.iconUrl
+              : undefined
+          }
+          iconAlt={`${row.name} icon`}
+          methodName={
             <Link
               to={`/moneyMakingMethod/${row.methodSlug}${
                 row.variantCount > 1 ? `/${row.variantSlug}` : ""
