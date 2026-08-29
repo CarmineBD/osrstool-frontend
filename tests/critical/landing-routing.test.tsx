@@ -7,6 +7,7 @@ import App from "@/App";
 import { server } from "../msw/server";
 import { render } from "@testing-library/react";
 import { createTestQueryClient } from "../utils/render";
+import { OFFICIAL_DISCORD_URL } from "@/lib/community";
 
 function renderApp() {
   const queryClient = createTestQueryClient();
@@ -32,6 +33,17 @@ describe("critical flow: landing + all methods routing", () => {
     expect(
       screen.getByRole("link", { name: "Find a method" }),
     ).toHaveAttribute("href", "#method-finder");
+    const betaNotice = screen.getByText(/RSMethods is in Beta/);
+    expect(betaNotice).toBeInTheDocument();
+    expect(betaNotice.parentElement).toHaveTextContent(
+      "You may encounter bugs or inaccurate data while we keep improving the app. Found something wrong or have an idea? Join our Discord and let us know.",
+    );
+    expect(betaNotice.closest("[role='alert']")).toBeNull();
+    expect(
+      screen.getByRole("link", {
+        name: "Join our Discord",
+      }),
+    ).toHaveAttribute("href", OFFICIAL_DISCORD_URL);
     expect(document.getElementById("method-finder")).toHaveClass(
       "scroll-mt-20",
     );
@@ -111,6 +123,46 @@ describe("critical flow: landing + all methods routing", () => {
     expect(within(finder).getByRole("button", { name: "Herblore" })).toBeDisabled();
     expect(within(finder).getByRole("button", { name: "Fletching" })).toBeDisabled();
   }, 10_000);
+
+  it("shows three result skeletons while Quick Demo filters are updating", async () => {
+    window.history.pushState({}, "", "/");
+
+    renderApp();
+
+    const finder = await screen.findByRole("region", {
+      name: "What do you feel like doing?",
+    });
+    await within(finder).findByRole("link", { name: /Blast Furnace/i });
+
+    let resolveSearch: (() => void) | undefined;
+    server.use(
+      http.post("*/methods/search", async () => {
+        await new Promise<void>((resolve) => {
+          resolveSearch = resolve;
+        });
+
+        return HttpResponse.json({
+          data: { methods: [], page: 1, perPage: 10, total: 0 },
+        });
+      }),
+    );
+
+    await userEvent.setup().click(
+      within(finder).getByRole("button", { name: "Train a skill" }),
+    );
+
+    const loadingMatches = await within(finder).findByRole("status", {
+      name: "Loading matches",
+    });
+    expect(
+      loadingMatches.querySelectorAll('[data-slot="skeleton"]'),
+    ).toHaveLength(9);
+
+    resolveSearch?.();
+    expect(
+      await within(finder).findByText("No methods match these choices yet."),
+    ).toBeInTheDocument();
+  });
 
   it("renders all methods page at /allMethods", async () => {
     server.use(
