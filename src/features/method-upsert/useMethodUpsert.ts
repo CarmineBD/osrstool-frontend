@@ -11,6 +11,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useNavigate, useParams } from "react-router-dom";
 import { useUsername } from "@/contexts/UsernameContext";
+import { calculateDynamicCycleSummary } from "@/lib/dynamicCycle";
 import { getMethodDetailQueryKey, normalizeMethodSlug } from "@/lib/queryKeys";
 import {
   ApiRequestError,
@@ -100,6 +101,7 @@ export type MethodUpsertSubmitValues = z.output<typeof methodFormSchema>;
 
 const createEmptyVariant = (label = "New variant"): Variant => ({
   label,
+  calculationMode: "fixed",
   members: false,
   description: "",
   actionsPerHour: undefined,
@@ -156,6 +158,7 @@ function isCombatRequirementSkill(skill: string): boolean {
 
 function validateVariant(variant: Variant, index: number): string | null {
   const variantLabel = variant.label?.trim() || `Variant ${index + 1}`;
+  const isDynamic = variant.calculationMode === "dynamic";
 
   if (!variant.label?.trim()) {
     return `${variantLabel}: name is required.`;
@@ -169,26 +172,90 @@ function validateVariant(variant: Variant, index: number): string | null {
   if (!normalizeIconId(variant.icon_id)) {
     return `${variantLabel}: icon is required.`;
   }
-  if (variant.actionsPerHour === undefined) {
+  if (!isDynamic && variant.actionsPerHour === undefined) {
     return `${variantLabel}: actions/hr is required.`;
   }
   if (
-    variant.actionsPerHour < 0 ||
-    variant.actionsPerHour > MAX_ACTIONS_PER_HOUR ||
-    !hasAtMostDecimalPlaces(
-      variant.actionsPerHour,
-      MAX_ACTIONS_PER_HOUR_DECIMAL_PLACES,
-    )
+    !isDynamic &&
+    (variant.actionsPerHour! < 0 ||
+      variant.actionsPerHour! > MAX_ACTIONS_PER_HOUR ||
+      !hasAtMostDecimalPlaces(
+        variant.actionsPerHour!,
+        MAX_ACTIONS_PER_HOUR_DECIMAL_PLACES,
+      ))
   ) {
     return `${variantLabel}: actions/hr must be between 0 and ${MAX_ACTIONS_PER_HOUR} with up to ${MAX_ACTIONS_PER_HOUR_DECIMAL_PLACES} decimal places.`;
   }
-  if (!variant.actionType) {
-    return `${variantLabel}: action type is required.`;
+  if (!isDynamic) {
+    if (!variant.actionType) {
+      return `${variantLabel}: action type is required.`;
+    }
+    if (!VARIANT_ACTION_TYPE_OPTIONS.includes(variant.actionType)) {
+      return `${variantLabel}: action type must be one of ${VARIANT_ACTION_TYPE_OPTIONS.join(", ")}.`;
+    }
   }
-  if (!VARIANT_ACTION_TYPE_OPTIONS.includes(variant.actionType)) {
-    return `${variantLabel}: action type must be one of ${VARIANT_ACTION_TYPE_OPTIONS.join(", ")}.`;
+  if (isDynamic) {
+    const dynamicAction = variant.dynamicAction;
+    if (!dynamicAction?.name.trim()) {
+      return `${variantLabel}: action name is required.`;
+    }
+    if (
+      !Number.isSafeInteger(dynamicAction.rollIntervalTicks) ||
+      dynamicAction.rollIntervalTicks <= 0
+    ) {
+      return `${variantLabel}: roll interval must be a positive multiple of 0.6 seconds.`;
+    }
+    if (!variant.cycleSteps?.length) {
+      return `${variantLabel}: at least one cycle step is required.`;
+    }
+    if (dynamicAction.xpGained.length > MAX_XP_HOUR_SKILLS) {
+      return `${variantLabel}: XP received supports at most ${MAX_XP_HOUR_SKILLS} skills.`;
+    }
+    for (const entry of dynamicAction.xpGained) {
+      if (
+        !Number.isSafeInteger(entry.skillId) ||
+        entry.skillId <= 0 ||
+        !Number.isFinite(entry.experience) ||
+        entry.experience < 0 ||
+        entry.experience > MAX_XP_PER_HOUR
+      ) {
+        return `${variantLabel}: XP received must use a valid skill and amount.`;
+      }
+    }
+    for (const [stepIndex, step] of variant.cycleSteps.entries()) {
+      if (!step.name.trim()) {
+        return `${variantLabel}: cycle step ${stepIndex + 1} name is required.`;
+      }
+      if (!Number.isSafeInteger(step.clicksMade) || step.clicksMade < 0) {
+        return `${variantLabel}: cycle step ${stepIndex + 1} clicks must be a non-negative integer.`;
+      }
+      const actionsMade = step.actionsMade ?? 0;
+      if (!Number.isSafeInteger(actionsMade) || actionsMade < 0) {
+        return `${variantLabel}: cycle step ${stepIndex + 1} actions made must be a non-negative integer.`;
+      }
+      if (actionsMade === 0) {
+        if (
+          !Number.isSafeInteger(step.durationTicks) ||
+          (step.durationTicks ?? 0) < 0
+        ) {
+          return `${variantLabel}: cycle step ${stepIndex + 1} duration must be a non-negative multiple of 0.6 seconds.`;
+        }
+      }
+      if (typeof step.isAfk !== "boolean") {
+        return `${variantLabel}: cycle step ${stepIndex + 1} AFK value is required.`;
+      }
+    }
+    if (
+      (calculateDynamicCycleSummary(
+        variant.cycleSteps,
+        dynamicAction.rollIntervalTicks,
+      ).cycleTotalDurationTicks ?? 0) <= 0
+    ) {
+      return `${variantLabel}: total cycle duration must be greater than zero.`;
+    }
   }
   if (
+    !isDynamic &&
     variant.clickIntensity !== undefined &&
     (!Number.isInteger(variant.clickIntensity) ||
       variant.clickIntensity < 0 ||
@@ -197,6 +264,7 @@ function validateVariant(variant: Variant, index: number): string | null {
     return `${variantLabel}: clicks/hr must be an integer between 0 and ${MAX_CLICK_INTENSITY}.`;
   }
   if (
+    !isDynamic &&
     variant.afkiness !== undefined &&
     (!Number.isInteger(variant.afkiness) ||
       variant.afkiness < 0 ||
@@ -204,10 +272,10 @@ function validateVariant(variant: Variant, index: number): string | null {
   ) {
     return `${variantLabel}: % AFK must be an integer between 0 and ${MAX_AFKINESS}.`;
   }
-  if ((variant.xpHour?.length ?? 0) > MAX_XP_HOUR_SKILLS) {
+  if (!isDynamic && (variant.xpHour?.length ?? 0) > MAX_XP_HOUR_SKILLS) {
     return `${variantLabel}: XP per hour supports at most ${MAX_XP_HOUR_SKILLS} skills.`;
   }
-  for (const entry of variant.xpHour ?? []) {
+  for (const entry of isDynamic ? [] : (variant.xpHour ?? [])) {
     if (
       !Number.isInteger(entry.experience) ||
       entry.experience < 0 ||
@@ -216,16 +284,19 @@ function validateVariant(variant: Variant, index: number): string | null {
       return `${variantLabel}: XP per hour must be an integer between 0 and ${MAX_XP_PER_HOUR}.`;
     }
   }
-  if ((variant.inputs?.length ?? 0) > INPUTS_MAX_COUNT) {
+  const dynamicAction = variant.dynamicAction;
+  const editableInputs = isDynamic ? (dynamicAction?.inputs ?? []) : (variant.inputs ?? []);
+  const editableOutputs = isDynamic ? (dynamicAction?.outputs ?? []) : (variant.outputs ?? []);
+  if (editableInputs.length > INPUTS_MAX_COUNT) {
     return `${variantLabel}: inputs can contain at most ${INPUTS_MAX_COUNT} items.`;
   }
-  if ((variant.outputs?.length ?? 0) > OUTPUTS_MAX_COUNT) {
+  if (editableOutputs.length > OUTPUTS_MAX_COUNT) {
     return `${variantLabel}: outputs can contain at most ${OUTPUTS_MAX_COUNT} items.`;
   }
 
   const ioEntries = [
-    ...(variant.inputs ?? []).map((entry) => ({ ...entry, bucket: "input" })),
-    ...(variant.outputs ?? []).map((entry) => ({ ...entry, bucket: "output" })),
+    ...editableInputs.map((entry) => ({ ...entry, bucket: "input" })),
+    ...editableOutputs.map((entry) => ({ ...entry, bucket: "output" })),
   ];
   for (const entry of ioEntries) {
     if (

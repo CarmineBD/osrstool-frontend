@@ -169,6 +169,33 @@ export const VARIANT_ACTION_TYPE_OPTIONS = [
 ] as const;
 export type VariantActionType = (typeof VARIANT_ACTION_TYPE_OPTIONS)[number];
 
+export type VariantCalculationMode = "fixed" | "dynamic";
+
+export interface DynamicActionSkillXp {
+  skillId: number;
+  experience: number;
+  skill?: string;
+}
+
+export interface DynamicVariantAction {
+  id?: string;
+  name: string;
+  rollIntervalTicks: number;
+  inputs: IoItem[];
+  outputs: IoItem[];
+  xpGained: DynamicActionSkillXp[];
+}
+
+export interface DynamicCycleStep {
+  id?: string;
+  name: string;
+  stepOrderPosition: number;
+  clicksMade: number;
+  isAfk?: boolean;
+  actionsMade?: number | null;
+  durationTicks?: number | null;
+}
+
 export interface Variant {
   id?: string;
   slug?: string;
@@ -178,6 +205,7 @@ export interface Variant {
   likes?: number;
   likedByMe?: boolean;
   members: boolean;
+  calculationMode?: VariantCalculationMode;
   description?: string;
   afkiness?: number;
   clickIntensity?: number;
@@ -208,6 +236,13 @@ export interface Variant {
   tags?: VariantTag[];
   inputs: IoItem[];
   outputs: IoItem[];
+  /** Editor payload for a dynamic calculation. */
+  dynamicAction?: DynamicVariantAction;
+  /** Dynamic action returned by method detail endpoints. */
+  action?: DynamicVariantAction;
+  cycleSteps?: DynamicCycleStep[];
+  cycleTotalDurationTicks?: number;
+  cyclesPerHour?: number;
 }
 
 export type IconSource = "item" | "game_icon";
@@ -349,11 +384,20 @@ function parseMethodsFromResponse(value: unknown): Method[] {
 }
 
 function normalizeVariant(variant: Variant): Variant {
+  const calculationMode =
+    variant.calculationMode === "dynamic" ? "dynamic" : "fixed";
+  const dynamicAction =
+    calculationMode === "dynamic"
+      ? (variant.dynamicAction ?? variant.action)
+      : undefined;
+
   return {
     ...variant,
     icon_id: normalizeIconId(variant.icon_id),
     iconSource: normalizeIconSource(variant.iconSource),
     members: variant.members ?? false,
+    calculationMode,
+    ...(dynamicAction ? { dynamicAction } : {}),
   };
 }
 
@@ -750,6 +794,7 @@ export interface QuestOption {
 }
 
 export interface SkillOption {
+  id?: number;
   label: string;
   value: string;
   name: string;
@@ -1228,23 +1273,31 @@ function parseSkillOptions(value: unknown): SkillOption[] {
   const unique = new Map<string, SkillOption>();
 
   for (const entry of entries) {
+    const record =
+      entry && typeof entry === "object"
+        ? (entry as Record<string, unknown>)
+        : undefined;
     const skillName =
       typeof entry === "string"
         ? entry
-        : entry && typeof entry === "object"
-          ? (((entry as Record<string, unknown>).name ??
-              (entry as Record<string, unknown>).skill ??
-              (entry as Record<string, unknown>).label ??
+        : record
+          ? ((record.name ??
+              record.skill ??
+              record.label ??
               "") as string)
           : "";
 
     if (typeof skillName !== "string" || !skillName.trim()) continue;
     const name = skillName.trim();
     const value = name.toLowerCase();
+    const parsedId = Number(record?.id);
     unique.set(value, {
       label: name,
       value,
       name,
+      ...(Number.isSafeInteger(parsedId) && parsedId > 0
+        ? { id: parsedId }
+        : {}),
     });
   }
 
@@ -1588,25 +1641,52 @@ export interface UpsertMethodValues extends UpdateMethodBasicDto {
   iconSource: IconSource;
 }
 
-export interface UpdateVariantDto {
+interface UpdateVariantBaseDto {
   id?: string;
   label: string;
   icon_id: number;
   iconSource: IconSource;
   members: boolean;
   description?: string;
-  afkiness?: number;
-  clickIntensity?: number;
   riskLevel?: string;
   wilderness?: boolean;
-  actionsPerHour: number;
-  actionType: VariantActionType;
-  xpHour?: { skill: string; experience: number }[];
+  actionsPerHour?: number;
+  calculationMode: VariantCalculationMode;
   requirements?: Requirement;
   recommendations?: Requirement;
+}
+
+export interface FixedUpdateVariantDto extends UpdateVariantBaseDto {
+  calculationMode: "fixed";
+  actionType: VariantActionType;
+  afkiness?: number;
+  clickIntensity?: number;
+  actionsPerHour: number;
+  xpHour?: { skill: string; experience: number }[];
   inputs: IoItem[];
   outputs: IoItem[];
 }
+
+export interface DynamicUpdateVariantDto extends UpdateVariantBaseDto {
+  calculationMode: "dynamic";
+  dynamicAction: {
+    name: string;
+    rollIntervalTicks: number;
+    inputs?: Array<{ id: number; quantity: number }>;
+    outputs?: Array<{ id: number; quantity: number }>;
+    xpGained?: Array<{ skillId: number; experience: number }>;
+  };
+  cycleSteps: Array<{
+    name: string;
+    stepOrderPosition: number;
+    clicksMade: number;
+    isAfk: boolean;
+    actionsMade?: number;
+    durationTicks?: number;
+  }>;
+}
+
+export type UpdateVariantDto = FixedUpdateVariantDto | DynamicUpdateVariantDto;
 
 export interface UpdateMethodDto extends UpsertMethodValues {
   variants: UpdateVariantDto[];
@@ -1618,6 +1698,15 @@ function mapIoItems(items: IoItem[] | undefined, type: IoItemType): IoItem[] {
     quantity: item.quantity,
     type,
     reason: item.reason ?? null,
+  }));
+}
+
+function mapDynamicActionItems(
+  items: IoItem[] | undefined,
+): Array<{ id: number; quantity: number }> {
+  return (items ?? []).map((item) => ({
+    id: item.id,
+    quantity: item.quantity,
   }));
 }
 
@@ -1905,22 +1994,36 @@ async function buildApiRequestError(
 }
 
 function buildVariantSignaturePayload(variant: Variant) {
-  return {
+  const base = {
     id: variant.id,
     label: variant.label,
     icon_id: normalizeIconId(variant.icon_id),
     iconSource: normalizeIconSource(variant.iconSource),
     members: variant.members ?? false,
     description: variant.description,
-    clickIntensity: variant.clickIntensity,
-    afkiness: variant.afkiness,
     riskLevel: variant.riskLevel,
     wilderness: variant.wilderness,
-    actionsPerHour: variant.actionsPerHour,
-    actionType: variant.actionType,
-    xpHour: variant.xpHour,
     requirements: variant.requirements ?? {},
     recommendations: variant.recommendations,
+    calculationMode:
+      variant.calculationMode === "dynamic" ? "dynamic" : "fixed",
+  };
+
+  if (variant.calculationMode === "dynamic") {
+    return {
+      ...base,
+      dynamicAction: variant.dynamicAction,
+      cycleSteps: variant.cycleSteps,
+    };
+  }
+
+  return {
+    ...base,
+    actionType: variant.actionType,
+    clickIntensity: variant.clickIntensity,
+    afkiness: variant.afkiness,
+    actionsPerHour: variant.actionsPerHour,
+    xpHour: variant.xpHour,
     inputs: mapIoItems(variant.inputs, "input"),
     outputs: mapIoItems(variant.outputs, "output"),
   };
@@ -1931,8 +2034,105 @@ function buildVariantUpdatePayload(variant: Variant): UpdateVariantDto {
   if (!icon_id) {
     throw new Error("Variant icon_id is required");
   }
+  if (variant.calculationMode === "dynamic") {
+    const dynamicAction = variant.dynamicAction;
+    if (!dynamicAction?.name.trim()) {
+      throw new Error("Dynamic action name is required");
+    }
+    if (
+      !Number.isSafeInteger(dynamicAction.rollIntervalTicks) ||
+      dynamicAction.rollIntervalTicks <= 0
+    ) {
+      throw new Error("Dynamic action rollIntervalTicks must be a positive integer");
+    }
+    if (!variant.cycleSteps?.length) {
+      throw new Error("At least one dynamic cycle step is required");
+    }
+
+    const cycleSteps = variant.cycleSteps.map((step, index) => {
+      if (!step.name.trim()) {
+        throw new Error(`Dynamic cycle step ${index + 1} name is required`);
+      }
+      if (!Number.isSafeInteger(step.clicksMade) || step.clicksMade < 0) {
+        throw new Error(`Dynamic cycle step ${index + 1} clicks must be a non-negative integer`);
+      }
+
+      const actionsMade = step.actionsMade ?? 0;
+      if (!Number.isSafeInteger(actionsMade) || actionsMade < 0) {
+        throw new Error(`Dynamic cycle step ${index + 1} actions made must be a non-negative integer`);
+      }
+      if (typeof step.isAfk !== "boolean") {
+        throw new Error(`Dynamic cycle step ${index + 1} isAfk is required`);
+      }
+      if (actionsMade > 0) {
+        return {
+          name: step.name.trim(),
+          stepOrderPosition: index + 1,
+          clicksMade: step.clicksMade,
+          actionsMade,
+          isAfk: step.isAfk,
+        };
+      }
+
+      const durationTicks = step.durationTicks ?? 0;
+      if (!Number.isSafeInteger(durationTicks) || durationTicks < 0) {
+        throw new Error(`Dynamic cycle step ${index + 1} duration must be a non-negative number of game ticks`);
+      }
+      return {
+        name: step.name.trim(),
+        stepOrderPosition: index + 1,
+        clicksMade: step.clicksMade,
+        durationTicks,
+        isAfk: step.isAfk,
+      };
+    });
+    const cycleTotalDurationTicks = cycleSteps.reduce(
+      (total, step) =>
+        total +
+        (step.actionsMade === undefined
+          ? step.durationTicks ?? 0
+          : step.actionsMade * dynamicAction.rollIntervalTicks),
+      0,
+    );
+    if (cycleTotalDurationTicks <= 0) {
+      throw new Error("Dynamic cycle duration must be greater than zero");
+    }
+
+    return {
+      id: variant.id,
+      label: variant.label,
+      icon_id,
+      iconSource: normalizeIconSource(variant.iconSource),
+      members: variant.members ?? false,
+      description: variant.description,
+      riskLevel: variant.riskLevel,
+      wilderness: variant.wilderness,
+      calculationMode: "dynamic",
+      requirements: variant.requirements ?? {},
+      recommendations: variant.recommendations,
+      dynamicAction: {
+        name: dynamicAction.name.trim(),
+        rollIntervalTicks: dynamicAction.rollIntervalTicks,
+        ...(dynamicAction.inputs.length > 0
+          ? { inputs: mapDynamicActionItems(dynamicAction.inputs) }
+          : {}),
+        ...(dynamicAction.outputs.length > 0
+          ? { outputs: mapDynamicActionItems(dynamicAction.outputs) }
+          : {}),
+        ...(dynamicAction.xpGained.length > 0
+          ? {
+              xpGained: dynamicAction.xpGained.map((entry) => ({
+                skillId: entry.skillId,
+                experience: entry.experience,
+              })),
+            }
+          : {}),
+      },
+      cycleSteps,
+    };
+  }
+
   const actionsPerHour = variant.actionsPerHour;
-  const actionType = variant.actionType;
   if (
     typeof actionsPerHour !== "number" ||
     actionsPerHour < 0 ||
@@ -1943,6 +2143,7 @@ function buildVariantUpdatePayload(variant: Variant): UpdateVariantDto {
       `Variant actionsPerHour must be between 0 and ${MAX_ACTIONS_PER_HOUR} with up to ${MAX_ACTIONS_PER_HOUR_DECIMAL_PLACES} decimal places`,
     );
   }
+  const actionType = variant.actionType;
   if (!actionType || !VARIANT_ACTION_TYPE_OPTIONS.includes(actionType)) {
     throw new Error(
       `Variant actionType must be one of: ${VARIANT_ACTION_TYPE_OPTIONS.join(", ")}`,
@@ -1953,9 +2154,10 @@ function buildVariantUpdatePayload(variant: Variant): UpdateVariantDto {
     ...buildVariantSignaturePayload(variant),
     icon_id,
     iconSource: normalizeIconSource(variant.iconSource),
+    calculationMode: "fixed",
     actionsPerHour,
     actionType,
-  };
+  } as FixedUpdateVariantDto;
 }
 
 function buildMethodWithVariantsUrl(
@@ -1964,8 +2166,10 @@ function buildMethodWithVariantsUrl(
 ): URL {
   const url = toApiUrl(path);
   variants.forEach((variant) => {
-    url.searchParams.append("actionsPerHour", String(variant.actionsPerHour));
-    url.searchParams.append("actionType", variant.actionType);
+    if (variant.calculationMode === "fixed") {
+      url.searchParams.append("actionsPerHour", String(variant.actionsPerHour));
+      url.searchParams.append("actionType", variant.actionType);
+    }
   });
   return url;
 }

@@ -209,4 +209,87 @@ describe("api method payloads", () => {
       ).variants[0]?.actionsPerHour,
     ).toBe(12.5);
   });
+
+  it("maps dynamic variants to tick-based action and cycle payloads", () => {
+    const payload = buildMethodUpdatePayload(
+      {
+        name: "Dynamic method",
+        category: "combat",
+        description: "Test",
+        enabled: true,
+        icon_id: 4151,
+        iconSource: "item",
+      },
+      [
+        {
+          label: "Dynamic",
+          icon_id: 11284,
+          iconSource: "item",
+          members: true,
+          calculationMode: "dynamic",
+          xpHour: [],
+          requirements: {},
+          inputs: [],
+          outputs: [],
+          dynamicAction: {
+            name: "Kill a monster",
+            rollIntervalTicks: 4,
+            inputs: [{ id: 1, quantity: 2, reason: "Not sent" }],
+            outputs: [{ id: 2, quantity: 1 }],
+            xpGained: [{ skillId: 3, skill: "combat", experience: 50 }],
+          },
+          cycleSteps: [
+            {
+              name: "Kill",
+              stepOrderPosition: 8,
+              clicksMade: 2,
+              actionsMade: 1,
+              durationTicks: 4,
+              isAfk: false,
+            },
+            {
+              name: "Wait",
+              stepOrderPosition: 2,
+              clicksMade: 0,
+              actionsMade: 0,
+              durationTicks: 0,
+              isAfk: true,
+            },
+          ],
+        },
+      ],
+    );
+
+    expect(payload.variants[0]).toEqual({
+      label: "Dynamic",
+      icon_id: 11284,
+      iconSource: "item",
+      members: true,
+      calculationMode: "dynamic",
+      requirements: {},
+      dynamicAction: {
+        name: "Kill a monster",
+        rollIntervalTicks: 4,
+        inputs: [{ id: 1, quantity: 2 }],
+        outputs: [{ id: 2, quantity: 1 }],
+        xpGained: [{ skillId: 3, experience: 50 }],
+      },
+      cycleSteps: [
+        {
+          name: "Kill",
+          stepOrderPosition: 1,
+          clicksMade: 2,
+          actionsMade: 1,
+          isAfk: false,
+        },
+        {
+          name: "Wait",
+          stepOrderPosition: 2,
+          clicksMade: 0,
+          durationTicks: 0,
+          isAfk: true,
+        },
+      ],
+    });
+  });
 });
