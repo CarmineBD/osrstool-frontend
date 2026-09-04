@@ -99,6 +99,7 @@ interface IoItemsFieldProps {
   onChange: (next: IoItem[]) => void;
   placeholder?: string;
   maxItems?: number;
+  showReason?: boolean;
 }
 
 export function IoItemsField({
@@ -107,6 +108,7 @@ export function IoItemsField({
   onChange,
   placeholder,
   maxItems,
+  showReason = true,
 }: IoItemsFieldProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ItemSearchResult[]>([]);
@@ -309,7 +311,14 @@ export function IoItemsField({
       setQuery("");
       return;
     }
-    onChange([{ id: item.id, quantity: 1, reason: null }, ...items]);
+    onChange([
+      {
+        id: item.id,
+        quantity: 1,
+        ...(showReason ? { reason: null } : {}),
+      },
+      ...items,
+    ]);
     setQuery("");
   };
 
@@ -522,7 +531,9 @@ export function IoItemsField({
                 <TableHead className={IO_QUANTITY_COLUMN_CLASS}>
                   Quantity
                 </TableHead>
-                <TableHead className={IO_REASON_COLUMN_CLASS}>Reason</TableHead>
+                {showReason ? (
+                  <TableHead className={IO_REASON_COLUMN_CLASS}>Reason</TableHead>
+                ) : null}
                 <TableHead className={cn(IO_ACTIONS_COLUMN_CLASS, "text-right")}>
                   Actions
                 </TableHead>
@@ -563,17 +574,19 @@ export function IoItemsField({
                         className="w-full"
                       />
                     </TableCell>
-                    <TableCell className="align-top">
-                      <Textarea
-                        placeholder="Optional"
-                        maxLength={REASON_MAX_LENGTH}
-                        value={entry.reason ?? ""}
-                        onChange={(e) =>
-                          handleReasonChange(entry.id, e.target.value)
-                        }
-                        className="min-h-[64px] resize-y"
-                      />
-                    </TableCell>
+                    {showReason ? (
+                      <TableCell className="align-top">
+                        <Textarea
+                          placeholder="Optional"
+                          maxLength={REASON_MAX_LENGTH}
+                          value={entry.reason ?? ""}
+                          onChange={(e) =>
+                            handleReasonChange(entry.id, e.target.value)
+                          }
+                          className="min-h-[64px] resize-y"
+                        />
+                      </TableCell>
+                    ) : null}
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Button

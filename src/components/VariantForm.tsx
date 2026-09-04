@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import {
   EDITOR_ERROR_TEXT_CLASS,
   EDITOR_FIELD_LABEL_CLASS,
+  EDITOR_META_TEXT_CLASS,
   EDITOR_NESTED_SURFACE_CLASS,
   EditorSubsection,
   InlineSwitchField,
 } from "@/components/method-editor/MethodEditorPrimitives";
 import { ItemIconField } from "@/components/ItemIconField";
+import { DynamicCycleStepsField } from "@/components/DynamicCycleStepsField";
 import { IoItemsField } from "@/components/IoItemsField";
 import { RequirementsRecommendationsField } from "@/components/RequirementsRecommendationsField";
 import { XpSkillsField } from "@/components/XpSkillsField";
@@ -34,11 +36,18 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import type {
   AchievementDiaryOption,
+  DynamicVariantAction,
   QuestOption,
   SkillOption,
   Variant,
 } from "@/lib/api";
 import { VARIANT_ACTION_TYPE_OPTIONS } from "@/lib/api";
+import {
+  formatGameTickCount,
+  formatGameTickSeconds,
+  isWholeGameTick,
+  secondsToGameTicks,
+} from "@/lib/gameTicks";
 import { cn } from "@/lib/utils";
 import {
   clampDecimal,
@@ -74,6 +83,31 @@ function normalizeIconId(value: number | null | undefined): number | undefined {
   return Number.isInteger(value) && (value as number) > 0
     ? (value as number)
     : undefined;
+}
+
+function createEmptyDynamicAction(): DynamicVariantAction {
+  return {
+    name: "",
+    rollIntervalTicks: 0,
+    inputs: [],
+    outputs: [],
+    xpGained: [],
+  };
+}
+
+function createEmptyCycleStep() {
+  return {
+    name: "",
+    stepOrderPosition: 1,
+    clicksMade: 0,
+    isAfk: false,
+    actionsMade: 0,
+    durationTicks: 0,
+  };
+}
+
+function normalizeSkillKey(value: string): string {
+  return value.trim().toLowerCase();
 }
 
 export function VariantForm({
@@ -118,6 +152,15 @@ export function VariantForm({
   const [outputs, setOutputs] = useState<Variant["outputs"]>(
     variant.outputs ?? [],
   );
+  const [calculationMode, setCalculationMode] = useState<
+    NonNullable<Variant["calculationMode"]>
+  >(variant.calculationMode ?? "fixed");
+  const [dynamicAction, setDynamicAction] = useState<DynamicVariantAction>(
+    variant.dynamicAction ?? createEmptyDynamicAction(),
+  );
+  const [cycleSteps, setCycleSteps] = useState(
+    variant.cycleSteps?.length ? variant.cycleSteps : [createEmptyCycleStep()],
+  );
 
   useEffect(() => {
     setLabel(variant.label);
@@ -132,6 +175,11 @@ export function VariantForm({
     setXpHour(variant.xpHour ?? []);
     setInputs(variant.inputs ?? []);
     setOutputs(variant.outputs ?? []);
+    setCalculationMode(variant.calculationMode ?? "fixed");
+    setDynamicAction(variant.dynamicAction ?? createEmptyDynamicAction());
+    setCycleSteps(
+      variant.cycleSteps?.length ? variant.cycleSteps : [createEmptyCycleStep()],
+    );
   }, [variant]);
 
   const iconError =
@@ -148,9 +196,50 @@ export function VariantForm({
       ? `Actions/hr is required and must be between 0 and ${MAX_ACTIONS_PER_HOUR} with up to ${MAX_ACTIONS_PER_HOUR_DECIMAL_PLACES} decimals.`
       : undefined;
   const actionTypeError =
-    showValidationErrors && !actionType
+    calculationMode === "fixed" && showValidationErrors && !actionType
       ? "Action type is required."
       : undefined;
+  const rollIntervalTicksError =
+    dynamicAction.rollIntervalTicks > 0 &&
+    !isWholeGameTick(dynamicAction.rollIntervalTicks)
+      ? "Roll interval must be divisible by 0.6 seconds."
+      : showValidationErrors &&
+          (!isWholeGameTick(dynamicAction.rollIntervalTicks) ||
+            dynamicAction.rollIntervalTicks <= 0)
+        ? "Roll interval must be greater than 0 seconds."
+        : undefined;
+  const dynamicActionNameError =
+    showValidationErrors && !dynamicAction.name.trim()
+      ? "Action name is required."
+      : undefined;
+
+  const updateDynamicAction = (next: DynamicVariantAction) => {
+    setDynamicAction(next);
+    onChange?.({
+      ...variant,
+      calculationMode: "dynamic",
+      dynamicAction: next,
+      cycleSteps,
+    });
+  };
+
+  const updateCycleSteps = (next: NonNullable<Variant["cycleSteps"]>) => {
+    setCycleSteps(next);
+    onChange?.({
+      ...variant,
+      calculationMode: "dynamic",
+      dynamicAction,
+      cycleSteps: next,
+    });
+  };
+
+  const dynamicXpEntries = dynamicAction.xpGained.map((entry) => ({
+    skill:
+      entry.skill ??
+      skillOptions.find((option) => option.id === entry.skillId)?.value ??
+      String(entry.skillId),
+    experience: entry.experience,
+  }));
 
   return (
     <div className={cn("overflow-hidden", EDITOR_NESTED_SURFACE_CLASS)}>
@@ -201,7 +290,7 @@ export function VariantForm({
             </AlertDialog>
           </>
         }
-        contentClassName="grid gap-4 lg:grid-cols-[max-content_minmax(0,1.6fr)_minmax(0,8rem)_minmax(0,8rem)]"
+        contentClassName="grid gap-4 lg:grid-cols-[max-content_minmax(0,1.6fr)_minmax(0,8rem)_minmax(0,8rem)_minmax(0,10rem)]"
       >
         <ItemIconField
           label="Icon"
@@ -267,7 +356,36 @@ export function VariantForm({
           }}
         />
 
-        <div className="lg:col-span-4">
+        <div>
+          <label className={EDITOR_FIELD_LABEL_CLASS}>Calculation mode</label>
+          <Select
+            value={calculationMode}
+            onValueChange={(next) => {
+              const nextMode = next as NonNullable<Variant["calculationMode"]>;
+              setCalculationMode(nextMode);
+              onChange?.({
+                ...variant,
+                calculationMode: nextMode,
+                ...(nextMode === "dynamic"
+                  ? {
+                      dynamicAction,
+                      cycleSteps,
+                    }
+                  : {}),
+              });
+            }}
+          >
+            <SelectTrigger className="h-10 w-full bg-background">
+              <SelectValue placeholder="Select mode" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="fixed">Fixed</SelectItem>
+              <SelectItem value="dynamic">Dynamic</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="lg:col-span-5">
           <label className={EDITOR_FIELD_LABEL_CLASS}>Description</label>
           <Textarea
             placeholder="Describe this variant"
@@ -286,8 +404,10 @@ export function VariantForm({
         </div>
       </EditorSubsection>
 
-      <EditorSubsection
-        title="Metrics"
+      {calculationMode === "fixed" ? (
+        <>
+          <EditorSubsection
+            title="Metrics"
         contentClassName="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,7rem)_minmax(0,7rem)_minmax(0,8rem)_minmax(0,9rem)] lg:items-start"
       >
         <XpSkillsField
@@ -421,8 +541,8 @@ export function VariantForm({
         </div>
       </EditorSubsection>
 
-      <EditorSubsection
-        title="Inputs & outputs"
+          <EditorSubsection
+            title="Inputs & outputs"
         contentClassName="grid gap-6 md:grid-cols-2"
       >
         <IoItemsField
@@ -443,7 +563,153 @@ export function VariantForm({
             onChange?.({ ...variant, outputs: next });
           }}
         />
-      </EditorSubsection>
+          </EditorSubsection>
+        </>
+      ) : (
+        <>
+          <EditorSubsection
+            title="Action"
+            description="Define the action completed during this cycle."
+            contentClassName="space-y-6"
+          >
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,10rem)] lg:items-start">
+              <div>
+                <label className={EDITOR_FIELD_LABEL_CLASS}>
+                  Action name
+                  <RequiredMark />
+                </label>
+                <Input
+                  value={dynamicAction.name}
+                  className={cn(
+                    "bg-background",
+                    dynamicActionNameError &&
+                      "border-destructive focus-visible:ring-destructive",
+                  )}
+                  onChange={(event) =>
+                    updateDynamicAction({
+                      ...dynamicAction,
+                      name: normalizeBoundedText(
+                        event.target.value,
+                        VARIANT_LABEL_MAX_LENGTH,
+                      ),
+                    })
+                  }
+                />
+                {dynamicActionNameError ? (
+                  <p className={cn("mt-2", EDITOR_ERROR_TEXT_CLASS)}>
+                    {dynamicActionNameError}
+                  </p>
+                ) : null}
+              </div>
+
+              <div>
+                <label className={EDITOR_FIELD_LABEL_CLASS}>
+                  Roll interval (seconds)
+                  <RequiredMark />
+                </label>
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="0.6"
+                  value={formatGameTickSeconds(dynamicAction.rollIntervalTicks)}
+                  className={cn(
+                    "bg-background",
+                    rollIntervalTicksError &&
+                      "border-destructive focus-visible:ring-destructive",
+                  )}
+                  onChange={(event) =>
+                    updateDynamicAction({
+                      ...dynamicAction,
+                      rollIntervalTicks:
+                        event.target.value === ""
+                          ? 0
+                          : secondsToGameTicks(event.target.valueAsNumber) ?? 0,
+                    })
+                  }
+                />
+                {isWholeGameTick(dynamicAction.rollIntervalTicks) ? (
+                  <p className={cn("mt-2", EDITOR_META_TEXT_CLASS)}>
+                    {formatGameTickCount(dynamicAction.rollIntervalTicks)}
+                  </p>
+                ) : null}
+                {rollIntervalTicksError ? (
+                  <p className={cn("mt-1", EDITOR_ERROR_TEXT_CLASS)}>
+                    {rollIntervalTicksError}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2">
+              <IoItemsField
+                label="Inputs"
+                items={dynamicAction.inputs}
+                maxItems={INPUTS_MAX_COUNT}
+                showReason={false}
+                onChange={(next) =>
+                  updateDynamicAction({ ...dynamicAction, inputs: next })
+                }
+              />
+              <IoItemsField
+                label="Outputs"
+                items={dynamicAction.outputs}
+                maxItems={OUTPUTS_MAX_COUNT}
+                showReason={false}
+                onChange={(next) =>
+                  updateDynamicAction({ ...dynamicAction, outputs: next })
+                }
+              />
+            </div>
+
+            <XpSkillsField
+              label="XP received"
+              skills={skillOptions}
+              entries={dynamicXpEntries}
+              maxEntries={MAX_XP_HOUR_SKILLS}
+              placeholder="Search for a skill..."
+              onChange={(next) => {
+                const nextXpGained = next.flatMap((entry) => {
+                  const skillKey = normalizeSkillKey(entry.skill);
+                  const existing = dynamicAction.xpGained.find(
+                    (value) => normalizeSkillKey(value.skill ?? "") === skillKey,
+                  );
+                  const option = skillOptions.find(
+                    (value) =>
+                      normalizeSkillKey(value.name) === skillKey ||
+                      normalizeSkillKey(value.value) === skillKey,
+                  );
+                  const skillId = existing?.skillId ?? option?.id;
+                  if (!skillId) return [];
+                  return [
+                    {
+                      skillId,
+                      skill: option?.value ?? existing?.skill ?? skillKey,
+                      experience: entry.experience,
+                    },
+                  ];
+                });
+                updateDynamicAction({
+                  ...dynamicAction,
+                  xpGained: nextXpGained,
+                });
+              }}
+            />
+          </EditorSubsection>
+
+          <EditorSubsection
+            title="Cycle"
+            description="Add the ordered steps that make up one complete cycle."
+          >
+            <DynamicCycleStepsField
+              steps={cycleSteps}
+              rollIntervalTicks={dynamicAction.rollIntervalTicks}
+              onChange={updateCycleSteps}
+              showValidationErrors={showValidationErrors}
+            />
+          </EditorSubsection>
+        </>
+      )}
 
       <EditorSubsection title="Requirements & recommendations">
         <RequirementsRecommendationsField

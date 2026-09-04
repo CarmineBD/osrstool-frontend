@@ -41,6 +41,11 @@ import {
   getStrategyRecommendation,
   type StrategyRecommendation,
 } from "@/features/method-detail/marketImpactStrategy";
+import {
+  formatGameTickCount,
+  formatGameTickSeconds,
+  isWholeGameTick,
+} from "@/lib/gameTicks";
 import { cn, formatNumber, formatPercent, getUrlByType } from "@/lib/utils";
 import type { Item, Method, Variant } from "@/lib/api";
 import { LikeButton } from "@/features/methods/LikeButton";
@@ -418,6 +423,7 @@ function MissingRequirementsNotice({
 }
 
 function MetricsCards({ variant }: { variant: Variant }) {
+  const isDynamic = variant.calculationMode === "dynamic";
   const xpHourEntries = variant.xpHour ?? [];
   const xpHourTotal = xpHourEntries.reduce(
     (total, { experience }) => total + experience,
@@ -569,7 +575,7 @@ function MetricsCards({ variant }: { variant: Variant }) {
 
           <div className={rowClassName}>
             <MetricLabelWithInfo
-              label="Click intensity"
+              label={isDynamic ? "Clicks/hr" : "Click intensity"}
               tooltip={
                 <p className="m-0">
                   The number of clicks required for 1 hour of this method.
@@ -583,6 +589,37 @@ function MetricsCards({ variant }: { variant: Variant }) {
                 : "N/A"}
             </span>
           </div>
+
+          {isDynamic ? (
+            <>
+              <div className={rowClassName}>
+                <span className={labelClassName}>Total cycle duration</span>
+                {isWholeGameTick(variant.cycleTotalDurationTicks) ? (
+                  <div className="flex flex-col items-end gap-1">
+                    <span className={valueClassName}>
+                      {formatGameTickSeconds(variant.cycleTotalDurationTicks)} seconds
+                    </span>
+                    <span className={EDITOR_META_TEXT_CLASS}>
+                      {formatGameTickCount(variant.cycleTotalDurationTicks)}
+                    </span>
+                  </div>
+                ) : (
+                  <span className={valueClassName}>N/A</span>
+                )}
+              </div>
+
+              <div className={rowClassName}>
+                <span className={labelClassName}>Cycles/hr</span>
+                <span className={valueClassName}>
+                  {typeof variant.cyclesPerHour === "number"
+                    ? variant.cyclesPerHour.toLocaleString(undefined, {
+                        maximumFractionDigits: 1,
+                      })
+                    : "N/A"}
+                </span>
+              </div>
+            </>
+          ) : null}
 
           <div className={rowClassName}>
             <MetricLabelWithInfo

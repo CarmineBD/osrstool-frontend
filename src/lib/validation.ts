@@ -18,6 +18,7 @@ export const MAX_ACTIONS_PER_HOUR = 99_999;
 export const MAX_ACTIONS_PER_HOUR_DECIMAL_PLACES = 2;
 export const MAX_CLICK_INTENSITY = MAX_ACTIONS_PER_HOUR;
 export const MAX_AFKINESS = 100;
+export const DYNAMIC_STEP_NAME_MAX_LENGTH = 120;
 export const MAX_SKILL_LEVEL = 99;
 export const MIN_COMBAT_LEVEL = 3;
 export const MAX_COMBAT_LEVEL = 126;
