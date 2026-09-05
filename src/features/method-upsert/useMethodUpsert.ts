@@ -12,6 +12,7 @@ import { z } from "zod";
 import { useNavigate, useParams } from "react-router-dom";
 import { useUsername } from "@/contexts/UsernameContext";
 import { calculateDynamicCycleSummary } from "@/lib/dynamicCycle";
+import { createEditorDynamicAction } from "@/features/method-upsert/dynamicActionFailureState";
 import { getMethodDetailQueryKey, normalizeMethodSlug } from "@/lib/queryKeys";
 import {
   ApiRequestError,
@@ -113,6 +114,17 @@ const createEmptyVariant = (label = "New variant"): Variant => ({
   outputs: [],
 });
 
+function createEditorVariant(variant: Variant): Variant {
+  if (variant.calculationMode !== "dynamic" || !variant.dynamicAction) {
+    return variant;
+  }
+
+  return {
+    ...variant,
+    dynamicAction: createEditorDynamicAction(variant.dynamicAction),
+  };
+}
+
 function normalizeVariantLabel(label: string): string {
   return label.trim().toLowerCase();
 }
@@ -208,6 +220,23 @@ function validateVariant(variant: Variant, index: number): string | null {
     if (!variant.cycleSteps?.length) {
       return `${variantLabel}: at least one cycle step is required.`;
     }
+    if (!variant.cycleSteps.some((step) => (step.actionsMade ?? 0) > 0)) {
+      return `${variantLabel}: cycle must include at least one step that generates actions.`;
+    }
+    const hasFailureConfiguration =
+      dynamicAction.failureInputs !== undefined ||
+      dynamicAction.failureOutputs !== undefined ||
+      dynamicAction.failureXpGained !== undefined;
+    if (
+      (hasFailureConfiguration && dynamicAction.baseSuccessChance === undefined) ||
+      (dynamicAction.baseSuccessChance !== undefined &&
+        (!Number.isFinite(dynamicAction.baseSuccessChance) ||
+          dynamicAction.baseSuccessChance < 0.0001 ||
+          dynamicAction.baseSuccessChance > 0.9999 ||
+          !hasAtMostDecimalPlaces(dynamicAction.baseSuccessChance, 4)))
+    ) {
+      return `${variantLabel}: base success chance must be between 0.01% and 99.99%.`;
+    }
     if (dynamicAction.xpGained.length > MAX_XP_HOUR_SKILLS) {
       return `${variantLabel}: XP received supports at most ${MAX_XP_HOUR_SKILLS} skills.`;
     }
@@ -220,6 +249,17 @@ function validateVariant(variant: Variant, index: number): string | null {
         entry.experience > MAX_XP_PER_HOUR
       ) {
         return `${variantLabel}: XP received must use a valid skill and amount.`;
+      }
+    }
+    for (const entry of dynamicAction.failureXpGained ?? []) {
+      if (
+        !Number.isSafeInteger(entry.skillId) ||
+        entry.skillId <= 0 ||
+        !Number.isFinite(entry.experience) ||
+        entry.experience < 0 ||
+        entry.experience > MAX_XP_PER_HOUR
+      ) {
+        return `${variantLabel}: failure XP received must use a valid skill and amount.`;
       }
     }
     for (const [stepIndex, step] of variant.cycleSteps.entries()) {
@@ -285,8 +325,18 @@ function validateVariant(variant: Variant, index: number): string | null {
     }
   }
   const dynamicAction = variant.dynamicAction;
-  const editableInputs = isDynamic ? (dynamicAction?.inputs ?? []) : (variant.inputs ?? []);
-  const editableOutputs = isDynamic ? (dynamicAction?.outputs ?? []) : (variant.outputs ?? []);
+  const editableInputs = isDynamic
+    ? [
+        ...(dynamicAction?.inputs ?? []),
+        ...(dynamicAction?.failureInputs ?? []),
+      ]
+    : (variant.inputs ?? []);
+  const editableOutputs = isDynamic
+    ? [
+        ...(dynamicAction?.outputs ?? []),
+        ...(dynamicAction?.failureOutputs ?? []),
+      ]
+    : (variant.outputs ?? []);
   if (editableInputs.length > INPUTS_MAX_COUNT) {
     return `${variantLabel}: inputs can contain at most ${INPUTS_MAX_COUNT} items.`;
   }
@@ -587,7 +637,7 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
     if (!isEditMode) return;
     if (!method) return;
 
-    const nextVariants = method.variants ?? [];
+    const nextVariants = (method.variants ?? []).map(createEditorVariant);
     setVariants(nextVariants);
     setInitialVariantsSignature(getVariantsSignature(nextVariants));
     setEnabled(method.enabled ?? true);
@@ -744,11 +794,12 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
       return;
     }
 
-    setUserError(
+    const message =
       submitError instanceof Error
         ? submitError.message
-        : "Failed to save method",
-    );
+        : "Failed to save method";
+    setUserError(message);
+    setSubmitValidationMessage(message);
   };
 
   const runSubmit = async (

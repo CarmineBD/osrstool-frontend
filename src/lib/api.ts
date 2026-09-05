@@ -80,6 +80,12 @@ export interface IoItem {
   reason?: string | null;
 }
 
+export type DynamicActionCondition = "always" | "success" | "failure";
+
+export interface DynamicActionItem extends IoItem {
+  condition?: DynamicActionCondition;
+}
+
 export interface ProfitGrowth {
   window: string;
   mode: string;
@@ -175,15 +181,21 @@ export interface DynamicActionSkillXp {
   skillId: number;
   experience: number;
   skill?: string;
+  condition?: DynamicActionCondition;
 }
 
 export interface DynamicVariantAction {
   id?: string;
   name: string;
   rollIntervalTicks: number;
-  inputs: IoItem[];
-  outputs: IoItem[];
+  baseSuccessChance?: number;
+  inputs: DynamicActionItem[];
+  outputs: DynamicActionItem[];
   xpGained: DynamicActionSkillXp[];
+  /** Editor-only failure effects. They are converted to API conditions on submit. */
+  failureInputs?: DynamicActionItem[];
+  failureOutputs?: DynamicActionItem[];
+  failureXpGained?: DynamicActionSkillXp[];
 }
 
 export interface DynamicCycleStep {
@@ -1281,10 +1293,7 @@ function parseSkillOptions(value: unknown): SkillOption[] {
       typeof entry === "string"
         ? entry
         : record
-          ? ((record.name ??
-              record.skill ??
-              record.label ??
-              "") as string)
+          ? ((record.name ?? record.skill ?? record.label ?? "") as string)
           : "";
 
     if (typeof skillName !== "string" || !skillName.trim()) continue;
@@ -1356,7 +1365,9 @@ function normalizeSkillSummaryMethod(
   };
 }
 
-function normalizeSkillSummaryEntry(entry: SkillSummaryEntry): SkillSummaryEntry {
+function normalizeSkillSummaryEntry(
+  entry: SkillSummaryEntry,
+): SkillSummaryEntry {
   return {
     ...entry,
     bestProfit: normalizeSkillSummaryMethod(entry.bestProfit),
@@ -1672,9 +1683,22 @@ export interface DynamicUpdateVariantDto extends UpdateVariantBaseDto {
   dynamicAction: {
     name: string;
     rollIntervalTicks: number;
-    inputs?: Array<{ id: number; quantity: number }>;
-    outputs?: Array<{ id: number; quantity: number }>;
-    xpGained?: Array<{ skillId: number; experience: number }>;
+    baseSuccessChance?: number;
+    inputs?: Array<{
+      id: number;
+      quantity: number;
+      condition?: DynamicActionCondition;
+    }>;
+    outputs?: Array<{
+      id: number;
+      quantity: number;
+      condition?: DynamicActionCondition;
+    }>;
+    xpGained?: Array<{
+      skillId: number;
+      experience: number;
+      condition?: DynamicActionCondition;
+    }>;
   };
   cycleSteps: Array<{
     name: string;
@@ -1702,12 +1726,90 @@ function mapIoItems(items: IoItem[] | undefined, type: IoItemType): IoItem[] {
 }
 
 function mapDynamicActionItems(
-  items: IoItem[] | undefined,
-): Array<{ id: number; quantity: number }> {
+  items: DynamicActionItem[] | undefined,
+  condition?: DynamicActionCondition,
+): Array<{ id: number; quantity: number; condition?: DynamicActionCondition }> {
   return (items ?? []).map((item) => ({
     id: item.id,
     quantity: item.quantity,
+    ...(condition ? { condition } : {}),
   }));
+}
+
+function actionEffectsMatch<T>(
+  success: T[],
+  failure: T[],
+  getKey: (entry: T) => number,
+  getValue: (entry: T) => number,
+): boolean {
+  if (success.length !== failure.length) return false;
+  const failureByKey = new Map(
+    failure.map((entry) => [getKey(entry), getValue(entry)]),
+  );
+  return (
+    failureByKey.size === success.length &&
+    success.every(
+      (entry) => failureByKey.get(getKey(entry)) === getValue(entry),
+    )
+  );
+}
+
+function mapConditionalActionItems(
+  success: DynamicActionItem[],
+  failure: DynamicActionItem[],
+): Array<{ id: number; quantity: number; condition?: DynamicActionCondition }> {
+  if (
+    actionEffectsMatch(
+      success,
+      failure,
+      (entry) => entry.id,
+      (entry) => entry.quantity,
+    )
+  ) {
+    return mapDynamicActionItems(success, "always");
+  }
+
+  return [
+    ...mapDynamicActionItems(success, "success"),
+    ...mapDynamicActionItems(failure, "failure"),
+  ];
+}
+
+function mapConditionalActionXp(
+  success: DynamicActionSkillXp[],
+  failure: DynamicActionSkillXp[],
+): Array<{
+  skillId: number;
+  experience: number;
+  condition?: DynamicActionCondition;
+}> {
+  if (
+    actionEffectsMatch(
+      success,
+      failure,
+      (entry) => entry.skillId,
+      (entry) => entry.experience,
+    )
+  ) {
+    return success.map((entry) => ({
+      skillId: entry.skillId,
+      experience: entry.experience,
+      condition: "always",
+    }));
+  }
+
+  return [
+    ...success.map((entry) => ({
+      skillId: entry.skillId,
+      experience: entry.experience,
+      condition: "success" as const,
+    })),
+    ...failure.map((entry) => ({
+      skillId: entry.skillId,
+      experience: entry.experience,
+      condition: "failure" as const,
+    })),
+  ];
 }
 
 function normalizeIconId(value: unknown): number | null {
@@ -2043,7 +2145,9 @@ function buildVariantUpdatePayload(variant: Variant): UpdateVariantDto {
       !Number.isSafeInteger(dynamicAction.rollIntervalTicks) ||
       dynamicAction.rollIntervalTicks <= 0
     ) {
-      throw new Error("Dynamic action rollIntervalTicks must be a positive integer");
+      throw new Error(
+        "Dynamic action rollIntervalTicks must be a positive integer",
+      );
     }
     if (!variant.cycleSteps?.length) {
       throw new Error("At least one dynamic cycle step is required");
@@ -2054,12 +2158,16 @@ function buildVariantUpdatePayload(variant: Variant): UpdateVariantDto {
         throw new Error(`Dynamic cycle step ${index + 1} name is required`);
       }
       if (!Number.isSafeInteger(step.clicksMade) || step.clicksMade < 0) {
-        throw new Error(`Dynamic cycle step ${index + 1} clicks must be a non-negative integer`);
+        throw new Error(
+          `Dynamic cycle step ${index + 1} clicks must be a non-negative integer`,
+        );
       }
 
       const actionsMade = step.actionsMade ?? 0;
       if (!Number.isSafeInteger(actionsMade) || actionsMade < 0) {
-        throw new Error(`Dynamic cycle step ${index + 1} actions made must be a non-negative integer`);
+        throw new Error(
+          `Dynamic cycle step ${index + 1} actions made must be a non-negative integer`,
+        );
       }
       if (typeof step.isAfk !== "boolean") {
         throw new Error(`Dynamic cycle step ${index + 1} isAfk is required`);
@@ -2076,7 +2184,9 @@ function buildVariantUpdatePayload(variant: Variant): UpdateVariantDto {
 
       const durationTicks = step.durationTicks ?? 0;
       if (!Number.isSafeInteger(durationTicks) || durationTicks < 0) {
-        throw new Error(`Dynamic cycle step ${index + 1} duration must be a non-negative number of game ticks`);
+        throw new Error(
+          `Dynamic cycle step ${index + 1} duration must be a non-negative number of game ticks`,
+        );
       }
       return {
         name: step.name.trim(),
@@ -2090,7 +2200,7 @@ function buildVariantUpdatePayload(variant: Variant): UpdateVariantDto {
       (total, step) =>
         total +
         (step.actionsMade === undefined
-          ? step.durationTicks ?? 0
+          ? (step.durationTicks ?? 0)
           : step.actionsMade * dynamicAction.rollIntervalTicks),
       0,
     );
@@ -2113,18 +2223,46 @@ function buildVariantUpdatePayload(variant: Variant): UpdateVariantDto {
       dynamicAction: {
         name: dynamicAction.name.trim(),
         rollIntervalTicks: dynamicAction.rollIntervalTicks,
-        ...(dynamicAction.inputs.length > 0
-          ? { inputs: mapDynamicActionItems(dynamicAction.inputs) }
+        ...(dynamicAction.baseSuccessChance !== undefined
+          ? { baseSuccessChance: dynamicAction.baseSuccessChance }
           : {}),
-        ...(dynamicAction.outputs.length > 0
-          ? { outputs: mapDynamicActionItems(dynamicAction.outputs) }
-          : {}),
-        ...(dynamicAction.xpGained.length > 0
+        ...(dynamicAction.inputs.length > 0 ||
+        (dynamicAction.failureInputs?.length ?? 0) > 0
           ? {
-              xpGained: dynamicAction.xpGained.map((entry) => ({
-                skillId: entry.skillId,
-                experience: entry.experience,
-              })),
+              inputs:
+                dynamicAction.baseSuccessChance !== undefined
+                  ? mapConditionalActionItems(
+                      dynamicAction.inputs,
+                      dynamicAction.failureInputs ?? [],
+                    )
+                  : mapDynamicActionItems(dynamicAction.inputs),
+            }
+          : {}),
+        ...(dynamicAction.outputs.length > 0 ||
+        (dynamicAction.failureOutputs?.length ?? 0) > 0
+          ? {
+              outputs:
+                dynamicAction.baseSuccessChance !== undefined
+                  ? mapConditionalActionItems(
+                      dynamicAction.outputs,
+                      dynamicAction.failureOutputs ?? [],
+                    )
+                  : mapDynamicActionItems(dynamicAction.outputs),
+            }
+          : {}),
+        ...(dynamicAction.xpGained.length > 0 ||
+        (dynamicAction.failureXpGained?.length ?? 0) > 0
+          ? {
+              xpGained:
+                dynamicAction.baseSuccessChance !== undefined
+                  ? mapConditionalActionXp(
+                      dynamicAction.xpGained,
+                      dynamicAction.failureXpGained ?? [],
+                    )
+                  : dynamicAction.xpGained.map((entry) => ({
+                      skillId: entry.skillId,
+                      experience: entry.experience,
+                    })),
             }
           : {}),
       },
