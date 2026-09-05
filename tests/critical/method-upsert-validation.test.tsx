@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
@@ -89,6 +89,199 @@ describe("critical flow: create/edit form validations", () => {
 
     expect(await screen.findByText("Name is required")).toBeInTheDocument();
     expect(updateRequests).toBe(0);
+  });
+
+  it("does not submit a dynamic cycle without an action-generating step", async () => {
+    let updateRequests = 0;
+
+    server.use(
+      http.post("*/methods/slug/:slug", ({ params }) =>
+        HttpResponse.json({
+          data: {
+            method: {
+              id: "method-1",
+              slug: params.slug,
+              name: "Waiting method",
+              category: "skilling",
+              description: "A dynamic method.",
+              enabled: true,
+              icon_id: 4151,
+              variants: [
+                {
+                  id: "variant-1",
+                  slug: "waiting-only",
+                  label: "Waiting only",
+                  icon_id: 4152,
+                  iconSource: "item",
+                  members: false,
+                  calculationMode: "dynamic",
+                  requirements: {},
+                  inputs: [],
+                  outputs: [],
+                  dynamicAction: {
+                    name: "Action",
+                    rollIntervalTicks: 4,
+                    inputs: [],
+                    outputs: [],
+                    xpGained: [],
+                  },
+                  cycleSteps: [
+                    {
+                      name: "Wait",
+                      stepOrderPosition: 1,
+                      durationTicks: 4,
+                      clicksMade: 0,
+                      isAfk: false,
+                      actionsMade: null,
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        }),
+      ),
+      http.put("*/methods/:methodId", () => {
+        updateRequests += 1;
+        return HttpResponse.json({}, { status: 200 });
+      }),
+    );
+
+    renderWithProviders(
+      <Routes>
+        <Route
+          path="/moneyMakingMethod/:slug/edit"
+          element={<MethodUpsert mode="edit" />}
+        />
+      </Routes>,
+      { route: "/moneyMakingMethod/waiting-method/edit" },
+    );
+
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Save changes" }));
+
+    expect(
+      await screen.findByText(
+        "Waiting only: cycle must include at least one step that generates actions.",
+      ),
+    ).toBeInTheDocument();
+    expect(updateRequests).toBe(0);
+  });
+
+  it("preserves dynamic success and failure effects when duplicating a variant", async () => {
+    const updateBodies: unknown[] = [];
+
+    server.use(
+      http.post("*/methods/slug/:slug", ({ params }) =>
+        HttpResponse.json({
+          data: {
+            method: {
+              id: "method-1",
+              slug: params.slug,
+              name: "Conditional method",
+              category: "skilling",
+              description: "A dynamic method.",
+              enabled: true,
+              icon_id: 4151,
+              variants: [
+                {
+                  id: "variant-1",
+                  slug: "conditional",
+                  label: "Conditional",
+                  icon_id: 4152,
+                  iconSource: "item",
+                  members: false,
+                  calculationMode: "dynamic",
+                  requirements: {},
+                  inputs: [],
+                  outputs: [],
+                  dynamicAction: {
+                    name: "Action",
+                    rollIntervalTicks: 4,
+                    baseSuccessChance: 0.75,
+                    inputs: [
+                      { id: 2138, quantity: 11, condition: "success" },
+                      { id: 2138, quantity: 1, condition: "failure" },
+                    ],
+                    outputs: [],
+                    xpGained: [],
+                  },
+                  cycleSteps: [
+                    {
+                      name: "Action",
+                      stepOrderPosition: 1,
+                      clicksMade: 1,
+                      actionsMade: 1,
+                      isAfk: false,
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        }),
+      ),
+      http.put("*/methods/:methodId", async ({ request }) => {
+        updateBodies.push(await request.json());
+        return HttpResponse.json({
+          data: {
+            method: {
+              id: "method-1",
+              slug: "conditional-method",
+              name: "Conditional method",
+              category: "skilling",
+              description: "A dynamic method.",
+              enabled: true,
+              variants: [],
+            },
+          },
+        });
+      }),
+    );
+
+    renderWithProviders(
+      <Routes>
+        <Route
+          path="/moneyMakingMethod/:slug/edit"
+          element={<MethodUpsert mode="edit" />}
+        />
+      </Routes>,
+      { route: "/moneyMakingMethod/conditional-method/edit" },
+    );
+
+    const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole("button", { name: "Duplicate variant" }),
+    );
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => expect(updateBodies).toHaveLength(1));
+    const variants = (
+      updateBodies[0] as {
+        variants: Array<{
+          dynamicAction: {
+            inputs?: Array<{ id: number; quantity: number; condition: string }>;
+          };
+        }>;
+      }
+    ).variants;
+    expect(variants).toHaveLength(2);
+    expect(variants).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          dynamicAction: expect.objectContaining({
+            inputs: [
+              { id: 2138, quantity: 11, condition: "success" },
+              { id: 2138, quantity: 1, condition: "failure" },
+            ],
+          }),
+        }),
+      ]),
+    );
+    expect(variants[1].dynamicAction.inputs).toEqual([
+      { id: 2138, quantity: 11, condition: "success" },
+      { id: 2138, quantity: 1, condition: "failure" },
+    ]);
   });
 
   it("requires method and variant icon selection in create mode", async () => {
