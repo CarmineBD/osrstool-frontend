@@ -50,6 +50,7 @@ import { cn, formatNumber, formatPercent, getUrlByType } from "@/lib/utils";
 import type { Item, Method, Variant } from "@/lib/api";
 import { LikeButton } from "@/features/methods/LikeButton";
 import { MethodDetailFooter } from "@/features/method-detail/MethodDetailFooter";
+import { DynamicVariantDetails } from "@/features/method-detail/DynamicVariantDetails";
 
 const LazyVariantHistoryChart = lazy(
   () => import("@/components/VariantHistoryChart"),
@@ -822,6 +823,8 @@ export function MethodVariantContent({
           ) : (
             <EmptySelectionState description="No description is configured for this variant yet." />
           )}
+
+          <DynamicVariantDetails variant={variant} itemsMap={itemsMap} />
         </div>
 
         <EditorSubsection
