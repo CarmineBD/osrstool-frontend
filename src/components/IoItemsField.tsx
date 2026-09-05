@@ -410,7 +410,7 @@ export function IoItemsField({
   const emptySelectionMessage = "No items selected yet.";
 
   return (
-    <div>
+    <div className="min-w-0">
       <label className={EDITOR_FIELD_LABEL_CLASS}>{label}</label>
       <div className="flex items-start gap-2">
         <Combobox<ItemSearchResult>

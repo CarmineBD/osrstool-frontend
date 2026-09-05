@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   EDITOR_ERROR_TEXT_CLASS,
   EDITOR_FIELD_LABEL_CLASS,
   EDITOR_META_TEXT_CLASS,
   EDITOR_NESTED_SURFACE_CLASS,
+  EDITOR_SUBSECTION_TITLE_CLASS,
   EditorSubsection,
   InlineSwitchField,
 } from "@/components/method-editor/MethodEditorPrimitives";
@@ -43,6 +44,14 @@ import type {
 } from "@/lib/api";
 import { VARIANT_ACTION_TYPE_OPTIONS } from "@/lib/api";
 import {
+  createEditorDynamicAction,
+  formatBaseSuccessChancePercentage,
+  hasConditionalEffects,
+  MAX_BASE_SUCCESS_CHANCE,
+  parseBaseSuccessChancePercentage,
+  withoutActionCondition,
+} from "@/features/method-upsert/dynamicActionFailureState";
+import {
   formatGameTickCount,
   formatGameTickSeconds,
   isWholeGameTick,
@@ -66,6 +75,8 @@ import {
   VARIANT_LABEL_MAX_LENGTH,
 } from "@/lib/validation";
 
+const MIN_BASE_SUCCESS_CHANCE = 0.0001;
+
 interface VariantFormProps {
   index: number;
   onRemove: () => void;
@@ -83,16 +94,6 @@ function normalizeIconId(value: number | null | undefined): number | undefined {
   return Number.isInteger(value) && (value as number) > 0
     ? (value as number)
     : undefined;
-}
-
-function createEmptyDynamicAction(): DynamicVariantAction {
-  return {
-    name: "",
-    rollIntervalTicks: 0,
-    inputs: [],
-    outputs: [],
-    xpGained: [],
-  };
 }
 
 function createEmptyCycleStep() {
@@ -156,7 +157,14 @@ export function VariantForm({
     NonNullable<Variant["calculationMode"]>
   >(variant.calculationMode ?? "fixed");
   const [dynamicAction, setDynamicAction] = useState<DynamicVariantAction>(
-    variant.dynamicAction ?? createEmptyDynamicAction(),
+    createEditorDynamicAction(variant.dynamicAction),
+  );
+  const [baseSuccessChanceInput, setBaseSuccessChanceInput] = useState(() =>
+    formatBaseSuccessChancePercentage(variant.dynamicAction?.baseSuccessChance),
+  );
+  const isEditingBaseSuccessChance = useRef(false);
+  const [canFail, setCanFail] = useState(
+    hasConditionalEffects(variant.dynamicAction),
   );
   const [cycleSteps, setCycleSteps] = useState(
     variant.cycleSteps?.length ? variant.cycleSteps : [createEmptyCycleStep()],
@@ -176,9 +184,19 @@ export function VariantForm({
     setInputs(variant.inputs ?? []);
     setOutputs(variant.outputs ?? []);
     setCalculationMode(variant.calculationMode ?? "fixed");
-    setDynamicAction(variant.dynamicAction ?? createEmptyDynamicAction());
+    setDynamicAction(createEditorDynamicAction(variant.dynamicAction));
+    if (!isEditingBaseSuccessChance.current) {
+      setBaseSuccessChanceInput(
+        formatBaseSuccessChancePercentage(
+          variant.dynamicAction?.baseSuccessChance,
+        ),
+      );
+    }
+    setCanFail(hasConditionalEffects(variant.dynamicAction));
     setCycleSteps(
-      variant.cycleSteps?.length ? variant.cycleSteps : [createEmptyCycleStep()],
+      variant.cycleSteps?.length
+        ? variant.cycleSteps
+        : [createEmptyCycleStep()],
     );
   }, [variant]);
 
@@ -212,6 +230,15 @@ export function VariantForm({
     showValidationErrors && !dynamicAction.name.trim()
       ? "Action name is required."
       : undefined;
+  const baseSuccessChanceError =
+    canFail &&
+    showValidationErrors &&
+    (dynamicAction.baseSuccessChance === undefined ||
+      dynamicAction.baseSuccessChance < MIN_BASE_SUCCESS_CHANCE ||
+      dynamicAction.baseSuccessChance > MAX_BASE_SUCCESS_CHANCE ||
+      !hasAtMostDecimalPlaces(dynamicAction.baseSuccessChance, 4))
+      ? "Base success chance is required and must be between 0.01% and 99.99%."
+      : undefined;
 
   const updateDynamicAction = (next: DynamicVariantAction) => {
     setDynamicAction(next);
@@ -242,7 +269,7 @@ export function VariantForm({
   }));
 
   return (
-    <div className={cn("overflow-hidden", EDITOR_NESTED_SURFACE_CLASS)}>
+    <div className={cn("min-w-0 overflow-hidden", EDITOR_NESTED_SURFACE_CLASS)}>
       <EditorSubsection
         title="Basics"
         bordered={false}
@@ -408,161 +435,165 @@ export function VariantForm({
         <>
           <EditorSubsection
             title="Metrics"
-        contentClassName="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,7rem)_minmax(0,7rem)_minmax(0,8rem)_minmax(0,9rem)] lg:items-start"
-      >
-        <XpSkillsField
-          label="XP per hour"
-          skills={skillOptions}
-          entries={xpHour}
-          maxEntries={MAX_XP_HOUR_SKILLS}
-          placeholder="Search for a skill..."
-          onChange={(next) => {
-            setXpHour(next);
-            onChange?.({ ...variant, xpHour: next });
-          }}
-        />
-
-        <div>
-          <label className={EDITOR_FIELD_LABEL_CLASS}>% AFK</label>
-          <Input
-            type="text"
-            inputMode="numeric"
-            maxLength={3}
-            className="h-10 w-full max-w-[7rem] bg-background"
-            value={afkiness !== undefined ? String(afkiness) : ""}
-            onChange={(event) => {
-              const nextValue = normalizeDigitInput(event.target.value, 3);
-              const numericValue = clampInteger(
-                nextValue === "" ? undefined : Number(nextValue),
-                0,
-                MAX_AFKINESS,
-              );
-              setAfkiness(numericValue);
-              onChange?.({ ...variant, afkiness: numericValue });
-            }}
-          />
-        </div>
-
-        <div>
-          <label className={EDITOR_FIELD_LABEL_CLASS}>Clicks/hr</label>
-          <Input
-            type="text"
-            inputMode="numeric"
-            maxLength={5}
-            className="h-10 w-full max-w-[7rem] bg-background"
-            value={clickIntensity !== undefined ? String(clickIntensity) : ""}
-            onChange={(event) => {
-              const nextValue = normalizeDigitInput(event.target.value, 5);
-              const numericValue = clampInteger(
-                nextValue === "" ? undefined : Number(nextValue),
-                0,
-                MAX_CLICK_INTENSITY,
-              );
-              setClickIntensity(numericValue);
-              onChange?.({ ...variant, clickIntensity: numericValue });
-            }}
-          />
-        </div>
-
-        <div>
-          <label className={EDITOR_FIELD_LABEL_CLASS}>
-            Actions/hr
-            <RequiredMark />
-          </label>
-          <Input
-            type="number"
-            inputMode="decimal"
-            min={0}
-            max={MAX_ACTIONS_PER_HOUR}
-            step={0.01}
-            className={cn(
-              "h-10 w-full max-w-[8rem] bg-background",
-              actionsPerHourError &&
-                "border-destructive focus-visible:ring-destructive",
-            )}
-            value={actionsPerHour !== undefined ? String(actionsPerHour) : ""}
-            onChange={(event) => {
-              const numericValue =
-                event.target.value === ""
-                  ? undefined
-                  : clampDecimal(
-                      event.target.valueAsNumber,
-                      0,
-                      MAX_ACTIONS_PER_HOUR,
-                      MAX_ACTIONS_PER_HOUR_DECIMAL_PLACES,
-                    );
-              setActionsPerHour(numericValue);
-              onChange?.({ ...variant, actionsPerHour: numericValue });
-            }}
-          />
-          {actionsPerHourError ? (
-            <p className={cn("mt-2", EDITOR_ERROR_TEXT_CLASS)}>
-              {actionsPerHourError}
-            </p>
-          ) : null}
-        </div>
-
-        <div>
-          <label className={EDITOR_FIELD_LABEL_CLASS}>
-            Action type
-            <RequiredMark />
-          </label>
-          <Select
-            value={actionType}
-            onValueChange={(next) => {
-              const normalizedValue = next as Variant["actionType"];
-              setActionType(normalizedValue);
-              onChange?.({ ...variant, actionType: normalizedValue });
-            }}
+            contentClassName="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,7rem)_minmax(0,7rem)_minmax(0,8rem)_minmax(0,9rem)] lg:items-start"
           >
-            <SelectTrigger
-              className={cn(
-                "h-10 w-full min-w-0 bg-background",
-                actionTypeError &&
-                  "border-destructive focus-visible:ring-destructive",
-              )}
-              aria-invalid={Boolean(actionTypeError)}
-            >
-              <SelectValue placeholder="Select type" />
-            </SelectTrigger>
-            <SelectContent>
-              {VARIANT_ACTION_TYPE_OPTIONS.map((option) => (
-                <SelectItem key={option} value={option}>
-                  {option.charAt(0).toUpperCase() + option.slice(1)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {actionTypeError ? (
-            <p className={cn("mt-2", EDITOR_ERROR_TEXT_CLASS)}>
-              {actionTypeError}
-            </p>
-          ) : null}
-        </div>
-      </EditorSubsection>
+            <XpSkillsField
+              label="XP per hour"
+              skills={skillOptions}
+              entries={xpHour}
+              maxEntries={MAX_XP_HOUR_SKILLS}
+              placeholder="Search for a skill..."
+              onChange={(next) => {
+                setXpHour(next);
+                onChange?.({ ...variant, xpHour: next });
+              }}
+            />
+
+            <div>
+              <label className={EDITOR_FIELD_LABEL_CLASS}>% AFK</label>
+              <Input
+                type="text"
+                inputMode="numeric"
+                maxLength={3}
+                className="h-10 w-full max-w-[7rem] bg-background"
+                value={afkiness !== undefined ? String(afkiness) : ""}
+                onChange={(event) => {
+                  const nextValue = normalizeDigitInput(event.target.value, 3);
+                  const numericValue = clampInteger(
+                    nextValue === "" ? undefined : Number(nextValue),
+                    0,
+                    MAX_AFKINESS,
+                  );
+                  setAfkiness(numericValue);
+                  onChange?.({ ...variant, afkiness: numericValue });
+                }}
+              />
+            </div>
+
+            <div>
+              <label className={EDITOR_FIELD_LABEL_CLASS}>Clicks/hr</label>
+              <Input
+                type="text"
+                inputMode="numeric"
+                maxLength={5}
+                className="h-10 w-full max-w-[7rem] bg-background"
+                value={
+                  clickIntensity !== undefined ? String(clickIntensity) : ""
+                }
+                onChange={(event) => {
+                  const nextValue = normalizeDigitInput(event.target.value, 5);
+                  const numericValue = clampInteger(
+                    nextValue === "" ? undefined : Number(nextValue),
+                    0,
+                    MAX_CLICK_INTENSITY,
+                  );
+                  setClickIntensity(numericValue);
+                  onChange?.({ ...variant, clickIntensity: numericValue });
+                }}
+              />
+            </div>
+
+            <div>
+              <label className={EDITOR_FIELD_LABEL_CLASS}>
+                Actions/hr
+                <RequiredMark />
+              </label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                max={MAX_ACTIONS_PER_HOUR}
+                step={0.01}
+                className={cn(
+                  "h-10 w-full max-w-[8rem] bg-background",
+                  actionsPerHourError &&
+                    "border-destructive focus-visible:ring-destructive",
+                )}
+                value={
+                  actionsPerHour !== undefined ? String(actionsPerHour) : ""
+                }
+                onChange={(event) => {
+                  const numericValue =
+                    event.target.value === ""
+                      ? undefined
+                      : clampDecimal(
+                          event.target.valueAsNumber,
+                          0,
+                          MAX_ACTIONS_PER_HOUR,
+                          MAX_ACTIONS_PER_HOUR_DECIMAL_PLACES,
+                        );
+                  setActionsPerHour(numericValue);
+                  onChange?.({ ...variant, actionsPerHour: numericValue });
+                }}
+              />
+              {actionsPerHourError ? (
+                <p className={cn("mt-2", EDITOR_ERROR_TEXT_CLASS)}>
+                  {actionsPerHourError}
+                </p>
+              ) : null}
+            </div>
+
+            <div>
+              <label className={EDITOR_FIELD_LABEL_CLASS}>
+                Action type
+                <RequiredMark />
+              </label>
+              <Select
+                value={actionType}
+                onValueChange={(next) => {
+                  const normalizedValue = next as Variant["actionType"];
+                  setActionType(normalizedValue);
+                  onChange?.({ ...variant, actionType: normalizedValue });
+                }}
+              >
+                <SelectTrigger
+                  className={cn(
+                    "h-10 w-full min-w-0 bg-background",
+                    actionTypeError &&
+                      "border-destructive focus-visible:ring-destructive",
+                  )}
+                  aria-invalid={Boolean(actionTypeError)}
+                >
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {VARIANT_ACTION_TYPE_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option.charAt(0).toUpperCase() + option.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {actionTypeError ? (
+                <p className={cn("mt-2", EDITOR_ERROR_TEXT_CLASS)}>
+                  {actionTypeError}
+                </p>
+              ) : null}
+            </div>
+          </EditorSubsection>
 
           <EditorSubsection
             title="Inputs & outputs"
-        contentClassName="grid gap-6 md:grid-cols-2"
-      >
-        <IoItemsField
-          label="Inputs"
-          items={inputs}
-          maxItems={INPUTS_MAX_COUNT}
-          onChange={(next) => {
-            setInputs(next);
-            onChange?.({ ...variant, inputs: next });
-          }}
-        />
-        <IoItemsField
-          label="Outputs"
-          items={outputs}
-          maxItems={OUTPUTS_MAX_COUNT}
-          onChange={(next) => {
-            setOutputs(next);
-            onChange?.({ ...variant, outputs: next });
-          }}
-        />
+            contentClassName="grid gap-6 lg:grid-cols-2"
+          >
+            <IoItemsField
+              label="Inputs"
+              items={inputs}
+              maxItems={INPUTS_MAX_COUNT}
+              onChange={(next) => {
+                setInputs(next);
+                onChange?.({ ...variant, inputs: next });
+              }}
+            />
+            <IoItemsField
+              label="Outputs"
+              items={outputs}
+              maxItems={OUTPUTS_MAX_COUNT}
+              onChange={(next) => {
+                setOutputs(next);
+                onChange?.({ ...variant, outputs: next });
+              }}
+            />
           </EditorSubsection>
         </>
       ) : (
@@ -624,7 +655,8 @@ export function VariantForm({
                       rollIntervalTicks:
                         event.target.value === ""
                           ? 0
-                          : secondsToGameTicks(event.target.valueAsNumber) ?? 0,
+                          : (secondsToGameTicks(event.target.valueAsNumber) ??
+                            0),
                     })
                   }
                 />
@@ -641,7 +673,97 @@ export function VariantForm({
               </div>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-[max-content_minmax(0,10rem)] md:items-start">
+              <InlineSwitchField
+                label="Can fail"
+                checked={canFail}
+                stateLabel={canFail ? "Enabled" : "Disabled"}
+                onCheckedChange={(checked) => {
+                  setCanFail(checked);
+                  if (checked) {
+                    const nextBaseSuccessChance =
+                      dynamicAction.baseSuccessChance ??
+                      MAX_BASE_SUCCESS_CHANCE;
+                    setBaseSuccessChanceInput(
+                      formatBaseSuccessChancePercentage(nextBaseSuccessChance),
+                    );
+                    updateDynamicAction({
+                      ...dynamicAction,
+                      baseSuccessChance: nextBaseSuccessChance,
+                      failureInputs: dynamicAction.inputs.map(
+                        withoutActionCondition,
+                      ),
+                      failureOutputs: dynamicAction.outputs.map(
+                        withoutActionCondition,
+                      ),
+                      failureXpGained: [],
+                    });
+                    return;
+                  }
+
+                  setBaseSuccessChanceInput("");
+                  updateDynamicAction({
+                    ...dynamicAction,
+                    baseSuccessChance: undefined,
+                    failureInputs: undefined,
+                    failureOutputs: undefined,
+                    failureXpGained: undefined,
+                  });
+                }}
+              />
+
+              {canFail ? (
+                <div>
+                  <label className={EDITOR_FIELD_LABEL_CLASS}>
+                    Base success chance
+                    <RequiredMark />
+                  </label>
+                  <div className="relative max-w-[10rem]">
+                    <Input
+                      type="text"
+                      inputMode="decimal"
+                      pattern="[0-9]*[.,]?[0-9]*"
+                      className={cn(
+                        "bg-background pr-8",
+                        baseSuccessChanceError &&
+                          "border-destructive focus-visible:ring-destructive",
+                      )}
+                      value={baseSuccessChanceInput}
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        isEditingBaseSuccessChance.current = true;
+                        setBaseSuccessChanceInput(value);
+                        updateDynamicAction({
+                          ...dynamicAction,
+                          baseSuccessChance:
+                            parseBaseSuccessChancePercentage(value),
+                        });
+                      }}
+                      onBlur={(event) => {
+                        isEditingBaseSuccessChance.current = false;
+                        setBaseSuccessChanceInput(
+                          formatBaseSuccessChancePercentage(
+                            parseBaseSuccessChancePercentage(
+                              event.target.value,
+                            ),
+                          ),
+                        );
+                      }}
+                    />
+                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground">
+                      %
+                    </span>
+                  </div>
+                  {baseSuccessChanceError ? (
+                    <p className={cn("mt-2", EDITOR_ERROR_TEXT_CLASS)}>
+                      {baseSuccessChanceError}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-2">
               <IoItemsField
                 label="Inputs"
                 items={dynamicAction.inputs}
@@ -672,7 +794,8 @@ export function VariantForm({
                 const nextXpGained = next.flatMap((entry) => {
                   const skillKey = normalizeSkillKey(entry.skill);
                   const existing = dynamicAction.xpGained.find(
-                    (value) => normalizeSkillKey(value.skill ?? "") === skillKey,
+                    (value) =>
+                      normalizeSkillKey(value.skill ?? "") === skillKey,
                   );
                   const option = skillOptions.find(
                     (value) =>
@@ -695,6 +818,95 @@ export function VariantForm({
                 });
               }}
             />
+            {dynamicAction.xpGained.length === 0 ? (
+              <p className={EDITOR_META_TEXT_CLASS}>
+                No experience received on success.
+              </p>
+            ) : null}
+
+            {canFail ? (
+              <div className={cn("space-y-4 p-4", EDITOR_NESTED_SURFACE_CLASS)}>
+                <p className={EDITOR_SUBSECTION_TITLE_CLASS}>On failure</p>
+                <div className="grid gap-6 lg:grid-cols-2">
+                  <IoItemsField
+                    label="Inputs"
+                    items={dynamicAction.failureInputs ?? []}
+                    maxItems={INPUTS_MAX_COUNT}
+                    showReason={false}
+                    onChange={(next) =>
+                      updateDynamicAction({
+                        ...dynamicAction,
+                        failureInputs: next,
+                      })
+                    }
+                  />
+                  <IoItemsField
+                    label="Outputs"
+                    items={dynamicAction.failureOutputs ?? []}
+                    maxItems={OUTPUTS_MAX_COUNT}
+                    showReason={false}
+                    onChange={(next) =>
+                      updateDynamicAction({
+                        ...dynamicAction,
+                        failureOutputs: next,
+                      })
+                    }
+                  />
+                </div>
+
+                <XpSkillsField
+                  label="XP received"
+                  skills={skillOptions}
+                  entries={(dynamicAction.failureXpGained ?? []).map(
+                    (entry) => ({
+                      skill:
+                        entry.skill ??
+                        skillOptions.find(
+                          (option) => option.id === entry.skillId,
+                        )?.value ??
+                        String(entry.skillId),
+                      experience: entry.experience,
+                    }),
+                  )}
+                  maxEntries={MAX_XP_HOUR_SKILLS}
+                  placeholder="Search for a skill..."
+                  onChange={(next) => {
+                    const nextXpGained = next.flatMap((entry) => {
+                      const skillKey = normalizeSkillKey(entry.skill);
+                      const existing = (
+                        dynamicAction.failureXpGained ?? []
+                      ).find(
+                        (value) =>
+                          normalizeSkillKey(value.skill ?? "") === skillKey,
+                      );
+                      const option = skillOptions.find(
+                        (value) =>
+                          normalizeSkillKey(value.name) === skillKey ||
+                          normalizeSkillKey(value.value) === skillKey,
+                      );
+                      const skillId = existing?.skillId ?? option?.id;
+                      if (!skillId) return [];
+                      return [
+                        {
+                          skillId,
+                          skill: option?.value ?? existing?.skill ?? skillKey,
+                          experience: entry.experience,
+                        },
+                      ];
+                    });
+                    updateDynamicAction({
+                      ...dynamicAction,
+                      failureXpGained: nextXpGained,
+                    });
+                  }}
+                />
+                {(dynamicAction.failureXpGained ?? []).length === 0 ? (
+                  <p className={EDITOR_META_TEXT_CLASS}>
+                    No experience received on failure.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
           </EditorSubsection>
 
           <EditorSubsection

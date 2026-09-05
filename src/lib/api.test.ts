@@ -292,4 +292,66 @@ describe("api method payloads", () => {
       ],
     });
   });
+
+  it("maps matching effects to always and preserves a success-only XP effect", () => {
+    const payload = buildMethodUpdatePayload(
+      {
+        name: "Conditional dynamic method",
+        category: "combat",
+        description: "Test",
+        enabled: true,
+        icon_id: 4151,
+        iconSource: "item",
+      },
+      [
+        {
+          label: "Conditional",
+          icon_id: 11284,
+          iconSource: "item",
+          members: true,
+          calculationMode: "dynamic",
+          xpHour: [],
+          requirements: {},
+          inputs: [],
+          outputs: [],
+          dynamicAction: {
+            name: "Open a chest",
+            rollIntervalTicks: 4,
+            baseSuccessChance: 0.75,
+            inputs: [{ id: 1, quantity: 2 }],
+            failureInputs: [{ id: 1, quantity: 2 }],
+            outputs: [{ id: 2, quantity: 3 }],
+            failureOutputs: [{ id: 2, quantity: 1 }],
+            xpGained: [{ skillId: 3, skill: "thieving", experience: 50 }],
+            failureXpGained: [],
+          },
+          cycleSteps: [
+            {
+              name: "Open",
+              stepOrderPosition: 1,
+              clicksMade: 1,
+              actionsMade: 1,
+              isAfk: false,
+            },
+          ],
+        },
+      ],
+    );
+
+    expect(payload.variants[0]).toMatchObject({
+      dynamicAction: {
+        name: "Open a chest",
+        rollIntervalTicks: 4,
+        baseSuccessChance: 0.75,
+        inputs: [{ id: 1, quantity: 2, condition: "always" }],
+        outputs: [
+          { id: 2, quantity: 3, condition: "success" },
+          { id: 2, quantity: 1, condition: "failure" },
+        ],
+        xpGained: [
+          { skillId: 3, experience: 50, condition: "success" },
+        ],
+      },
+    });
+  });
 });
