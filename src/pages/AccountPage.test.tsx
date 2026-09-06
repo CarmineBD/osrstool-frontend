@@ -90,7 +90,7 @@ describe("AccountPage", () => {
     expect(finalDeleteButton).toBeDisabled();
 
     await user.type(
-      screen.getByLabelText("Type RSMethods to confirm"),
+      screen.getByLabelText('Type "RSMethods" to confirm'),
       "RSMethods",
     );
     expect(finalDeleteButton).toBeEnabled();

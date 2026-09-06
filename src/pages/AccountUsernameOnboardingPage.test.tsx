@@ -408,7 +408,14 @@ describe("AccountUsernameOnboardingPage", () => {
         name: "Delete account and remove my data",
       }),
     );
-    await user.click(screen.getByRole("button", { name: "Delete account" }));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await user.type(
+      screen.getByLabelText('Type "RSMethods" to confirm'),
+      "RSMethods",
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Delete account permanently" }),
+    );
 
     await waitFor(() => {
       expect(usernameSpies.clearUsernameSpy).toHaveBeenCalledTimes(1);
