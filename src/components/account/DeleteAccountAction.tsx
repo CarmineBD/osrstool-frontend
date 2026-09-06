@@ -13,6 +13,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useUsername } from "@/contexts/UsernameContext";
 import { deleteCurrentUser, ME_QUERY_KEY } from "@/lib/me";
 import { supabase } from "@/lib/supabaseClient";
@@ -30,7 +32,9 @@ export function DeleteAccountAction({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { clearUsername } = useUsername();
-  const [open, setOpen] = useState(false);
+  const [isFirstDialogOpen, setIsFirstDialogOpen] = useState(false);
+  const [isFinalDialogOpen, setIsFinalDialogOpen] = useState(false);
+  const [confirmationText, setConfirmationText] = useState("");
 
   const deleteMutation = useMutation({
     mutationFn: deleteCurrentUser,
@@ -65,59 +69,131 @@ export function DeleteAccountAction({
       ? deleteMutation.error.message
       : "Unable to delete your account.";
 
+  const closeFinalDialog = () => {
+    if (deleteMutation.isPending) {
+      return;
+    }
+
+    deleteMutation.reset();
+    setConfirmationText("");
+    setIsFinalDialogOpen(false);
+  };
+
   return (
-    <AlertDialog
-      open={open}
-      onOpenChange={(nextOpen) => {
-        if (deleteMutation.isPending) {
-          return;
-        }
+    <>
+      <AlertDialog
+        open={isFirstDialogOpen}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            deleteMutation.reset();
+          }
 
-        if (!nextOpen) {
-          deleteMutation.reset();
-        }
+          setIsFirstDialogOpen(nextOpen);
+        }}
+      >
+        <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete your account?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your RSMethods account and all related data will be permanently
+              deleted. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
 
-        setOpen(nextOpen);
-      }}
-    >
-      <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete account?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This permanently deletes your RSMethods account, linked profile
-            data, likes, and related backend records. This action cannot be
-            undone.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel type="button">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              type="button"
+              className={buttonVariants({ variant: "destructive" })}
+              onClick={(event) => {
+                event.preventDefault();
+                setIsFirstDialogOpen(false);
+                setIsFinalDialogOpen(true);
+              }}
+            >
+              Continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-        {deleteMutation.isError ? (
-          <p className="text-[13px] font-medium leading-[18px] text-destructive">
-            {errorMessage}
-          </p>
-        ) : null}
+      <AlertDialog
+        open={isFinalDialogOpen}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            closeFinalDialog();
+            return;
+          }
 
-        <AlertDialogFooter>
-          <AlertDialogCancel type="button" disabled={deleteMutation.isPending}>
-            Cancel
-          </AlertDialogCancel>
-          <AlertDialogAction
-            type="button"
-            className={buttonVariants({ variant: "destructive" })}
-            disabled={deleteMutation.isPending}
-            onClick={(event) => {
-              event.preventDefault();
-              if (deleteMutation.isPending) {
-                return;
+          setIsFinalDialogOpen(true);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Final account deletion confirmation
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Type "RSMethods" below to permanently delete your account, linked
+              profile data, likes, and related backend records.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="space-y-2">
+            <Label htmlFor="delete-account-confirmation">
+              Type "RSMethods" to confirm
+            </Label>
+            <Input
+              id="delete-account-confirmation"
+              value={confirmationText}
+              autoComplete="off"
+              disabled={deleteMutation.isPending}
+              onChange={(event) => {
+                setConfirmationText(event.target.value);
+                deleteMutation.reset();
+              }}
+            />
+          </div>
+
+          {deleteMutation.isError ? (
+            <p className="text-[13px] font-medium leading-[18px] text-destructive">
+              {errorMessage}
+            </p>
+          ) : null}
+
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              type="button"
+              disabled={deleteMutation.isPending}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              type="button"
+              className={buttonVariants({ variant: "destructive" })}
+              disabled={
+                deleteMutation.isPending || confirmationText !== "RSMethods"
               }
+              onClick={(event) => {
+                event.preventDefault();
+                if (
+                  deleteMutation.isPending ||
+                  confirmationText !== "RSMethods"
+                ) {
+                  return;
+                }
 
-              deleteMutation.mutate();
-            }}
-          >
-            {deleteMutation.isPending ? "Deleting..." : "Delete account"}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+                deleteMutation.mutate();
+              }}
+            >
+              {deleteMutation.isPending
+                ? "Deleting..."
+                : "Delete account permanently"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
