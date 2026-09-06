@@ -17,7 +17,7 @@ type UsernameContextTestModule = typeof import("@/contexts/UsernameContext") & {
 };
 
 describe("AccountPage", () => {
-  it("shows a destructive delete button and deletes the account after confirmation", async () => {
+  it("requires two confirmations before deleting the account", async () => {
     const authProviderModule =
       (await import("@/auth/AuthProvider")) as AuthProviderTestModule;
     authProviderModule.__setAuthMockState({
@@ -73,10 +73,29 @@ describe("AccountPage", () => {
     );
 
     expect(
-      await screen.findByRole("heading", { name: "Delete account?" }),
+      await screen.findByRole("heading", { name: "Delete your account?" }),
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Delete account" }));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Final account deletion confirmation",
+      }),
+    ).toBeInTheDocument();
+
+    const finalDeleteButton = screen.getByRole("button", {
+      name: "Delete account permanently",
+    });
+    expect(finalDeleteButton).toBeDisabled();
+
+    await user.type(
+      screen.getByLabelText("Type RSMethods to confirm"),
+      "RSMethods",
+    );
+    expect(finalDeleteButton).toBeEnabled();
+
+    await user.click(finalDeleteButton);
 
     await waitFor(() => {
       expect(usernameSpies.clearUsernameSpy).toHaveBeenCalledTimes(1);
