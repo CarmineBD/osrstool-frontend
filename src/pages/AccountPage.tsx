@@ -135,14 +135,19 @@ export function AccountPage() {
             </p>
           ) : null}
 
-          <Button
-            variant="outline"
-            onClick={handleLogout}
-            disabled={isLoggingOut}
-          >
-            {isLoggingOut ? "Signing out..." : "Sign out"}
-          </Button>
-          <DeleteAccountAction disabled={isLoggingOut} />
+          <div>
+            <Button
+              variant="outline"
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+            >
+              {isLoggingOut ? "Signing out..." : "Sign out"}
+            </Button>
+          </div>
+
+          <div className="border-t border-border/70 pt-6">
+            <DeleteAccountAction disabled={isLoggingOut} />
+          </div>
         </CardContent>
       </Card>
 
