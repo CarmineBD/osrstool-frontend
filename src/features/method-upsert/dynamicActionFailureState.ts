@@ -4,13 +4,13 @@ import type {
   DynamicVariantAction,
 } from "@/lib/api";
 
-export const MAX_BASE_SUCCESS_CHANCE = 0.9999;
+export const MAX_BASE_SUCCESS_CHANCE = 1;
 
 export function normalizeBaseSuccessChancePercentage(
   value: number,
 ): number | undefined {
   if (!Number.isFinite(value)) return undefined;
-  return Number(Math.min(99.99, Math.max(0.01, value)).toFixed(2));
+  return Number(Math.min(100, Math.max(0.01, value)).toFixed(2));
 }
 
 export function parseBaseSuccessChancePercentage(

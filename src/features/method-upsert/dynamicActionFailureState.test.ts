@@ -55,9 +55,11 @@ describe("dynamic action failure editor state", () => {
   it("preserves valid maximum percentage values without floating-point truncation", () => {
     expect(normalizeBaseSuccessChancePercentage(99.99)).toBe(99.99);
     expect(normalizeBaseSuccessChancePercentage(99.9)).toBe(99.9);
-    expect(normalizeBaseSuccessChancePercentage(100)).toBe(99.99);
+    expect(normalizeBaseSuccessChancePercentage(100)).toBe(100);
     expect(parseBaseSuccessChancePercentage("99,99")).toBe(0.9999);
+    expect(parseBaseSuccessChancePercentage("100")).toBe(1);
     expect(parseBaseSuccessChancePercentage("99.9")).toBe(0.999);
     expect(formatBaseSuccessChancePercentage(0.9999)).toBe("99.99");
+    expect(formatBaseSuccessChancePercentage(1)).toBe("100");
   });
 });

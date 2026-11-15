@@ -51,6 +51,8 @@ import type { Item, Method, Variant } from "@/lib/api";
 import { LikeButton } from "@/features/methods/LikeButton";
 import { MethodDetailFooter } from "@/features/method-detail/MethodDetailFooter";
 import { DynamicVariantDetails } from "@/features/method-detail/DynamicVariantDetails";
+import { VariantModifierControls } from "@/features/method-detail/VariantModifierControls";
+import type { PlayerInfo, VariantModifierSelection } from "@/lib/api";
 
 const LazyVariantHistoryChart = lazy(
   () => import("@/components/VariantHistoryChart"),
@@ -70,6 +72,11 @@ interface MethodVariantContentProps {
   inputsTotal?: number;
   outputsTotal?: number;
   isItemsLoading?: boolean;
+  player: PlayerInfo | null;
+  isAuthenticated: boolean;
+  isModifierLoading: boolean;
+  modifierError: Error | null;
+  onModifierSelectionChange: (selection?: VariantModifierSelection) => void;
 }
 
 function formatLiquidityScore(score?: number): string {
@@ -764,6 +771,11 @@ export function MethodVariantContent({
   inputsTotal,
   outputsTotal,
   isItemsLoading = false,
+  player,
+  isAuthenticated,
+  isModifierLoading,
+  modifierError,
+  onModifierSelectionChange,
 }: MethodVariantContentProps) {
   const [showAdvancedItemDetails, setShowAdvancedItemDetails] = useState(false);
   const toggleAdvancedItemDetails = () =>
@@ -825,6 +837,15 @@ export function MethodVariantContent({
           )}
 
           <DynamicVariantDetails variant={variant} itemsMap={itemsMap} />
+
+          <VariantModifierControls
+            variant={variant}
+            player={player}
+            isAuthenticated={isAuthenticated}
+            isLoading={isModifierLoading}
+            error={modifierError}
+            onSelectionChange={onModifierSelectionChange}
+          />
         </div>
 
         <EditorSubsection

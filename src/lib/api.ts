@@ -83,6 +83,7 @@ export interface IoItem {
 export type DynamicActionCondition = "always" | "success" | "failure";
 
 export interface DynamicActionItem extends IoItem {
+  targetId?: string;
   condition?: DynamicActionCondition;
 }
 
@@ -178,6 +179,7 @@ export type VariantActionType = (typeof VARIANT_ACTION_TYPE_OPTIONS)[number];
 export type VariantCalculationMode = "fixed" | "dynamic";
 
 export interface DynamicActionSkillXp {
+  targetId?: string;
   skillId: number;
   experience: number;
   skill?: string;
@@ -200,6 +202,7 @@ export interface DynamicVariantAction {
 
 export interface DynamicCycleStep {
   id?: string;
+  targetId?: string;
   name: string;
   stepOrderPosition: number;
   clicksMade: number;
@@ -255,6 +258,56 @@ export interface Variant {
   cycleSteps?: DynamicCycleStep[];
   cycleTotalDurationTicks?: number;
   cyclesPerHour?: number;
+  modifiers?: VariantModifier[];
+}
+
+export type ModifierType = "skill_level" | "location" | "equipment";
+export type ModifierOperation = "set" | "add" | "multiply";
+export type ModifierTargetType = "actions" | "cycle_steps";
+export type ModifierValueType = "constant" | "curve";
+
+export interface ModifierCurve {
+  interpolation: "linear";
+  points: Array<{ input: number; output: number }>;
+}
+
+export interface VariantModifierEffect {
+  id?: string;
+  target_type: ModifierTargetType;
+  target_id: string;
+  target_property:
+    | "rollIntervalTicks"
+    | "baseSuccessChance"
+    | "durationTicks"
+    | "clicksMade"
+    | "isAfk"
+    | "actionsMade";
+  operation: ModifierOperation;
+  value_type: ModifierValueType;
+  value: number | boolean | ModifierCurve;
+  priority?: number;
+}
+
+export interface VariantModifier {
+  id?: string;
+  name: string;
+  type: ModifierType;
+  skill_id?: number | null;
+  skill?: {
+    id: number;
+    key: string;
+    name: string;
+  } | null;
+  effects: VariantModifierEffect[];
+}
+
+export interface VariantModifierSelection {
+  variant_id: string;
+  modifiers: Array<{
+    type: ModifierType;
+    skill?: string;
+    value: string | number;
+  }>;
 }
 
 export type IconSource = "item" | "game_icon";
@@ -1604,6 +1657,37 @@ export async function fetchMethodDetailBySlug(
   return { method: normalizeMethod(method), warnings };
 }
 
+export async function fetchMethodDetailWithModifiers(
+  id: string,
+  modifiers: VariantModifierSelection[],
+  player?: PlayerInfo,
+): Promise<MethodDetailResponse> {
+  const res = await apiFetch(toApiUrl(`/methods/${id}/modifiers`).toString(), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      ...(player ? { player } : {}),
+      modifiers,
+    }),
+  });
+  if (!res.ok) {
+    throw await buildApiRequestError(
+      res,
+      `HTTP ${res.status} - Error applying modifiers`,
+    );
+  }
+  const json: unknown = await res.json();
+  const method =
+    (json as { data?: { method?: Method } }).data?.method ??
+    (json as { data?: Method }).data ??
+    (json as { method?: Method }).method;
+  if (!method) {
+    throw new Error("Method not found");
+  }
+  const warnings = parseWarnings((json as { warnings?: unknown }).warnings);
+  return { method: normalizeMethod(method), warnings };
+}
+
 export async function likeVariant(variantId: string): Promise<void> {
   const res = await apiFetch(`${API_URL}/methods/variant/${variantId}/like`, {
     method: "POST",
@@ -1681,26 +1765,31 @@ export interface FixedUpdateVariantDto extends UpdateVariantBaseDto {
 export interface DynamicUpdateVariantDto extends UpdateVariantBaseDto {
   calculationMode: "dynamic";
   dynamicAction: {
+    id?: string;
     name: string;
     rollIntervalTicks: number;
     baseSuccessChance?: number;
     inputs?: Array<{
+      targetId?: string;
       id: number;
       quantity: number;
       condition?: DynamicActionCondition;
     }>;
     outputs?: Array<{
+      targetId?: string;
       id: number;
       quantity: number;
       condition?: DynamicActionCondition;
     }>;
     xpGained?: Array<{
+      targetId?: string;
       skillId: number;
       experience: number;
       condition?: DynamicActionCondition;
     }>;
   };
   cycleSteps: Array<{
+    targetId?: string;
     name: string;
     stepOrderPosition: number;
     clicksMade: number;
@@ -1708,6 +1797,7 @@ export interface DynamicUpdateVariantDto extends UpdateVariantBaseDto {
     actionsMade?: number;
     durationTicks?: number;
   }>;
+  modifiers?: VariantModifier[];
 }
 
 export type UpdateVariantDto = FixedUpdateVariantDto | DynamicUpdateVariantDto;
@@ -1728,9 +1818,15 @@ function mapIoItems(items: IoItem[] | undefined, type: IoItemType): IoItem[] {
 function mapDynamicActionItems(
   items: DynamicActionItem[] | undefined,
   condition?: DynamicActionCondition,
-): Array<{ id: number; quantity: number; condition?: DynamicActionCondition }> {
+): Array<{
+  id: number;
+  targetId?: string;
+  quantity: number;
+  condition?: DynamicActionCondition;
+}> {
   return (items ?? []).map((item) => ({
     id: item.id,
+    ...(item.targetId ? { targetId: item.targetId } : {}),
     quantity: item.quantity,
     ...(condition ? { condition } : {}),
   }));
@@ -1757,7 +1853,12 @@ function actionEffectsMatch<T>(
 function mapConditionalActionItems(
   success: DynamicActionItem[],
   failure: DynamicActionItem[],
-): Array<{ id: number; quantity: number; condition?: DynamicActionCondition }> {
+): Array<{
+  id: number;
+  targetId?: string;
+  quantity: number;
+  condition?: DynamicActionCondition;
+}> {
   if (
     actionEffectsMatch(
       success,
@@ -1780,6 +1881,7 @@ function mapConditionalActionXp(
   failure: DynamicActionSkillXp[],
 ): Array<{
   skillId: number;
+  targetId?: string;
   experience: number;
   condition?: DynamicActionCondition;
 }> {
@@ -1793,6 +1895,7 @@ function mapConditionalActionXp(
   ) {
     return success.map((entry) => ({
       skillId: entry.skillId,
+      ...(entry.targetId ? { targetId: entry.targetId } : {}),
       experience: entry.experience,
       condition: "always",
     }));
@@ -1801,11 +1904,13 @@ function mapConditionalActionXp(
   return [
     ...success.map((entry) => ({
       skillId: entry.skillId,
+      ...(entry.targetId ? { targetId: entry.targetId } : {}),
       experience: entry.experience,
       condition: "success" as const,
     })),
     ...failure.map((entry) => ({
       skillId: entry.skillId,
+      ...(entry.targetId ? { targetId: entry.targetId } : {}),
       experience: entry.experience,
       condition: "failure" as const,
     })),
@@ -2116,6 +2221,7 @@ function buildVariantSignaturePayload(variant: Variant) {
       ...base,
       dynamicAction: variant.dynamicAction,
       cycleSteps: variant.cycleSteps,
+      modifiers: variant.modifiers,
     };
   }
 
@@ -2129,6 +2235,20 @@ function buildVariantSignaturePayload(variant: Variant) {
     inputs: mapIoItems(variant.inputs, "input"),
     outputs: mapIoItems(variant.outputs, "output"),
   };
+}
+
+function mapVariantModifiers(modifiers: VariantModifier[]): VariantModifier[] {
+  return modifiers.map((modifier) => {
+    const payload = { ...modifier };
+    delete payload.skill;
+    delete payload.skill_id;
+    return {
+      ...payload,
+      ...(modifier.type === "skill_level" && modifier.skill_id != null
+        ? { skill_id: modifier.skill_id }
+        : {}),
+    };
+  });
 }
 
 function buildVariantUpdatePayload(variant: Variant): UpdateVariantDto {
@@ -2153,49 +2273,56 @@ function buildVariantUpdatePayload(variant: Variant): UpdateVariantDto {
       throw new Error("At least one dynamic cycle step is required");
     }
 
-    const cycleSteps = variant.cycleSteps.map((step, index) => {
-      if (!step.name.trim()) {
-        throw new Error(`Dynamic cycle step ${index + 1} name is required`);
-      }
-      if (!Number.isSafeInteger(step.clicksMade) || step.clicksMade < 0) {
-        throw new Error(
-          `Dynamic cycle step ${index + 1} clicks must be a non-negative integer`,
-        );
-      }
+    const cycleSteps: DynamicUpdateVariantDto["cycleSteps"] =
+      variant.cycleSteps.map((step, index) => {
+        if (!step.name.trim()) {
+          throw new Error(`Dynamic cycle step ${index + 1} name is required`);
+        }
+        if (!Number.isSafeInteger(step.clicksMade) || step.clicksMade < 0) {
+          throw new Error(
+            `Dynamic cycle step ${index + 1} clicks must be a non-negative integer`,
+          );
+        }
 
-      const actionsMade = step.actionsMade ?? 0;
-      if (!Number.isSafeInteger(actionsMade) || actionsMade < 0) {
-        throw new Error(
-          `Dynamic cycle step ${index + 1} actions made must be a non-negative integer`,
-        );
-      }
-      if (typeof step.isAfk !== "boolean") {
-        throw new Error(`Dynamic cycle step ${index + 1} isAfk is required`);
-      }
-      if (actionsMade > 0) {
+        const actionsMade = step.actionsMade ?? 0;
+        if (!Number.isSafeInteger(actionsMade) || actionsMade < 0) {
+          throw new Error(
+            `Dynamic cycle step ${index + 1} actions made must be a non-negative integer`,
+          );
+        }
+        if (typeof step.isAfk !== "boolean") {
+          throw new Error(`Dynamic cycle step ${index + 1} isAfk is required`);
+        }
+        if (actionsMade > 0) {
+          return {
+            ...(step.targetId ?? step.id
+              ? { targetId: step.targetId ?? step.id }
+              : {}),
+            name: step.name.trim(),
+            stepOrderPosition: index + 1,
+            clicksMade: step.clicksMade,
+            actionsMade,
+            isAfk: step.isAfk,
+          };
+        }
+
+        const durationTicks = step.durationTicks ?? 0;
+        if (!Number.isSafeInteger(durationTicks) || durationTicks < 0) {
+          throw new Error(
+            `Dynamic cycle step ${index + 1} duration must be a non-negative number of game ticks`,
+          );
+        }
         return {
+          ...(step.targetId ?? step.id
+            ? { targetId: step.targetId ?? step.id }
+            : {}),
           name: step.name.trim(),
           stepOrderPosition: index + 1,
           clicksMade: step.clicksMade,
-          actionsMade,
+          durationTicks,
           isAfk: step.isAfk,
         };
-      }
-
-      const durationTicks = step.durationTicks ?? 0;
-      if (!Number.isSafeInteger(durationTicks) || durationTicks < 0) {
-        throw new Error(
-          `Dynamic cycle step ${index + 1} duration must be a non-negative number of game ticks`,
-        );
-      }
-      return {
-        name: step.name.trim(),
-        stepOrderPosition: index + 1,
-        clicksMade: step.clicksMade,
-        durationTicks,
-        isAfk: step.isAfk,
-      };
-    });
+      });
     const cycleTotalDurationTicks = cycleSteps.reduce(
       (total, step) =>
         total +
@@ -2221,6 +2348,7 @@ function buildVariantUpdatePayload(variant: Variant): UpdateVariantDto {
       requirements: variant.requirements ?? {},
       recommendations: variant.recommendations,
       dynamicAction: {
+        ...(dynamicAction.id ? { id: dynamicAction.id } : {}),
         name: dynamicAction.name.trim(),
         rollIntervalTicks: dynamicAction.rollIntervalTicks,
         ...(dynamicAction.baseSuccessChance !== undefined
@@ -2261,12 +2389,16 @@ function buildVariantUpdatePayload(variant: Variant): UpdateVariantDto {
                     )
                   : dynamicAction.xpGained.map((entry) => ({
                       skillId: entry.skillId,
+                      ...(entry.targetId ? { targetId: entry.targetId } : {}),
                       experience: entry.experience,
                     })),
             }
           : {}),
       },
       cycleSteps,
+      ...(variant.modifiers?.length
+        ? { modifiers: mapVariantModifiers(variant.modifiers) }
+        : {}),
     };
   }
 
