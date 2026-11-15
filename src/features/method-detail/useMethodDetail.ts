@@ -63,13 +63,22 @@ export function useMethodDetail(): UseMethodDetailResult {
   const normalizedMethodSlug = normalizeMethodSlug(methodParam);
   const [modifierSelection, setModifierSelectionState] =
     useState<VariantModifierSelection | undefined>(undefined);
-  const [modifiedDetail, setModifiedDetail] = useState<MethodDetailResponse | undefined>(undefined);
+  const [modifierSelectionMethodSlug, setModifierSelectionMethodSlug] =
+    useState<string | undefined>(undefined);
+  const [modifiedDetail, setModifiedDetail] = useState<{
+    methodSlug: string;
+    methodId: string;
+    dataUpdatedAt: number;
+    detail: MethodDetailResponse;
+  } | undefined>(undefined);
   const [modifierError, setModifierError] = useState<Error | null>(null);
   const [isModifierLoading, setIsModifierLoading] = useState(false);
   const modifierRequestId = useRef(0);
-  const modifierSelectionRef = useRef<VariantModifierSelection | undefined>(undefined);
 
-  const { data, error, isLoading } = useQuery<MethodDetailResponse, Error>({
+  const { data, error, isLoading, dataUpdatedAt } = useQuery<
+    MethodDetailResponse,
+    Error
+  >({
     queryKey: getMethodDetailQueryKey(
       normalizedMethodSlug,
       player ?? undefined,
@@ -82,36 +91,57 @@ export function useMethodDetail(): UseMethodDetailResult {
     retry: false,
   });
 
-  const setModifierSelection = useCallback((selection?: VariantModifierSelection) => {
-    if (
-      JSON.stringify(modifierSelectionRef.current) === JSON.stringify(selection)
-    ) {
-      return;
-    }
-    modifierRequestId.current += 1;
-    modifierSelectionRef.current = selection;
-    setModifierSelectionState(selection);
-    setModifierError(null);
-    if (!selection?.modifiers.length) {
+  const setModifierSelection = useCallback(
+    (selection?: VariantModifierSelection) => {
+      modifierRequestId.current += 1;
+      setModifierSelectionState(selection);
+      setModifierSelectionMethodSlug(
+        selection?.modifiers.length ? normalizedMethodSlug : undefined,
+      );
       setModifiedDetail(undefined);
-      setIsModifierLoading(false);
-    }
-  }, []);
+      setModifierError(null);
+      if (!selection?.modifiers.length) setIsModifierLoading(false);
+    },
+    [normalizedMethodSlug],
+  );
 
   useEffect(() => {
-    if (!modifierSelection?.modifiers.length || !data?.method.id) return;
+    modifierRequestId.current += 1;
+    setModifierSelectionState(undefined);
+    setModifierSelectionMethodSlug(undefined);
+    setModifiedDetail(undefined);
+    setModifierError(null);
+    setIsModifierLoading(false);
+  }, [normalizedMethodSlug]);
+
+  const activeModifierSelection =
+    modifierSelectionMethodSlug === normalizedMethodSlug
+      ? modifierSelection
+      : undefined;
+
+  useEffect(() => {
+    if (!activeModifierSelection?.modifiers.length || !data?.method.id) return;
 
     const requestId = modifierRequestId.current + 1;
     modifierRequestId.current = requestId;
+    const methodId = data.method.id;
+    setModifiedDetail(undefined);
     setIsModifierLoading(true);
     setModifierError(null);
     void fetchMethodDetailWithModifiers(
-      data.method.id,
-      [modifierSelection],
+      methodId,
+      [activeModifierSelection],
       player ?? undefined,
     )
       .then((detail) => {
-        if (requestId === modifierRequestId.current) setModifiedDetail(detail);
+        if (requestId === modifierRequestId.current) {
+          setModifiedDetail({
+            methodSlug: normalizedMethodSlug,
+            methodId,
+            dataUpdatedAt,
+            detail,
+          });
+        }
       })
       .catch((requestError: unknown) => {
         if (requestId !== modifierRequestId.current) return;
@@ -124,7 +154,13 @@ export function useMethodDetail(): UseMethodDetailResult {
       .finally(() => {
         if (requestId === modifierRequestId.current) setIsModifierLoading(false);
       });
-  }, [data?.method.id, modifierSelection, player]);
+  }, [
+    activeModifierSelection,
+    data?.method.id,
+    dataUpdatedAt,
+    normalizedMethodSlug,
+    player,
+  ]);
 
   const { data: meData } = useQuery({
     queryKey: getMeQueryKey(session?.user?.id),
@@ -146,7 +182,12 @@ export function useMethodDetail(): UseMethodDetailResult {
     );
   }, [error, setUserError]);
 
-  const method = modifiedDetail?.method ?? data?.method;
+  const method =
+    modifiedDetail?.methodSlug === normalizedMethodSlug &&
+    modifiedDetail.methodId === data?.method.id &&
+    modifiedDetail?.dataUpdatedAt === dataUpdatedAt
+      ? modifiedDetail.detail.method
+      : data?.method;
   const creatorAvatarUrl =
     method?.created_by?.id &&
     session?.user?.id &&

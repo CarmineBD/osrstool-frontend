@@ -210,7 +210,11 @@ function isSuccessChanceField(field: EditorField): boolean {
 function getConstantDisplayValue(effect: VariantModifierEffect): string {
   if (typeof effect.value !== "number") return "";
   if (isTickField(effect.target_property)) return formatGameTickSeconds(effect.value);
-  if (isSuccessChanceField(effect.target_property)) return String(effect.value * 100);
+  if (isSuccessChanceField(effect.target_property)) {
+    return String(
+      effect.operation === "multiply" ? effect.value : effect.value * 100,
+    );
+  }
   return String(effect.value);
 }
 
@@ -969,8 +973,20 @@ export function ModifierEditor({
                                       <Input
                                         type="number"
                                         inputMode="decimal"
-                                        min={successChance ? 0.01 : 0}
-                                        max={successChance ? 99.99 : undefined}
+                                        min={
+                                          successChance
+                                            ? effect.operation === "multiply"
+                                              ? 0
+                                              : effect.operation === "set"
+                                                ? 0.01
+                                                : undefined
+                                            : 0
+                                        }
+                                        max={
+                                          successChance && effect.operation === "set"
+                                            ? 100
+                                            : undefined
+                                        }
                                         step={tickField ? "0.6" : "0.01"}
                                         value={getConstantDisplayValue(effect)}
                                         aria-label="Effect value"
@@ -981,7 +997,9 @@ export function ModifierEditor({
                                           const value = tickField
                                             ? secondsToGameTicks(raw)
                                             : successChance
-                                              ? raw / 100
+                                              ? effect.operation === "multiply"
+                                                ? raw
+                                                : raw / 100
                                               : raw;
                                           if (value === undefined) return;
                                           updateEffect(

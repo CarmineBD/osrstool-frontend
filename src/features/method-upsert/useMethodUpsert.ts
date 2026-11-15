@@ -246,7 +246,7 @@ function isCombatRequirementSkill(skill: string): boolean {
   return skill.trim().toLowerCase() === "combat";
 }
 
-function validateDynamicModifiers(
+export function validateDynamicModifiers(
   variant: Variant,
   variantLabel: string,
 ): string | null {
@@ -335,28 +335,48 @@ function validateDynamicModifiers(
         continue;
       }
 
-      const validateNumber = (
-        value: number,
-        allowFullSuccessChance = false,
-      ): string | null => {
+      const validateNumber = (value: number): string | null => {
         if (!Number.isFinite(value)) return "must use a number.";
-        if (
-          successChance &&
-          (value <= 0 ||
-            (allowFullSuccessChance ? value > 1 : value >= 1) ||
-            !hasAtMostDecimalPlaces(value * 100, 2))
-        ) {
-          return allowFullSuccessChance
-            ? "success chance must be greater than 0% and at most 100%, with up to 2 decimals."
-            : "success chance must be greater than 0% and less than 100%, with up to 2 decimals.";
+        if (successChance) {
+          if (
+            effect.operation === "set" &&
+            (value <= 0 ||
+              value > 1 ||
+              !hasAtMostDecimalPlaces(value * 100, 2))
+          ) {
+            return "success chance must be greater than 0% and at most 100%, with up to 2 decimals.";
+          }
+          if (
+            effect.operation === "add" &&
+            !hasAtMostDecimalPlaces(value * 100, 2)
+          ) {
+            return "success chance adjustments must use up to 2 decimal places.";
+          }
+          if (
+            effect.operation === "multiply" &&
+            (value < 0 || !hasAtMostDecimalPlaces(value, 2))
+          ) {
+            return "success chance multipliers must be non-negative numbers with up to 2 decimals.";
+          }
         }
-        if (
-          tickField &&
-          (!Number.isSafeInteger(value) ||
-            (effect.target_property === "rollIntervalTicks" && value <= 0) ||
-            (effect.target_property === "durationTicks" && value < 0))
-        ) {
-          return "duration and roll interval values must be valid multiples of 0.6 seconds.";
+        if (tickField) {
+          if (
+            effect.operation === "set" &&
+            (!Number.isSafeInteger(value) ||
+              (effect.target_property === "rollIntervalTicks" && value <= 0) ||
+              (effect.target_property === "durationTicks" && value < 0))
+          ) {
+            return "duration and roll interval values must be valid multiples of 0.6 seconds.";
+          }
+          if (
+            effect.operation === "add" &&
+            !Number.isSafeInteger(value)
+          ) {
+            return "duration and roll interval adjustments must be valid multiples of 0.6 seconds.";
+          }
+          if (effect.operation === "multiply" && value < 0) {
+            return "duration and roll interval multipliers must be non-negative.";
+          }
         }
         if (decimalField && !hasAtMostDecimalPlaces(value, 2)) {
           return "must use at most 2 decimal places.";
@@ -393,7 +413,7 @@ function validateDynamicModifiers(
         ) {
           return `${variantLabel}: ${effectLabel} curve levels must be strictly increasing from 1 to ${MAX_SKILL_CURVE_LEVEL}.`;
         }
-        const valueError = validateNumber(point.output, true);
+        const valueError = validateNumber(point.output);
         if (valueError) {
           return `${variantLabel}: ${effectLabel} curve point ${pointIndex + 1} ${valueError}`;
         }
