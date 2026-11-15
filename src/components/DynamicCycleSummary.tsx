@@ -26,40 +26,38 @@ export function DynamicCycleSummary({
   return (
     <section
       aria-label="Cycle summary"
-      className="rounded-lg border border-border/60 bg-muted/20 p-4"
+      className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
     >
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div>
-          <p className={EDITOR_META_TEXT_CLASS}>Clicks/hr</p>
-          <p className="mt-1 font-medium tabular-nums text-foreground">
-            {formatValue(clicksPerHour)}
+      <div>
+        <p className={EDITOR_META_TEXT_CLASS}>Clicks/hr</p>
+        <p className="mt-1 font-medium tabular-nums text-foreground">
+          {formatValue(clicksPerHour)}
+        </p>
+      </div>
+      <div>
+        <p className={EDITOR_META_TEXT_CLASS}>% AFK</p>
+        <p className="mt-1 font-medium tabular-nums text-foreground">
+          {typeof afkiness === "number" ? `${formatValue(afkiness)}%` : "N/A"}
+        </p>
+      </div>
+      <div>
+        <p className={EDITOR_META_TEXT_CLASS}>Total cycle duration</p>
+        <p className="mt-1 font-medium tabular-nums text-foreground">
+          {hasValidDuration
+            ? `${formatGameTickSeconds(cycleTotalDurationTicks)} seconds`
+            : "N/A"}
+        </p>
+        {hasValidDuration ? (
+          <p className={EDITOR_META_TEXT_CLASS}>
+            {formatGameTickCount(cycleTotalDurationTicks)}
           </p>
-        </div>
-        <div>
-          <p className={EDITOR_META_TEXT_CLASS}>% AFK</p>
-          <p className="mt-1 font-medium tabular-nums text-foreground">
-            {typeof afkiness === "number" ? `${formatValue(afkiness)}%` : "N/A"}
-          </p>
-        </div>
-        <div>
-          <p className={EDITOR_META_TEXT_CLASS}>Total cycle duration</p>
-          <p className="mt-1 font-medium tabular-nums text-foreground">
-            {hasValidDuration
-              ? `${formatGameTickSeconds(cycleTotalDurationTicks)} seconds`
-              : "N/A"}
-          </p>
-          {hasValidDuration ? (
-            <p className={EDITOR_META_TEXT_CLASS}>
-              {formatGameTickCount(cycleTotalDurationTicks)}
-            </p>
-          ) : null}
-        </div>
-        <div>
-          <p className={EDITOR_META_TEXT_CLASS}>Cycles/hr</p>
-          <p className="mt-1 font-medium tabular-nums text-foreground">
-            {formatValue(cyclesPerHour, 1)}
-          </p>
-        </div>
+        ) : null}
+      </div>
+      <div>
+        <p className={EDITOR_META_TEXT_CLASS}>Cycles/hr</p>
+        <p className="mt-1 font-medium tabular-nums text-foreground">
+          {formatValue(cyclesPerHour, 1)}
+        </p>
       </div>
     </section>
   );

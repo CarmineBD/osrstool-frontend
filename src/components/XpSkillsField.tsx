@@ -182,10 +182,6 @@ export function XpSkillsField({
         </ComboboxContent>
       </Combobox>
 
-      <p className={cn("mt-3", EDITOR_META_TEXT_CLASS)}>
-        {entries.length}/{maxEntries} skills
-      </p>
-
       {entries.length > 0 ? (
         <div className="mt-3 flex flex-wrap gap-2">
           {entries.map((entry) => {

@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import { IconAdjustmentsHorizontal, IconPhoto } from "@tabler/icons-react";
 import {
   EDITOR_BODY_TEXT_CLASS,
@@ -58,6 +58,10 @@ interface ItemIconFieldProps {
   placeholder?: string;
   error?: string;
   required?: boolean;
+  itemOnly?: boolean;
+  hideLabel?: boolean;
+  triggerContent?: ReactNode;
+  disabled?: boolean;
   searchAriaLabel?: string;
   optionsAriaLabel?: string;
 }
@@ -70,6 +74,10 @@ export function ItemIconField({
   placeholder,
   error,
   required = false,
+  itemOnly = false,
+  hideLabel = false,
+  triggerContent,
+  disabled = false,
   searchAriaLabel,
   optionsAriaLabel,
 }: ItemIconFieldProps) {
@@ -78,7 +86,9 @@ export function ItemIconField({
   const [results, setResults] = useState<IconRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [showUntradeables, setShowUntradeables] = useState(false);
-  const [iconType, setIconType] = useState<IconSearchType>("all");
+  const [iconType, setIconType] = useState<IconSearchType>(
+    itemOnly ? "items" : "all",
+  );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedIcon, setSelectedIcon] = useState<IconRecord | null>(null);
   const [cache, setCache] = useState<Record<string, IconRecord>>({});
@@ -163,10 +173,12 @@ export function ItemIconField({
   const triggerLabel = searchAriaLabel ?? `${label} search`;
   return (
     <div className="self-start">
-      <label className={EDITOR_FIELD_LABEL_CLASS}>
-        {label}
-        {required ? <RequiredMark /> : null}
-      </label>
+      {!hideLabel ? (
+        <label className={EDITOR_FIELD_LABEL_CLASS}>
+          {label}
+          {required ? <RequiredMark /> : null}
+        </label>
+      ) : null}
       <Popover
         open={open}
         onOpenChange={(next) => {
@@ -178,20 +190,25 @@ export function ItemIconField({
           <Button
             type="button"
             variant="outline"
+            size={triggerContent ? "sm" : "icon"}
             className={cn(
-              "h-10 w-10 shrink-0 rounded-md border-border/70 bg-background p-0",
+              "shrink-0 rounded-md border-border/70 p-0",
+              triggerContent
+                ? "h-8 w-auto gap-2 border-0 px-3"
+                : "h-10 w-10 bg-background",
               error && "border-destructive",
             )}
+            disabled={disabled}
             aria-label={`Open ${label}`}
           >
-            {selectedPreview?.iconUrl ? (
+            {triggerContent ?? (selectedPreview?.iconUrl ? (
               <PixelArtIcon
                 src={selectedPreview.iconUrl}
                 alt={selectedPreview.name}
               />
             ) : (
               <IconPhoto size={16} className="text-muted-foreground" />
-            )}
+            ))}
           </Button>
         </PopoverTrigger>
         <PopoverContent
@@ -230,18 +247,20 @@ export function ItemIconField({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64">
-                <DropdownMenuRadioGroup
-                  value={iconType}
-                  onValueChange={(next) => setIconType(next as IconSearchType)}
-                >
-                  {ICON_TYPES.map((type) => (
-                    <DropdownMenuRadioItem key={type} value={type}>
-                      {type === "items"
-                        ? "Items"
-                        : type[0].toUpperCase() + type.slice(1)}
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
+                {!itemOnly ? (
+                  <DropdownMenuRadioGroup
+                    value={iconType}
+                    onValueChange={(next) => setIconType(next as IconSearchType)}
+                  >
+                    {ICON_TYPES.map((type) => (
+                      <DropdownMenuRadioItem key={type} value={type}>
+                        {type === "items"
+                          ? "Items"
+                          : type[0].toUpperCase() + type.slice(1)}
+                      </DropdownMenuRadioItem>
+                    ))}
+                  </DropdownMenuRadioGroup>
+                ) : null}
                 <div className="flex items-center justify-between gap-3 px-2 py-1.5">
                   <span className="text-sm">Untradeable items</span>
                   <Switch

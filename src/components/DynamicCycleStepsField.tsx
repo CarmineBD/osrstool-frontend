@@ -27,7 +27,11 @@ import {
   isWholeGameTick,
   secondsToGameTicks,
 } from "@/lib/gameTicks";
-import { DYNAMIC_STEP_NAME_MAX_LENGTH, normalizeBoundedText, normalizeDigitInput } from "@/lib/validation";
+import {
+  DYNAMIC_STEP_NAME_MAX_LENGTH,
+  normalizeBoundedText,
+  normalizeDigitInput,
+} from "@/lib/validation";
 import { cn } from "@/lib/utils";
 
 interface DynamicCycleStepsFieldProps {
@@ -88,7 +92,10 @@ export function DynamicCycleStepsField({
     onChange(normalizeStepPositions(nextSteps));
   };
 
-  const handleDragStart = (event: DragEvent<HTMLButtonElement>, index: number) => {
+  const handleDragStart = (
+    event: DragEvent<HTMLButtonElement>,
+    index: number,
+  ) => {
     event.dataTransfer.effectAllowed = "move";
     event.dataTransfer.setData("text/plain", String(index));
     setDraggingIndex(index);
@@ -113,16 +120,18 @@ export function DynamicCycleStepsField({
       {steps.length === 0 ? (
         <EmptySelectionState description="No steps added yet." />
       ) : (
-        <Table className={cn(EDITOR_TABLE_SURFACE_CLASS, "min-w-[860px]")}>
+        <Table className={cn(EDITOR_TABLE_SURFACE_CLASS, "w-full")}>
           <TableHeader className={EDITOR_TABLE_HEADER_CLASS}>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="w-[64px]">Step</TableHead>
-              <TableHead className="min-w-[180px]">Name</TableHead>
-              <TableHead className="w-[104px]">Clicks</TableHead>
-              <TableHead className="w-[100px]">Is AFK</TableHead>
-              <TableHead className="w-[124px]">Actions made</TableHead>
-              <TableHead className="min-w-[174px]">Duration (seconds)</TableHead>
-              <TableHead className="w-[92px] text-right">Options</TableHead>
+              <TableHead className="w-[7%]">Step</TableHead>
+              <TableHead className="w-[27%]">Name</TableHead>
+              <TableHead className="w-[11%]">Clicks made</TableHead>
+              <TableHead className="w-[11%]">Is AFK</TableHead>
+              <TableHead className="w-[12%]">Actions made</TableHead>
+              <TableHead className="w-[23%]">
+                Duration (seconds)
+              </TableHead>
+              <TableHead className="w-[9%] text-right">Options</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -144,16 +153,20 @@ export function DynamicCycleStepsField({
                 <TableRow
                   key={step.id ?? `${step.stepOrderPosition}-${index}`}
                   onDragOver={(event) => {
-                    if (draggingIndex === null || draggingIndex === index) return;
+                    if (draggingIndex === null || draggingIndex === index)
+                      return;
                     event.preventDefault();
                     if (dragOverIndex !== index) setDragOverIndex(index);
                   }}
                   onDrop={(event) => handleDrop(event, index)}
                   className={cn(
-                    dragOverIndex === index && "outline outline-1 outline-primary/40",
+                    dragOverIndex === index &&
+                      "outline outline-1 outline-primary/40",
                   )}
                 >
-                  <TableCell className="align-top font-medium">#{index + 1}</TableCell>
+                  <TableCell className="align-middle font-medium">
+                    #{index + 1}
+                  </TableCell>
                   <TableCell className="align-top">
                     <Input
                       value={step.name}
@@ -161,7 +174,8 @@ export function DynamicCycleStepsField({
                       aria-label={`Step ${index + 1} name`}
                       className={cn(
                         "bg-background",
-                        nameError && "border-destructive focus-visible:ring-destructive",
+                        nameError &&
+                          "border-destructive focus-visible:ring-destructive",
                       )}
                       onChange={(event) =>
                         updateStep(index, {
@@ -198,10 +212,12 @@ export function DynamicCycleStepsField({
                       <Switch
                         checked={step.isAfk ?? false}
                         aria-label={`Step ${index + 1} is AFK`}
-                        onCheckedChange={(isAfk) => updateStep(index, { isAfk })}
+                        onCheckedChange={(isAfk) =>
+                          updateStep(index, { isAfk })
+                        }
                       />
                       <span className={EDITOR_META_TEXT_CLASS}>
-                        {step.isAfk ? "On" : "Off"}
+                        {step.isAfk ? "AFK" : "Not AFK"}
                       </span>
                     </div>
                   </TableCell>
@@ -221,33 +237,37 @@ export function DynamicCycleStepsField({
                     />
                   </TableCell>
                   <TableCell className="align-top">
-                    <Input
-                      type="number"
-                      inputMode="decimal"
-                      min={0}
-                      step="0.6"
-                      disabled={isActionStep}
-                      value={formatGameTickSeconds(resolvedDurationTicks)}
-                      aria-label={`Step ${index + 1} duration in seconds`}
-                      className={cn(
-                        "bg-background",
-                        durationHasTickError &&
-                          "border-destructive focus-visible:ring-destructive",
-                      )}
-                      onChange={(event) =>
-                        updateStep(index, {
-                          durationTicks:
-                            event.target.value === ""
-                              ? 0
-                              : secondsToGameTicks(event.target.valueAsNumber) ?? 0,
-                        })
-                      }
-                    />
-                    {isWholeGameTick(resolvedDurationTicks) ? (
-                      <p className={cn("mt-2", EDITOR_META_TEXT_CLASS)}>
-                        {formatGameTickCount(resolvedDurationTicks)}
-                      </p>
-                    ) : null}
+                    <div className="flex min-w-0 items-center gap-2">
+                      <Input
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        step="0.6"
+                        disabled={isActionStep}
+                        value={formatGameTickSeconds(resolvedDurationTicks)}
+                        aria-label={`Step ${index + 1} duration in seconds`}
+                        className={cn(
+                          "min-w-0 flex-1 bg-background",
+                          durationHasTickError &&
+                            "border-destructive focus-visible:ring-destructive",
+                        )}
+                        onChange={(event) =>
+                          updateStep(index, {
+                            durationTicks:
+                              event.target.value === ""
+                                ? 0
+                                : (secondsToGameTicks(
+                                    event.target.valueAsNumber,
+                                  ) ?? 0),
+                          })
+                        }
+                      />
+                      {isWholeGameTick(resolvedDurationTicks) ? (
+                        <span className={cn("shrink-0", EDITOR_META_TEXT_CLASS)}>
+                          {formatGameTickCount(resolvedDurationTicks)}
+                        </span>
+                      ) : null}
+                    </div>
                     {durationHasTickError ? (
                       <p className={cn("mt-1", EDITOR_ERROR_TEXT_CLASS)}>
                         Duration must be divisible by 0.6 seconds.
@@ -265,7 +285,9 @@ export function DynamicCycleStepsField({
                         onClick={() =>
                           onChange(
                             normalizeStepPositions(
-                              steps.filter((_, stepIndex) => stepIndex !== index),
+                              steps.filter(
+                                (_, stepIndex) => stepIndex !== index,
+                              ),
                             ),
                           )
                         }
@@ -297,9 +319,7 @@ export function DynamicCycleStepsField({
       <Button
         type="button"
         variant="outline"
-        onClick={() =>
-          onChange([...steps, createCycleStep(steps.length + 1)])
-        }
+        onClick={() => onChange([...steps, createCycleStep(steps.length + 1)])}
       >
         <IconPlus size={16} />
         Add new step
