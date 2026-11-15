@@ -20,6 +20,8 @@ export const MAX_CLICK_INTENSITY = MAX_ACTIONS_PER_HOUR;
 export const MAX_AFKINESS = 100;
 export const DYNAMIC_STEP_NAME_MAX_LENGTH = 120;
 export const MAX_SKILL_LEVEL = 99;
+/** Skill-level curve inputs may include the level-100 endpoint. */
+export const MAX_SKILL_CURVE_LEVEL = 100;
 export const MIN_COMBAT_LEVEL = 3;
 export const MAX_COMBAT_LEVEL = 126;
 

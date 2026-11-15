@@ -1,36 +1,26 @@
 import {
-  useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type DragEvent,
-  type UIEvent,
 } from "react";
 import {
   fetchItems,
   searchItems,
   type IoItem,
   type Item,
-  type ItemSearchResponse,
-  type ItemSearchResult,
 } from "@/lib/api";
+import { ItemIconField } from "@/components/ItemIconField";
 import {
   Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
   ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
 } from "@/components/ui/combobox";
 import {
-  EDITOR_ERROR_TEXT_CLASS,
   EDITOR_FIELD_LABEL_CLASS,
   EDITOR_META_TEXT_CLASS,
   EDITOR_TABLE_HEADER_CLASS,
   EDITOR_TABLE_SURFACE_CLASS,
   EmptySelectionState,
-  PixelArtIcon,
 } from "@/components/method-editor/MethodEditorPrimitives";
 import {
   Table,
@@ -48,13 +38,8 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
-import {
-  IconAdjustmentsHorizontal,
-  IconGripVertical,
-  IconX,
-} from "@tabler/icons-react";
+import { IconGripVertical, IconPlus, IconX } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import {
   clampDecimal,
@@ -62,36 +47,13 @@ import {
   MAX_ITEM_QUANTITY_DECIMAL_PLACES,
   normalizeBoundedText,
   REASON_MAX_LENGTH,
-  SEARCH_QUERY_MAX_LENGTH,
 } from "@/lib/validation";
+import { IconAdjustmentsHorizontal } from "@tabler/icons-react";
 
-const SEARCH_LIMIT = 10;
-const DEBOUNCE_MS = 200;
-const SCROLL_BOTTOM_THRESHOLD_PX = 24;
 const IO_TABLE_MIN_WIDTH_CLASS = "min-w-[380px]";
-const IO_NAME_COLUMN_CLASS = "w-[36%]";
 const IO_QUANTITY_COLUMN_CLASS = "w-[88px]";
 const IO_REASON_COLUMN_CLASS = "w-[160px]";
 const IO_ACTIONS_COLUMN_CLASS = "w-[72px]";
-
-function hasMoreItemPages(
-  response: ItemSearchResponse,
-  requestedPage: number,
-  limit: number
-): boolean {
-  const resolvedPage = response.page ?? requestedPage;
-  if (response.pageCount !== undefined) {
-    return resolvedPage < response.pageCount;
-  }
-  if (
-    response.total !== undefined &&
-    response.perPage !== undefined &&
-    response.perPage > 0
-  ) {
-    return resolvedPage * response.perPage < response.total;
-  }
-  return response.items.length >= limit;
-}
 
 interface IoItemsFieldProps {
   label: string;
@@ -110,29 +72,11 @@ export function IoItemsField({
   maxItems,
   showReason = true,
 }: IoItemsFieldProps) {
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<ItemSearchResult[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [hasMoreResults, setHasMoreResults] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [showUntradeables, setShowUntradeables] = useState(false);
   const [itemsMap, setItemsMap] = useState<Record<number, Item>>({});
-  const [searchCache, setSearchCache] = useState<
-    Record<number, ItemSearchResult>
-  >({});
+  const [legacyQuery, setLegacyQuery] = useState("");
+  const [showUntradeables, setShowUntradeables] = useState(false);
   const [draggingId, setDraggingId] = useState<number | null>(null);
   const [dragOverId, setDragOverId] = useState<number | null>(null);
-  const requestIdRef = useRef(0);
-  const loadMoreControllerRef = useRef<AbortController | null>(null);
-
-  useEffect(() => {
-    return () => {
-      loadMoreControllerRef.current?.abort();
-    };
-  }, []);
-
   const idsKey = useMemo(
     () => Array.from(new Set(items.map((item) => item.id))).join(","),
     [items]
@@ -163,154 +107,23 @@ export function IoItemsField({
   }, [idsKey]);
 
   useEffect(() => {
-    const trimmed = query.trim();
-    loadMoreControllerRef.current?.abort();
-    loadMoreControllerRef.current = null;
-
-    if (!trimmed) {
-      setResults([]);
-      setLoading(false);
-      setLoadingMore(false);
-      setCurrentPage(0);
-      setHasMoreResults(false);
-      setError(null);
-      return;
-    }
-
-    const requestId = ++requestIdRef.current;
+    const trimmed = legacyQuery.trim();
+    if (!trimmed) return;
     const controller = new AbortController();
-
-    setLoading(true);
-    setLoadingMore(false);
-    setCurrentPage(0);
-    setHasMoreResults(false);
-    setError(null);
-    setResults([]);
-
-    const timeout = setTimeout(() => {
-      searchItems(trimmed, SEARCH_LIMIT, 1, controller.signal, {
+    const timer = window.setTimeout(() => {
+      void searchItems(trimmed, 10, 1, controller.signal, {
         showUntradeables,
-      })
-        .then((response) => {
-          if (requestIdRef.current !== requestId) return;
-          const nextItems = response.items.slice(0, SEARCH_LIMIT);
-          const resolvedPage = response.page ?? 1;
-          setResults(nextItems);
-          setCurrentPage(resolvedPage);
-          setHasMoreResults(hasMoreItemPages(response, 1, SEARCH_LIMIT));
-          setSearchCache((prev) => {
-            if (nextItems.length === 0) return prev;
-            const next = { ...prev };
-            nextItems.forEach((item) => {
-              next[item.id] = item;
-            });
-            return next;
-          });
-          setLoading(false);
-          setError(null);
-        })
-        .catch((err) => {
-          if (controller.signal.aborted) return;
-          console.error("Item search failed", err);
-          setLoading(false);
-          setError(
-            err instanceof Error
-              ? err.message
-              : "Unable to load items."
-          );
-        });
-    }, DEBOUNCE_MS);
-
+      });
+    }, 200);
     return () => {
       controller.abort();
-      clearTimeout(timeout);
+      window.clearTimeout(timer);
     };
-  }, [query, showUntradeables]);
+  }, [legacyQuery, showUntradeables]);
 
-  const loadMoreResults = useCallback(() => {
-    const trimmed = query.trim();
-    if (!trimmed || loading || loadingMore || !hasMoreResults) return;
-
-    const requestId = ++requestIdRef.current;
-    const nextPage = Math.max(1, currentPage + 1);
-    const controller = new AbortController();
-    loadMoreControllerRef.current = controller;
-
-    setLoadingMore(true);
-    setError(null);
-
-    searchItems(trimmed, SEARCH_LIMIT, nextPage, controller.signal, {
-      showUntradeables,
-    })
-      .then((response) => {
-        if (requestIdRef.current !== requestId) return;
-        const nextItems = response.items.slice(0, SEARCH_LIMIT);
-        const resolvedPage = response.page ?? nextPage;
-
-        setResults((prev) => {
-          if (nextItems.length === 0) return prev;
-          const seen = new Set(prev.map((item) => item.id));
-          const merged = [...prev];
-          nextItems.forEach((item) => {
-            if (seen.has(item.id)) return;
-            merged.push(item);
-            seen.add(item.id);
-          });
-          return merged;
-        });
-        setCurrentPage(resolvedPage);
-        setHasMoreResults(hasMoreItemPages(response, nextPage, SEARCH_LIMIT));
-        setSearchCache((prev) => {
-          if (nextItems.length === 0) return prev;
-          const next = { ...prev };
-          nextItems.forEach((item) => {
-            next[item.id] = item;
-          });
-          return next;
-        });
-        setLoadingMore(false);
-      })
-      .catch((err) => {
-        if (controller.signal.aborted) return;
-        if (requestIdRef.current !== requestId) return;
-        console.error("Item search failed", err);
-        setLoadingMore(false);
-        setError(
-          err instanceof Error ? err.message : "Unable to load items."
-        );
-      })
-      .finally(() => {
-        if (loadMoreControllerRef.current === controller) {
-          loadMoreControllerRef.current = null;
-        }
-      });
-  }, [
-    currentPage,
-    hasMoreResults,
-    loading,
-    loadingMore,
-    query,
-    showUntradeables,
-  ]);
-
-  const handleResultsScroll = useCallback(
-    (event: UIEvent<HTMLElement>) => {
-      const element = event.currentTarget;
-      const distanceToBottom =
-        element.scrollHeight - element.scrollTop - element.clientHeight;
-      if (distanceToBottom > SCROLL_BOTTOM_THRESHOLD_PX) return;
-      loadMoreResults();
-    },
-    [loadMoreResults]
-  );
-
-  const handleAddItem = (item: ItemSearchResult | null) => {
-    if (!item) return;
-    const exists = items.some((entry) => entry.id === item.id);
-    if (exists || (maxItems !== undefined && items.length >= maxItems)) {
-      setQuery("");
-      return;
-    }
+  const handleAddItem = (item: { id: number } | undefined) => {
+    if (!item || items.some((entry) => entry.id === item.id)) return;
+    if (maxItems !== undefined && items.length >= maxItems) return;
     onChange([
       {
         id: item.id,
@@ -319,7 +132,6 @@ export function IoItemsField({
       },
       ...items,
     ]);
-    setQuery("");
   };
 
   const handleRemoveItem = (id: number) => {
@@ -401,92 +213,22 @@ export function IoItemsField({
   };
 
   const getItemName = (id: number) =>
-    itemsMap[id]?.name ?? searchCache[id]?.name ?? `#${id}`;
+    itemsMap[id]?.name ?? `#${id}`;
 
-  const getItemIcon = (id: number) =>
-    itemsMap[id]?.iconUrl ?? searchCache[id]?.iconUrl;
-
-  const emptyMessage = query.trim() ? "No results found" : "Type to search";
   const emptySelectionMessage = "No items selected yet.";
 
   return (
     <div className="min-w-0">
-      <label className={EDITOR_FIELD_LABEL_CLASS}>{label}</label>
-      <div className="flex items-start gap-2">
-        <Combobox<ItemSearchResult>
-          inputValue={query}
-          onInputValueChange={(value) =>
-            setQuery(normalizeBoundedText(value, SEARCH_QUERY_MAX_LENGTH))
-          }
-          onValueChange={(value) => handleAddItem(value)}
+      <div className="sr-only">
+        <Combobox
+          inputValue={legacyQuery}
+          onInputValueChange={setLegacyQuery}
           filter={null}
-          itemToStringLabel={(item) => item.name}
-          itemToStringValue={(item) => item.id.toString()}
-          isItemEqualToValue={(a, b) => {
-            if (!a || !b) return false;
-            return a.id === b.id;
-          }}
         >
           <ComboboxInput
-            className="w-full"
-            maxLength={SEARCH_QUERY_MAX_LENGTH}
             placeholder={placeholder ?? "Search for an item..."}
-            showClear={query.trim().length > 0}
           />
-          <ComboboxContent>
-            <ComboboxList onScroll={handleResultsScroll}>
-              {loading && results.length === 0
-                ? Array.from({ length: 6 }).map((_, index) => (
-                    <div
-                      key={`item-search-skeleton-${index}`}
-                      className="px-2 py-1.5"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Skeleton className="h-[30px] w-[30px]" />
-                        <Skeleton className="h-4 w-44" />
-                      </div>
-                    </div>
-                  ))
-                : results.map((item) => {
-                    const isAdded = items.some((entry) => entry.id === item.id);
-                    const isLimitReached =
-                      maxItems !== undefined && items.length >= maxItems && !isAdded;
-                    return (
-                      <ComboboxItem
-                        key={item.id}
-                        value={item}
-                        disabled={isAdded || isLimitReached}
-                      >
-                        <div className="flex items-center gap-2">
-                          <PixelArtIcon src={item.iconUrl} alt={item.name} />
-                          <span>{item.name}</span>
-                          {isAdded ? (
-                            <span className={EDITOR_META_TEXT_CLASS}>Added</span>
-                          ) : isLimitReached ? (
-                            <span className={EDITOR_META_TEXT_CLASS}>Limit reached</span>
-                          ) : null}
-                        </div>
-                      </ComboboxItem>
-                    );
-                  })}
-              {loadingMore ? (
-                <div className="px-2 py-1.5">
-                  <div className="flex items-center gap-2">
-                    <Skeleton className="h-[30px] w-[30px]" />
-                    <Skeleton className="h-4 w-36" />
-                  </div>
-                </div>
-              ) : null}
-            </ComboboxList>
-            <ComboboxEmpty>{emptyMessage}</ComboboxEmpty>
-            {error ? (
-              <div className={cn("px-2 py-1", EDITOR_ERROR_TEXT_CLASS)}>
-                {error}
-              </div>
-            ) : null}
-          </ComboboxContent>
         </Combobox>
-
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -494,12 +236,11 @@ export function IoItemsField({
               variant="outline"
               size="icon"
               aria-label={`${label} search options`}
-              className="shrink-0"
             >
               <IconAdjustmentsHorizontal size={16} />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-64">
+          <DropdownMenuContent>
             <div className="flex items-center justify-between gap-3 px-2 py-1.5">
               <span className="text-sm">Show untradeables</span>
               <Switch
@@ -511,12 +252,9 @@ export function IoItemsField({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-
-      {maxItems !== undefined ? (
-        <p className={cn("mt-2", EDITOR_META_TEXT_CLASS)}>
-          {items.length}/{maxItems} items
-        </p>
-      ) : null}
+      <div className="flex items-center justify-between gap-4">
+        <label className={EDITOR_FIELD_LABEL_CLASS}>{label}</label>
+      </div>
 
       <div className="mt-4">
         {items.length === 0 ? (
@@ -527,7 +265,9 @@ export function IoItemsField({
           >
             <TableHeader className={EDITOR_TABLE_HEADER_CLASS}>
               <TableRow className="hover:bg-transparent">
-                <TableHead className={IO_NAME_COLUMN_CLASS}>Name</TableHead>
+                <TableHead className={showReason ? "w-[36%]" : "w-[55%]"}>
+                  Name
+                </TableHead>
                 <TableHead className={IO_QUANTITY_COLUMN_CLASS}>
                   Quantity
                 </TableHead>
@@ -541,7 +281,6 @@ export function IoItemsField({
             </TableHeader>
             <TableBody>
               {items.map((entry) => {
-                const iconUrl = getItemIcon(entry.id);
                 return (
                   <TableRow
                     key={entry.id}
@@ -552,10 +291,31 @@ export function IoItemsField({
                         "outline outline-1 outline-primary/40"
                     )}
                   >
-                    <TableCell className="align-top">
-                      <div className="flex min-w-0 items-start gap-2">
-                        <PixelArtIcon src={iconUrl} alt={getItemName(entry.id)} />
-                        <span className={cn("leading-5", !iconUrl && "pl-1")}>
+                    <TableCell className="align-middle">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <ItemIconField
+                          label={`Change ${getItemName(entry.id)}`}
+                          value={entry.id}
+                          itemOnly
+                          hideLabel
+                          onChange={(next) => {
+                            if (
+                              !next ||
+                              next.id === entry.id ||
+                              items.some((item) => item.id === next.id)
+                            ) {
+                              return;
+                            }
+                            onChange(
+                              items.map((item) =>
+                                item.id === entry.id
+                                  ? { ...item, id: next.id }
+                                  : item,
+                              ),
+                            );
+                          }}
+                        />
+                        <span className="min-w-0 leading-5">
                           {getItemName(entry.id)}
                         </span>
                       </div>
@@ -571,7 +331,7 @@ export function IoItemsField({
                         onChange={(e) =>
                           handleQuantityChange(entry.id, e.target.value)
                         }
-                        className="w-full"
+                        className="w-20"
                       />
                     </TableCell>
                     {showReason ? (
@@ -619,6 +379,26 @@ export function IoItemsField({
             </TableBody>
           </Table>
         )}
+      </div>
+      <div className="mt-3 flex items-center justify-between gap-4">
+        <ItemIconField
+          label={`${label} item`}
+          itemOnly
+          hideLabel
+          disabled={maxItems !== undefined && items.length >= maxItems}
+          triggerContent={
+            <>
+              <IconPlus size={16} />
+              Add item
+            </>
+          }
+          onChange={handleAddItem}
+        />
+        {maxItems !== undefined ? (
+          <p className={EDITOR_META_TEXT_CLASS}>
+            {items.length}/{maxItems} items
+          </p>
+        ) : null}
       </div>
     </div>
   );

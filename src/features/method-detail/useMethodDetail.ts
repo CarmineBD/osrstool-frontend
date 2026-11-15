@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { fetchMe, getMeQueryKey } from "@/lib/me";
@@ -18,13 +18,16 @@ import {
   fetchIconRecords,
   fetchItems,
   fetchMethodDetailBySlug,
+  fetchMethodDetailWithModifiers,
   getIconReferenceKey,
   normalizeIconSource,
   type IconRecord,
   type Item,
   type Method,
   type MethodDetailResponse,
+  type PlayerInfo,
   type Variant,
+  type VariantModifierSelection,
 } from "@/lib/api";
 import { getOrderedVariants } from "@/features/method-detail/variantOrdering";
 
@@ -32,6 +35,7 @@ export interface UseMethodDetailResult {
   methodParam: string;
   variantSlug?: string;
   method?: Method;
+  player: PlayerInfo | null;
   creatorAvatarUrl?: string;
   error: Error | null;
   isLoading: boolean;
@@ -42,6 +46,10 @@ export interface UseMethodDetailResult {
   methodSlug: string;
   hasMultipleVariants: boolean;
   isSuperAdmin: boolean;
+  isAuthenticated: boolean;
+  isModifierLoading: boolean;
+  modifierError: Error | null;
+  setModifierSelection: (selection?: VariantModifierSelection) => void;
   getItemsTotal: (items: Variant["inputs"]) => number;
 }
 
@@ -53,8 +61,24 @@ export function useMethodDetail(): UseMethodDetailResult {
   const { player, setUserError } = useUsername();
   const { session } = useAuth();
   const normalizedMethodSlug = normalizeMethodSlug(methodParam);
+  const [modifierSelection, setModifierSelectionState] =
+    useState<VariantModifierSelection | undefined>(undefined);
+  const [modifierSelectionMethodSlug, setModifierSelectionMethodSlug] =
+    useState<string | undefined>(undefined);
+  const [modifiedDetail, setModifiedDetail] = useState<{
+    methodSlug: string;
+    methodId: string;
+    dataUpdatedAt: number;
+    detail: MethodDetailResponse;
+  } | undefined>(undefined);
+  const [modifierError, setModifierError] = useState<Error | null>(null);
+  const [isModifierLoading, setIsModifierLoading] = useState(false);
+  const modifierRequestId = useRef(0);
 
-  const { data, error, isLoading } = useQuery<MethodDetailResponse, Error>({
+  const { data, error, isLoading, dataUpdatedAt } = useQuery<
+    MethodDetailResponse,
+    Error
+  >({
     queryKey: getMethodDetailQueryKey(
       normalizedMethodSlug,
       player ?? undefined,
@@ -66,6 +90,77 @@ export function useMethodDetail(): UseMethodDetailResult {
     refetchInterval: QUERY_REFETCH_INTERVAL_MS,
     retry: false,
   });
+
+  const setModifierSelection = useCallback(
+    (selection?: VariantModifierSelection) => {
+      modifierRequestId.current += 1;
+      setModifierSelectionState(selection);
+      setModifierSelectionMethodSlug(
+        selection?.modifiers.length ? normalizedMethodSlug : undefined,
+      );
+      setModifiedDetail(undefined);
+      setModifierError(null);
+      if (!selection?.modifiers.length) setIsModifierLoading(false);
+    },
+    [normalizedMethodSlug],
+  );
+
+  useEffect(() => {
+    modifierRequestId.current += 1;
+    setModifierSelectionState(undefined);
+    setModifierSelectionMethodSlug(undefined);
+    setModifiedDetail(undefined);
+    setModifierError(null);
+    setIsModifierLoading(false);
+  }, [normalizedMethodSlug]);
+
+  const activeModifierSelection =
+    modifierSelectionMethodSlug === normalizedMethodSlug
+      ? modifierSelection
+      : undefined;
+
+  useEffect(() => {
+    if (!activeModifierSelection?.modifiers.length || !data?.method.id) return;
+
+    const requestId = modifierRequestId.current + 1;
+    modifierRequestId.current = requestId;
+    const methodId = data.method.id;
+    setModifiedDetail(undefined);
+    setIsModifierLoading(true);
+    setModifierError(null);
+    void fetchMethodDetailWithModifiers(
+      methodId,
+      [activeModifierSelection],
+      player ?? undefined,
+    )
+      .then((detail) => {
+        if (requestId === modifierRequestId.current) {
+          setModifiedDetail({
+            methodSlug: normalizedMethodSlug,
+            methodId,
+            dataUpdatedAt,
+            detail,
+          });
+        }
+      })
+      .catch((requestError: unknown) => {
+        if (requestId !== modifierRequestId.current) return;
+        setModifierError(
+          requestError instanceof Error
+            ? requestError
+            : new Error("Unable to apply modifiers."),
+        );
+      })
+      .finally(() => {
+        if (requestId === modifierRequestId.current) setIsModifierLoading(false);
+      });
+  }, [
+    activeModifierSelection,
+    data?.method.id,
+    dataUpdatedAt,
+    normalizedMethodSlug,
+    player,
+  ]);
 
   const { data: meData } = useQuery({
     queryKey: getMeQueryKey(session?.user?.id),
@@ -87,7 +182,12 @@ export function useMethodDetail(): UseMethodDetailResult {
     );
   }, [error, setUserError]);
 
-  const method = data?.method;
+  const method =
+    modifiedDetail?.methodSlug === normalizedMethodSlug &&
+    modifiedDetail.methodId === data?.method.id &&
+    modifiedDetail?.dataUpdatedAt === dataUpdatedAt
+      ? modifiedDetail.detail.method
+      : data?.method;
   const creatorAvatarUrl =
     method?.created_by?.id &&
     session?.user?.id &&
@@ -153,6 +253,7 @@ export function useMethodDetail(): UseMethodDetailResult {
     methodParam,
     variantSlug,
     method,
+    player,
     creatorAvatarUrl,
     error,
     isLoading,
@@ -163,6 +264,10 @@ export function useMethodDetail(): UseMethodDetailResult {
     methodSlug,
     hasMultipleVariants,
     isSuperAdmin,
+    isAuthenticated: !!session,
+    isModifierLoading,
+    modifierError,
+    setModifierSelection,
     getItemsTotal,
   };
 }

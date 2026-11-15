@@ -45,7 +45,9 @@ export function formatOsrsItemQuantity(quantity: number): {
   }
 
   return {
-    label: String(quantity),
+    label: quantity.toLocaleString(undefined, {
+      maximumFractionDigits: quantity >= 100 ? 0 : quantity >= 1 ? 1 : 3,
+    }),
     color: "yellow",
     showExactQuantity: false,
   };

@@ -223,6 +223,11 @@ export function MethodDetail(_props: Props) {
                         variant={activeVariant}
                         itemsMap={state.itemsMap}
                         username={username}
+                        player={state.player}
+                        isAuthenticated={state.isAuthenticated}
+                        isModifierLoading={state.isModifierLoading}
+                        modifierError={state.modifierError}
+                        onModifierSelectionChange={state.setModifierSelection}
                         creatorAvatarUrl={state.creatorAvatarUrl}
                         iconUrl={
                           activeVariant.icon_id

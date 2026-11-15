@@ -12,7 +12,10 @@ import { z } from "zod";
 import { useNavigate, useParams } from "react-router-dom";
 import { useUsername } from "@/contexts/UsernameContext";
 import { calculateDynamicCycleSummary } from "@/lib/dynamicCycle";
-import { createEditorDynamicAction } from "@/features/method-upsert/dynamicActionFailureState";
+import {
+  createEditorDynamicAction,
+  MAX_BASE_SUCCESS_CHANCE,
+} from "@/features/method-upsert/dynamicActionFailureState";
 import { getMethodDetailQueryKey, normalizeMethodSlug } from "@/lib/queryKeys";
 import {
   ApiRequestError,
@@ -45,6 +48,7 @@ import {
   MAX_CLICK_INTENSITY,
   MAX_ITEM_QUANTITY,
   MAX_ITEM_QUANTITY_DECIMAL_PLACES,
+  MAX_SKILL_CURVE_LEVEL,
   MAX_SKILL_LEVEL,
   MAX_XP_HOUR_SKILLS,
   MAX_XP_PER_HOUR,
@@ -125,6 +129,80 @@ function createEditorVariant(variant: Variant): Variant {
   };
 }
 
+function createTargetId(): string {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
+    /[xy]/g,
+    (character) => {
+      const random = Math.floor(Math.random() * 16);
+      const value = character === "x" ? random : (random & 0x3) | 0x8;
+      return value.toString(16);
+    },
+  );
+}
+
+function duplicateDynamicVariantTargets(variant: Variant): Variant {
+  if (variant.calculationMode !== "dynamic" || !variant.dynamicAction) {
+    return variant;
+  }
+
+  const actionId = createTargetId();
+  const stepTargetIds = new Map<string, string>();
+  const cycleSteps = (variant.cycleSteps ?? []).map((step) => {
+    const currentTargetId = step.targetId ?? step.id;
+    const targetId = createTargetId();
+    if (currentTargetId) stepTargetIds.set(currentTargetId, targetId);
+    return { ...step, id: undefined, targetId };
+  });
+  const dynamicAction = {
+    ...variant.dynamicAction,
+    id: actionId,
+    inputs: variant.dynamicAction.inputs.map((item) => ({
+      ...item,
+      targetId: undefined,
+    })),
+    outputs: variant.dynamicAction.outputs.map((item) => ({
+      ...item,
+      targetId: undefined,
+    })),
+    xpGained: variant.dynamicAction.xpGained.map((entry) => ({
+      ...entry,
+      targetId: undefined,
+    })),
+    failureInputs: variant.dynamicAction.failureInputs?.map((item) => ({
+      ...item,
+      targetId: undefined,
+    })),
+    failureOutputs: variant.dynamicAction.failureOutputs?.map((item) => ({
+      ...item,
+      targetId: undefined,
+    })),
+    failureXpGained: variant.dynamicAction.failureXpGained?.map((entry) => ({
+      ...entry,
+      targetId: undefined,
+    })),
+  };
+
+  return {
+    ...variant,
+    dynamicAction,
+    cycleSteps,
+    modifiers: variant.modifiers?.map((modifier) => ({
+      ...modifier,
+      id: undefined,
+      effects: modifier.effects.map((effect) => ({
+        ...effect,
+        id: undefined,
+        target_id:
+          effect.target_type === "actions"
+            ? actionId
+            : (stepTargetIds.get(effect.target_id) ?? effect.target_id),
+      })),
+    })),
+  };
+}
+
 function normalizeVariantLabel(label: string): string {
   return label.trim().toLowerCase();
 }
@@ -166,6 +244,184 @@ function normalizeMethodCategory(
 
 function isCombatRequirementSkill(skill: string): boolean {
   return skill.trim().toLowerCase() === "combat";
+}
+
+export function validateDynamicModifiers(
+  variant: Variant,
+  variantLabel: string,
+): string | null {
+  const modifiers = variant.modifiers ?? [];
+  if (modifiers.length === 0) return null;
+
+  const actionId = variant.dynamicAction?.id;
+  const cycleStepIds = new Set(
+    (variant.cycleSteps ?? []).map((step) => step.targetId ?? step.id),
+  );
+  if (!actionId || cycleStepIds.has(undefined)) {
+    return `${variantLabel}: modifiers require an action and target IDs for every cycle step.`;
+  }
+
+  const selectedSkills = new Set<number>();
+  for (const [modifierIndex, modifier] of modifiers.entries()) {
+    const modifierLabel = `modifier ${modifierIndex + 1}`;
+    if (!modifier.name.trim()) {
+      return `${variantLabel}: ${modifierLabel} name is required.`;
+    }
+    if (modifier.name.trim().length > 160) {
+      return `${variantLabel}: ${modifierLabel} name must be 160 characters or fewer.`;
+    }
+    if (modifier.type === "skill_level") {
+      const skillId = modifier.skill_id;
+      if (
+        typeof skillId !== "number" ||
+        !Number.isSafeInteger(skillId) ||
+        skillId <= 0
+      ) {
+        return `${variantLabel}: ${modifierLabel} must select a skill.`;
+      }
+      if (selectedSkills.has(skillId)) {
+        return `${variantLabel}: a skill can only have one modifier.`;
+      }
+      selectedSkills.add(skillId);
+    }
+    if (modifier.effects.length === 0) {
+      return `${variantLabel}: ${modifierLabel} requires at least one effect.`;
+    }
+
+    for (const [effectIndex, effect] of modifier.effects.entries()) {
+      const effectLabel = `${modifierLabel}, effect ${effectIndex + 1}`;
+      const actionFields = ["baseSuccessChance", "rollIntervalTicks"];
+      const cycleFields = [
+        "durationTicks",
+        "clicksMade",
+        "isAfk",
+        "actionsMade",
+      ];
+      const fields =
+        effect.target_type === "actions" ? actionFields : cycleFields;
+      const isKnownTarget =
+        effect.target_type === "actions"
+          ? effect.target_id === actionId
+          : cycleStepIds.has(effect.target_id);
+      if (!isKnownTarget || !fields.includes(effect.target_property)) {
+        return `${variantLabel}: ${effectLabel} has an invalid target or field.`;
+      }
+      if (
+        !["set", "add", "multiply"].includes(effect.operation) ||
+        (effect.target_property === "isAfk" && effect.operation !== "set")
+      ) {
+        return `${variantLabel}: ${effectLabel} has an invalid operation.`;
+      }
+
+      const isAfk = effect.target_property === "isAfk";
+      const tickField =
+        effect.target_property === "durationTicks" ||
+        effect.target_property === "rollIntervalTicks";
+      const successChance = effect.target_property === "baseSuccessChance";
+      const decimalField =
+        effect.target_property === "clicksMade" ||
+        effect.target_property === "actionsMade";
+      const mustUseCurve = modifier.type === "skill_level" && !isAfk;
+      if (
+        (mustUseCurve && effect.value_type !== "curve") ||
+        (!mustUseCurve && effect.value_type !== "constant")
+      ) {
+        return `${variantLabel}: ${effectLabel} has an invalid value type.`;
+      }
+      if (isAfk) {
+        if (typeof effect.value !== "boolean") {
+          return `${variantLabel}: ${effectLabel} must use a true or false value.`;
+        }
+        continue;
+      }
+
+      const validateNumber = (value: number): string | null => {
+        if (!Number.isFinite(value)) return "must use a number.";
+        if (successChance) {
+          if (
+            effect.operation === "set" &&
+            (value <= 0 ||
+              value > 1 ||
+              !hasAtMostDecimalPlaces(value * 100, 2))
+          ) {
+            return "success chance must be greater than 0% and at most 100%, with up to 2 decimals.";
+          }
+          if (
+            effect.operation === "add" &&
+            !hasAtMostDecimalPlaces(value * 100, 2)
+          ) {
+            return "success chance adjustments must use up to 2 decimal places.";
+          }
+          if (
+            effect.operation === "multiply" &&
+            (value < 0 || !hasAtMostDecimalPlaces(value, 2))
+          ) {
+            return "success chance multipliers must be non-negative numbers with up to 2 decimals.";
+          }
+        }
+        if (tickField) {
+          if (
+            effect.operation === "set" &&
+            (!Number.isSafeInteger(value) ||
+              (effect.target_property === "rollIntervalTicks" && value <= 0) ||
+              (effect.target_property === "durationTicks" && value < 0))
+          ) {
+            return "duration and roll interval values must be valid multiples of 0.6 seconds.";
+          }
+          if (
+            effect.operation === "add" &&
+            !Number.isSafeInteger(value)
+          ) {
+            return "duration and roll interval adjustments must be valid multiples of 0.6 seconds.";
+          }
+          if (effect.operation === "multiply" && value < 0) {
+            return "duration and roll interval multipliers must be non-negative.";
+          }
+        }
+        if (decimalField && !hasAtMostDecimalPlaces(value, 2)) {
+          return "must use at most 2 decimal places.";
+        }
+        return null;
+      };
+
+      if (effect.value_type === "constant") {
+        if (typeof effect.value !== "number") {
+          return `${variantLabel}: ${effectLabel} must use a number.`;
+        }
+        const valueError = validateNumber(effect.value);
+        if (valueError) return `${variantLabel}: ${effectLabel} ${valueError}`;
+        continue;
+      }
+
+      if (
+        typeof effect.value !== "object" ||
+        effect.value === null ||
+        effect.value.interpolation !== "linear" ||
+        !Array.isArray(effect.value.points) ||
+        effect.value.points.length < 2 ||
+        effect.value.points.length > MAX_SKILL_LEVEL
+      ) {
+        return `${variantLabel}: ${effectLabel} needs between 2 and ${MAX_SKILL_LEVEL} curve points.`;
+      }
+      for (const [pointIndex, point] of effect.value.points.entries()) {
+        if (
+          !Number.isSafeInteger(point.input) ||
+          point.input < 1 ||
+          point.input > MAX_SKILL_CURVE_LEVEL ||
+          (pointIndex > 0 &&
+            point.input <= effect.value.points[pointIndex - 1].input)
+        ) {
+          return `${variantLabel}: ${effectLabel} curve levels must be strictly increasing from 1 to ${MAX_SKILL_CURVE_LEVEL}.`;
+        }
+        const valueError = validateNumber(point.output);
+        if (valueError) {
+          return `${variantLabel}: ${effectLabel} curve point ${pointIndex + 1} ${valueError}`;
+        }
+      }
+    }
+  }
+
+  return null;
 }
 
 function validateVariant(variant: Variant, index: number): string | null {
@@ -232,10 +488,10 @@ function validateVariant(variant: Variant, index: number): string | null {
       (dynamicAction.baseSuccessChance !== undefined &&
         (!Number.isFinite(dynamicAction.baseSuccessChance) ||
           dynamicAction.baseSuccessChance < 0.0001 ||
-          dynamicAction.baseSuccessChance > 0.9999 ||
+          dynamicAction.baseSuccessChance > MAX_BASE_SUCCESS_CHANCE ||
           !hasAtMostDecimalPlaces(dynamicAction.baseSuccessChance, 4)))
     ) {
-      return `${variantLabel}: base success chance must be between 0.01% and 99.99%.`;
+      return `${variantLabel}: base success chance must be between 0.01% and 100%.`;
     }
     if (dynamicAction.xpGained.length > MAX_XP_HOUR_SKILLS) {
       return `${variantLabel}: XP received supports at most ${MAX_XP_HOUR_SKILLS} skills.`;
@@ -293,6 +549,8 @@ function validateVariant(variant: Variant, index: number): string | null {
     ) {
       return `${variantLabel}: total cycle duration must be greater than zero.`;
     }
+    const modifiersError = validateDynamicModifiers(variant, variantLabel);
+    if (modifiersError) return modifiersError;
   }
   if (
     !isDynamic &&
@@ -932,7 +1190,7 @@ export function useMethodUpsert(mode: MethodUpsertMode) {
         currentVariants,
       );
       const nextVariant: Variant = {
-        ...cloned,
+        ...duplicateDynamicVariantTargets(cloned),
         id: undefined,
         slug: undefined,
         label: nextLabel,

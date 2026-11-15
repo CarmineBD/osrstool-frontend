@@ -117,7 +117,7 @@ export function EditorSubsection({
   return (
     <section
       className={cn(
-        "space-y-4 px-6 py-6",
+        "space-y-4 px-6 py-8",
         bordered && "border-t border-border/60",
         className,
       )}
@@ -207,7 +207,7 @@ export function PixelArtIcon({
 }
 
 interface InlineSwitchFieldProps {
-  label: string;
+  label: ReactNode;
   checked: boolean;
   stateLabel: string;
   onCheckedChange: (checked: boolean) => void;

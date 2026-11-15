@@ -293,6 +293,77 @@ describe("api method payloads", () => {
     });
   });
 
+  it("omits skill_id for non-skill modifiers", () => {
+    const payload = buildMethodUpdatePayload(
+      {
+        name: "Dynamic method",
+        category: "combat",
+        description: "Test",
+        enabled: true,
+        icon_id: 4151,
+        iconSource: "item",
+      },
+      [
+        {
+          label: "Dynamic",
+          icon_id: 11284,
+          iconSource: "item",
+          members: true,
+          calculationMode: "dynamic",
+          xpHour: [],
+          requirements: {},
+          inputs: [],
+          outputs: [],
+          dynamicAction: {
+            id: "a2c7d1f1-7a68-4f1d-a1d9-d2d0d7ce5e33",
+            name: "Kill a monster",
+            rollIntervalTicks: 4,
+            inputs: [],
+            outputs: [],
+            xpGained: [],
+          },
+          cycleSteps: [
+            {
+              targetId: "b42fd577-078c-46aa-a66a-c462afb35511",
+              name: "Kill",
+              stepOrderPosition: 1,
+              clicksMade: 2,
+              actionsMade: 1,
+              isAfk: false,
+            },
+          ],
+          modifiers: [
+            {
+              name: "Myths guild",
+              type: "location",
+              skill_id: null,
+              effects: [
+                {
+                  target_type: "cycle_steps",
+                  target_id: "b42fd577-078c-46aa-a66a-c462afb35511",
+                  target_property: "actionsMade",
+                  operation: "set",
+                  value_type: "constant",
+                  value: 2,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    );
+
+    expect(payload.variants[0]).toMatchObject({
+      modifiers: [
+        {
+          name: "Myths guild",
+          type: "location",
+        },
+      ],
+    });
+    expect(payload.variants[0]).not.toHaveProperty("modifiers.0.skill_id");
+  });
+
   it("maps matching effects to always and preserves a success-only XP effect", () => {
     const payload = buildMethodUpdatePayload(
       {

@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from "react";
+import { IconInfoCircle } from "@tabler/icons-react";
 import {
   EDITOR_ERROR_TEXT_CLASS,
   EDITOR_FIELD_LABEL_CLASS,
   EDITOR_META_TEXT_CLASS,
-  EDITOR_NESTED_SURFACE_CLASS,
   EDITOR_SUBSECTION_TITLE_CLASS,
   EditorSubsection,
   InlineSwitchField,
 } from "@/components/method-editor/MethodEditorPrimitives";
 import { ItemIconField } from "@/components/ItemIconField";
 import { DynamicCycleStepsField } from "@/components/DynamicCycleStepsField";
+import { ModifierEditor } from "@/components/ModifierEditor";
 import { IoItemsField } from "@/components/IoItemsField";
 import { RequirementsRecommendationsField } from "@/components/RequirementsRecommendationsField";
 import { XpSkillsField } from "@/components/XpSkillsField";
@@ -35,8 +36,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type {
   AchievementDiaryOption,
+  DynamicCycleStep,
   DynamicVariantAction,
   QuestOption,
   SkillOption,
@@ -96,7 +103,7 @@ function normalizeIconId(value: number | null | undefined): number | undefined {
     : undefined;
 }
 
-function createEmptyCycleStep() {
+function createEmptyCycleStep(): DynamicCycleStep {
   return {
     name: "",
     stepOrderPosition: 1,
@@ -109,6 +116,21 @@ function createEmptyCycleStep() {
 
 function normalizeSkillKey(value: string): string {
   return value.trim().toLowerCase();
+}
+
+function createTargetId(): string {
+  if (globalThis.crypto?.randomUUID) {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
+    /[xy]/g,
+    (character) => {
+      const random = Math.floor(Math.random() * 16);
+      const value = character === "x" ? random : (random & 0x3) | 0x8;
+      return value.toString(16);
+    },
+  );
 }
 
 export function VariantForm({
@@ -166,9 +188,12 @@ export function VariantForm({
   const [canFail, setCanFail] = useState(
     hasConditionalEffects(variant.dynamicAction),
   );
-  const [cycleSteps, setCycleSteps] = useState(
+  const [cycleSteps, setCycleSteps] = useState<
+    NonNullable<Variant["cycleSteps"]>
+  >(
     variant.cycleSteps?.length ? variant.cycleSteps : [createEmptyCycleStep()],
   );
+  const [modifiers, setModifiers] = useState(variant.modifiers ?? []);
 
   useEffect(() => {
     setLabel(variant.label);
@@ -198,7 +223,23 @@ export function VariantForm({
         ? variant.cycleSteps
         : [createEmptyCycleStep()],
     );
+    setModifiers(variant.modifiers ?? []);
   }, [variant]);
+
+  useEffect(() => {
+    if (calculationMode !== "dynamic") return;
+
+    setDynamicAction((current) =>
+      current.id ? current : { ...current, id: createTargetId() },
+    );
+    setCycleSteps((current) =>
+      current.map((step) =>
+        step.targetId ?? step.id
+          ? step
+          : { ...step, targetId: createTargetId() },
+      ),
+    );
+  }, [calculationMode]);
 
   const iconError =
     showValidationErrors && !iconId ? "Variant icon is required" : undefined;
@@ -237,26 +278,65 @@ export function VariantForm({
       dynamicAction.baseSuccessChance < MIN_BASE_SUCCESS_CHANCE ||
       dynamicAction.baseSuccessChance > MAX_BASE_SUCCESS_CHANCE ||
       !hasAtMostDecimalPlaces(dynamicAction.baseSuccessChance, 4))
-      ? "Base success chance is required and must be between 0.01% and 99.99%."
+      ? "Base success chance is required and must be between 0.01% and 100%."
       : undefined;
 
   const updateDynamicAction = (next: DynamicVariantAction) => {
-    setDynamicAction(next);
+    const nextAction = next.id ? next : { ...next, id: createTargetId() };
+    const nextSteps = cycleSteps.map((step) =>
+      step.targetId ?? step.id
+        ? step
+        : { ...step, targetId: createTargetId() },
+    );
+    setDynamicAction(nextAction);
+    setCycleSteps(nextSteps);
     onChange?.({
       ...variant,
       calculationMode: "dynamic",
-      dynamicAction: next,
-      cycleSteps,
+      dynamicAction: nextAction,
+      cycleSteps: nextSteps,
+      modifiers,
     });
   };
 
   const updateCycleSteps = (next: NonNullable<Variant["cycleSteps"]>) => {
-    setCycleSteps(next);
+    const nextAction = dynamicAction.id
+      ? dynamicAction
+      : { ...dynamicAction, id: createTargetId() };
+    const nextSteps = next.map((step) =>
+      step.targetId ?? step.id
+        ? step
+        : { ...step, targetId: createTargetId() },
+    );
+    setDynamicAction(nextAction);
+    setCycleSteps(nextSteps);
     onChange?.({
       ...variant,
       calculationMode: "dynamic",
-      dynamicAction,
-      cycleSteps: next,
+      dynamicAction: nextAction,
+      cycleSteps: nextSteps,
+      modifiers,
+    });
+  };
+
+  const updateModifiers = (next: NonNullable<Variant["modifiers"]>) => {
+    const nextAction = dynamicAction.id
+      ? dynamicAction
+      : { ...dynamicAction, id: createTargetId() };
+    const nextSteps = cycleSteps.map((step) =>
+      step.targetId ?? step.id
+        ? step
+        : { ...step, targetId: createTargetId() },
+    );
+    setDynamicAction(nextAction);
+    setCycleSteps(nextSteps);
+    setModifiers(next);
+    onChange?.({
+      ...variant,
+      calculationMode: "dynamic",
+      dynamicAction: nextAction,
+      cycleSteps: nextSteps,
+      modifiers: next,
     });
   };
 
@@ -269,7 +349,7 @@ export function VariantForm({
   }));
 
   return (
-    <div className={cn("min-w-0 overflow-hidden", EDITOR_NESTED_SURFACE_CLASS)}>
+    <div className="min-w-0 space-y-8 overflow-hidden">
       <EditorSubsection
         title="Basics"
         bordered={false}
@@ -397,6 +477,7 @@ export function VariantForm({
                   ? {
                       dynamicAction,
                       cycleSteps,
+                      modifiers,
                     }
                   : {}),
               });
@@ -603,7 +684,7 @@ export function VariantForm({
             description="Define the action completed during this cycle."
             contentClassName="space-y-6"
           >
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,10rem)] lg:items-start">
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,10rem)_max-content_minmax(0,10rem)] lg:items-start">
               <div>
                 <label className={EDITOR_FIELD_LABEL_CLASS}>
                   Action name
@@ -638,44 +719,62 @@ export function VariantForm({
                   Roll interval (seconds)
                   <RequiredMark />
                 </label>
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step="0.6"
-                  value={formatGameTickSeconds(dynamicAction.rollIntervalTicks)}
-                  className={cn(
-                    "bg-background",
-                    rollIntervalTicksError &&
-                      "border-destructive focus-visible:ring-destructive",
-                  )}
-                  onChange={(event) =>
-                    updateDynamicAction({
-                      ...dynamicAction,
-                      rollIntervalTicks:
-                        event.target.value === ""
-                          ? 0
-                          : (secondsToGameTicks(event.target.valueAsNumber) ??
-                            0),
-                    })
-                  }
-                />
-                {isWholeGameTick(dynamicAction.rollIntervalTicks) ? (
-                  <p className={cn("mt-2", EDITOR_META_TEXT_CLASS)}>
-                    {formatGameTickCount(dynamicAction.rollIntervalTicks)}
-                  </p>
-                ) : null}
+                <div className="flex min-w-0 items-center gap-2">
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step="0.6"
+                    value={formatGameTickSeconds(dynamicAction.rollIntervalTicks)}
+                    className={cn(
+                      "min-w-0 flex-1 bg-background",
+                      rollIntervalTicksError &&
+                        "border-destructive focus-visible:ring-destructive",
+                    )}
+                    onChange={(event) =>
+                      updateDynamicAction({
+                        ...dynamicAction,
+                        rollIntervalTicks:
+                          event.target.value === ""
+                            ? 0
+                            : (secondsToGameTicks(event.target.valueAsNumber) ??
+                              0),
+                      })
+                    }
+                  />
+                  {isWholeGameTick(dynamicAction.rollIntervalTicks) ? (
+                    <span className={cn("shrink-0", EDITOR_META_TEXT_CLASS)}>
+                      {formatGameTickCount(dynamicAction.rollIntervalTicks)}
+                    </span>
+                  ) : null}
+                </div>
                 {rollIntervalTicksError ? (
                   <p className={cn("mt-1", EDITOR_ERROR_TEXT_CLASS)}>
                     {rollIntervalTicksError}
                   </p>
                 ) : null}
               </div>
-            </div>
 
-            <div className="grid gap-4 md:grid-cols-[max-content_minmax(0,10rem)] md:items-start">
               <InlineSwitchField
-                label="Can fail"
+                label={
+                  <span className="inline-flex items-center gap-1">
+                    Can fail
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          aria-label="Can fail information"
+                          className="text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                          <IconInfoCircle size={14} />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Enable this to configure separate inputs, outputs, and XP for failed actions.
+                      </TooltipContent>
+                    </Tooltip>
+                  </span>
+                }
                 checked={canFail}
                 stateLabel={canFail ? "Enabled" : "Disabled"}
                 onCheckedChange={(checked) => {
@@ -763,6 +862,9 @@ export function VariantForm({
               ) : null}
             </div>
 
+            {canFail ? (
+              <p className={EDITOR_SUBSECTION_TITLE_CLASS}>On success</p>
+            ) : null}
             <div className="grid gap-6 lg:grid-cols-2">
               <IoItemsField
                 label="Inputs"
@@ -818,14 +920,8 @@ export function VariantForm({
                 });
               }}
             />
-            {dynamicAction.xpGained.length === 0 ? (
-              <p className={EDITOR_META_TEXT_CLASS}>
-                No experience received on success.
-              </p>
-            ) : null}
-
             {canFail ? (
-              <div className={cn("space-y-4 p-4", EDITOR_NESTED_SURFACE_CLASS)}>
+              <div className="space-y-4">
                 <p className={EDITOR_SUBSECTION_TITLE_CLASS}>On failure</p>
                 <div className="grid gap-6 lg:grid-cols-2">
                   <IoItemsField
@@ -900,11 +996,6 @@ export function VariantForm({
                     });
                   }}
                 />
-                {(dynamicAction.failureXpGained ?? []).length === 0 ? (
-                  <p className={EDITOR_META_TEXT_CLASS}>
-                    No experience received on failure.
-                  </p>
-                ) : null}
               </div>
             ) : null}
           </EditorSubsection>
@@ -918,6 +1009,19 @@ export function VariantForm({
               rollIntervalTicks={dynamicAction.rollIntervalTicks}
               onChange={updateCycleSteps}
               showValidationErrors={showValidationErrors}
+            />
+          </EditorSubsection>
+
+          <EditorSubsection
+            title="Modifiers"
+            description="Apply contextual effects to the action or individual cycle steps."
+          >
+            <ModifierEditor
+              modifiers={modifiers}
+              actionId={dynamicAction.id}
+              steps={cycleSteps}
+              skillOptions={skillOptions}
+              onChange={updateModifiers}
             />
           </EditorSubsection>
         </>
